@@ -172,20 +172,5 @@
     <script src="js/languageSwitcher.js"></script>
 	 <!-- Flag Country-->
 	<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-	<script>
-    $(document).ready(function() {
-        $('#languageSelector').select2({
-            templateResult: formatOption,
-            templateSelection: formatOption
-        });
-    });
-
-    function formatOption(option) {
-        if (!option.id) { return option.text; }
-        var $icon = $(option.element).data('icon');
-        var $text = option.text;
-        return $('<span><i class="' + $icon + '"></i> ' + $text + '</span>');
-    }
-</script>
 </body>
 </html>
