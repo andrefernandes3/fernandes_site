@@ -1,0 +1,12 @@
+/* Estilos apenas para a classe da página de manutenção */
+.manutenção {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background-color: #f4f4f4;
+}
+
+.manutenção .container {
+    text-align: center;
+}
