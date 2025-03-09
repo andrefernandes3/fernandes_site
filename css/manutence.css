@@ -1,12 +1,12 @@
-/* Estilos apenas para a classe da página de manutenção */
-.manutenção {
+body {
     display: flex;
     justify-content: center;
     align-items: center;
     height: 100vh;
-    background-color: #f4f4f4;
+    margin: 0; /* Remove margens padrão */
+    background-color: #f4f4f4; /* Opcional: pode ajustar o fundo */
 }
 
-.manutenção .container {
+.maintenance-container {
     text-align: center;
 }
