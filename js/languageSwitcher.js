@@ -51,7 +51,16 @@ const translations = {
         newsletterDescription: "Sign up for our newsletter for the latest updates.",
         newsletterPlaceholder: "Email address...",
         newsletterButton: "Sign up",
-        newsletterPrivacy: "We care about privacy, and will never share your data.",        
+        newsletterPrivacy: "We care about privacy, and will never share your data.",
+        newWayToBuildSolutions: "A new way to build solutions.",
+		innovativeTechnology: "Innovative Technology",
+		latestTechnologies: "We use the latest technologies to offer efficient and modern solutions.",
+		specializedConsulting: "Specialized Consulting",
+		specializedConsultingDescription: "Our team of specialists is ready to help you achieve your goals.",
+		customSolutions: "Customized Solutions",
+		customSolutionsDescription: "We develop tailor-made solutions to meet the needs of your business." ,                               
+		support247: "24/7 Support",
+		support247Description: "We offer full technical support to ensure the continuous operation of your systems."
 	},
     pt: {
         missionTitle: "Nossa missão é simplificar a tecnologia para todos.",
@@ -105,7 +114,16 @@ const translations = {
         newsletterDescription: "Assine nossa newsletter para as últimas atualizações.",
         newsletterPlaceholder: "Endereço de e-mail...",
         newsletterButton: "Assinar",
-        newsletterPrivacy: "Nós nos importamos com a privacidade e nunca compartilharemos seus dados.",     
+        newsletterPrivacy: "Nós nos importamos com a privacidade e nunca compartilharemos seus dados.",
+		newWayToBuildSolutions: "Uma nova maneira de construir soluções.",
+		innovativeTechnology: "Tecnologia Inovadora",
+		latestTechnologies: "Utilizamos as mais recentes tecnologias para oferecer soluções eficientes e modernas.",
+		specializedConsulting: "Consultoria Especializada",
+		specializedConsultingDescription: "Nossa equipe de especialistas está pronta para ajudar você a alcançar seus objetivos.",
+		customSolutions: "Soluções Personalizadas",
+		customSolutionsDescription: "Desenvolvemos soluções sob medida para atender às necessidades do seu negócio" ,                               
+		support247: "Suporte 24/7",
+		support247Description: "Oferecemos suporte técnico completo para garantir o funcionamento contínuo dos seus sistemas."
 	}
 };
 
