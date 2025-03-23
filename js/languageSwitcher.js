@@ -1,7 +1,7 @@
 const translations = {
     en: {
         missionTitle: "Our mission is to make technology simpler for everyone.",
-        missionText: "At Fernandes Technology, we believe that efficient and innovative IT solutions should be accessible to every business. We provide expert consulting, cutting-edge technology implementation, and ongoing support to help your organization achieve its goals. Use our free services or support us by purchasing our premium solutions to drive your digital transformation.",
+        missionText: "At Fernandes Technology, we believe that efficient and innovative IT solutions should be accessible to businesses of all sizes. We offer specialized consulting, cutting-edge technology implementation, and continuous support to help your organization achieve its goals. Contact us to learn more about our tailored solutions and discover how we can drive your digital transformation forward.",
         readStory: "Read our story",
 		contactTitle: "Get in touch",
 		contactSubtitle: "We'd love to hear from you",
@@ -62,7 +62,7 @@ const translations = {
 	},
     pt: {
         missionTitle: "Nossa missão é simplificar a tecnologia para todos.",
-        missionText: "Na Fernandes Technology, acreditamos que soluções de TI eficientes e inovadoras devem estar ao alcance de todas as empresas. Oferecemos consultoria especializada, implementação de tecnologias de ponta e suporte contínuo para ajudar sua organização a alcançar seus objetivos. Utilize nossos serviços gratuitos ou apoie-nos adquirindo nossas soluções premium para impulsionar sua transformação digital.",
+        missionText: "Na Fernandes Technology, acreditamos que soluções de TI eficientes e inovadoras devem estar ao alcance de todas as empresas. Oferecemos consultoria especializada, implementação de tecnologias de ponta e suporte contínuo para ajudar sua organização a alcançar seus objetivos. Entre em contato conosco para conhecer nossas soluções personalizadas e descobrir como podemos impulsionar sua transformação digital.",
         readStory: "Leia nossa história",
 		contactTitle: "Entre em contato",
 		contactSubtitle: "Adoraríamos ouvir de você",
