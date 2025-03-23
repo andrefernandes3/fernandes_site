@@ -67,7 +67,7 @@ const translations = {
 		fullNameLabel: "Nome Completo",
 		emailLabel: "Endereço de Email",
 		phoneLabel: "Número de Telefone",
-		messageLabel: "Menssagem",
+		messageLabel: "Mensagem",
 		submitButton: "Enviar",		
 		supportCenter: "Central de suporte",
 		supportDescription: "Consulte nossos artigos de suporte para encontrar soluções.",
