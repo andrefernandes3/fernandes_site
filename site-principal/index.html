@@ -56,7 +56,7 @@
                         class="navbar-toggler-icon"></span></button>
                 <div class="collapse navbar-collapse" id="navbarSupportedContent">
                     <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
-                        <li class="nav-item"><a class="nav-link" href="index.html" data-i18n="home">Home</a></li>
+                        <li class="nav-item"><a class="nav-link" href="index.html" data-i18n="home">Início</a></li>
                         <li class="nav-item"><a class="nav-link" href="about.html" data-i18n="about">Sobre</a></li>
                         <li class="nav-item"><a class="nav-link" href="contact.html" data-i18n="contact">Contato</a>
                         </li>
@@ -85,8 +85,10 @@
                                 Consultoria especializada em TI, desenvolvimento de software e infraestrutura para
                                 empresas que buscam eficiência e crescimento.</p>
                             <div class="d-grid gap-3 d-sm-flex justify-content-sm-center justify-content-xl-start">
-                                <a class="btn btn-primary btn-lg px-4 me-sm-3" href="#features">Nossos Serviços</a>
-                                <a class="btn btn-outline-light btn-lg px-4" href="contact.html">Solicitar Orçamento</a>
+                                <a class="btn btn-primary btn-lg px-4 me-sm-3" data-i18n="ourServices"
+                                    href="#features">Nossos Serviços</a>
+                                <a class="btn btn-outline-light btn-lg px-4" data-i18n="contactUs"
+                                    href="contact.html">Solicitar Orçamento</a>
                             </div>
                         </div>
                     </div>
@@ -102,36 +104,38 @@
             <div class="container px-5 my-5">
                 <div class="row gx-5">
                     <div class="col-lg-4 mb-5 mb-lg-0">
-                        <h2 class="fw-bolder mb-0">Transformação Digital de ponta a ponta.</h2>
+                        <h2 class="fw-bolder mb-0" data-i18n="features_title">
+                            Transformação Digital de ponta a ponta.
+                        </h2>
                     </div>
                     <div class="col-lg-8">
                         <div class="row gx-5 row-cols-1 row-cols-md-2">
                             <div class="col mb-5 h-100 text-center text-lg-start">
                                 <div class="feature bg-primary bg-gradient text-white rounded-3 mb-3"><i
                                         class="bi bi-code-slash"></i></div>
-                                <h2 class="h5 fw-bold">Desenvolvimento Sob Medida</h2>
-                                <p class="mb-0 text-muted">Sistemas web e ferramentas personalizadas para o seu fluxo de
+                                <h2 class="h5 fw-bold"data-i18n="feature_custom_dev_title">Desenvolvimento Sob Medida</h2>
+                                <p class="mb-0 text-muted"data-i18n="feature_custom_dev_desc">Sistemas web e ferramentas personalizadas para o seu fluxo de
                                     trabalho.</p>
                             </div>
                             <div class="col mb-5 h-100 text-center text-lg-start">
                                 <div class="feature bg-primary bg-gradient text-white rounded-3 mb-3"><i
                                         class="bi bi-cloud-check"></i></div>
-                                <h2 class="h5 fw-bold">Cloud & Infraestrutura</h2>
-                                <p class="mb-0 text-muted">Migração para nuvem e gestão de servidores com foco em alta
+                                <h2 class="h5 fw-bold"data-i18n="feature_cloud_title">Cloud & Infraestrutura</h2>
+                                <p class="mb-0 text-muted"data-i18n="feature_cloud_desc">Migração para nuvem e gestão de servidores com foco em alta
                                     disponibilidade.</p>
                             </div>
                             <div class="col mb-5 h-100 text-center text-lg-start">
                                 <div class="feature bg-primary bg-gradient text-white rounded-3 mb-3"><i
                                         class="bi bi-shield-lock"></i></div>
-                                <h2 class="h5 fw-bold">Segurança da Informação</h2>
-                                <p class="mb-0 text-muted">Proteção de dados e conformidade para manter sua empresa
+                                <h2 class="h5 fw-bold"data-i18n="feature_security_title">Segurança da Informação</h2>
+                                <p class="mb-0 text-muted"data-i18n="feature_security_desc">Proteção de dados e conformidade para manter sua empresa
                                     segura.</p>
                             </div>
                             <div class="col mb-5 h-100 text-center text-lg-start">
                                 <div class="feature bg-primary bg-gradient text-white rounded-3 mb-3"><i
                                         class="bi bi-headset"></i></div>
-                                <h2 class="h5 fw-bold">Suporte Especializado</h2>
-                                <p class="mb-0 text-muted">Atendimento técnico ágil para garantir que sua operação nunca
+                                <h2 class="h5 fw-bold"data-i18n="feature_support_title">Suporte Especializado</h2>
+                                <p class="mb-0 text-muted"data-i18n="feature_support_desc">Atendimento técnico ágil para garantir que sua operação nunca
                                     pare.</p>
                             </div>
                         </div>
@@ -146,21 +150,25 @@
                     <div
                         class="d-flex align-items-center justify-content-between flex-column flex-xl-row text-center text-xl-start">
                         <div class="mb-4 mb-xl-0">
-                            <div class="fs-3 fw-bold text-white" data-i18n="newsletter_title">Novidades Tech & Insights.</div>
-                            <div class="text-white-50">Cadastre-se para receber atualizações sobre nossos projetos.
+                            <div class="fs-3 fw-bold text-white" data-i18n="newsletter_title">Novidades Tech & Insights.
                             </div>
+                            <div class="text-white-50" data-i18n="newsletter_desc">Cadastre-se para receber atualizações
+                                sobre nossos projetos.</div>
                         </div>
                         <div class="ms-xl-4 w-100 w-xl-auto">
                             <form id="newsletterForm" class="d-flex flex-column flex-sm-row gap-2">
-                                <div style="display:none;">
-                                    <input type="text" id="newsletter_hp" tabindex="-1" autocomplete="off">
-                                </div>
+                                <div style="display:none;"><input type="text" id="newsletter_hp" tabindex="-1"
+                                        autocomplete="off"></div>
 
                                 <input class="form-control w-100" id="newsletterEmail" type="email"
-                                    placeholder="Seu melhor e-mail..." aria-label="E-mail" required />
-                                <button class="btn btn-outline-light" data-i18n="btn_subscribe" id="newsletterBtn" type="submit">Assinar</button>
+                                    placeholder="Seu melhor e-mail..." aria-label="E-mail" required
+                                    data-i18n-placeholder="newsletter_placeholder" />
+
+                                <button class="btn btn-outline-light" id="newsletterBtn" type="submit"
+                                    data-i18n="newsletter_btn">Assinar</button>
                             </form>
-                            <div class="small text-white-50 mt-2">Prometemos não enviar spam.</div>
+                            <div class="small text-white-50 mt-2" data-i18n="newsletter_spam">Prometemos não enviar
+                                spam.</div>
                         </div>
                     </div>
                 </aside>
