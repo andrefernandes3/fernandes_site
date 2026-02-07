@@ -43,7 +43,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 hp_field: document.getElementById('hp_field').value,
                 'cf-turnstile-response': turnstileResponse,
                 // Integração com languageSwitcher
-                lang: localStorage.getItem('language') || 'pt'
+                lang: localStorage.getItem('selectedLanguage') || 'pt'
             };
 
             try {

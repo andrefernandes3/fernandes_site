@@ -109,7 +109,7 @@ module.exports = async function (context, req) {
         await transporter.sendMail({
             from: `"${name}" <${process.env.EMAIL_USER}>`,
             replyTo: email,
-            to: "contato@fernandestechnology.tech",
+            to: "contato@fernandesit.com",
             subject: `[Lead ${lang.toUpperCase()}] ${subject} - ${name}`,
             text: `Novo Lead (${lang})!\n\nNome: ${name}\nEmail: ${email}\nTel: ${phone}\nMensagem:\n${message}`
         });
