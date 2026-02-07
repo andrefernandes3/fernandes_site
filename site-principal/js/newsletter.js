@@ -1,42 +1,40 @@
-<script>
-    document.getElementById('newsletterForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
+document.getElementById('newsletterForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
 
-        const btn = document.getElementById('newsletterBtn');
-        const emailInput = document.getElementById('newsletterEmail');
-        
-        const originalText = btn.innerText;
-        btn.innerText = "Salvnado..."; // Feedback visual
-        btn.disabled = true;
+    const btn = document.getElementById('newsletterBtn');
+    const emailInput = document.getElementById('newsletterEmail');
 
-        try {
-            const response = await fetch('/api/newsletter', { // Nova API que criaremos
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email: emailInput.value })
-            });
+    const originalText = btn.innerText;
+    btn.innerText = "Salvnado..."; // Feedback visual
+    btn.disabled = true;
 
-            if (response.ok) {
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Inscrito!',
-                    text: 'Obrigado por se juntar à nossa lista.',
-                    timer: 3000,
-                    showConfirmButton: false
-                });
-                emailInput.value = ''; // Limpa o campo
-            } else {
-                throw new Error();
-            }
-        } catch (error) {
+    try {
+        const response = await fetch('/api/newsletter', { // Nova API que criaremos
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: emailInput.value })
+        });
+
+        if (response.ok) {
             Swal.fire({
-                icon: 'error',
-                title: 'Ops...',
-                text: 'Erro ao cadastrar. Tente novamente.',
+                icon: 'success',
+                title: 'Inscrito!',
+                text: 'Obrigado por se juntar à nossa lista.',
+                timer: 3000,
+                showConfirmButton: false
             });
-        } finally {
-            btn.innerText = originalText;
-            btn.disabled = false;
+            emailInput.value = ''; // Limpa o campo
+        } else {
+            throw new Error();
         }
-    });
-</script>
+    } catch (error) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Ops...',
+            text: 'Erro ao cadastrar. Tente novamente.',
+        });
+    } finally {
+        btn.innerText = originalText;
+        btn.disabled = false;
+    }
+});
