@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
@@ -12,18 +13,32 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 </head>
+
 <body class="d-flex flex-column h-100">
     <main class="flex-shrink-0">
         <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
             <div class="container px-5">
-                <a class="navbar-brand fw-bold" href="index.html">Fernandes <span class="text-primary">Technology</span></a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent"><span class="navbar-toggler-icon"></span></button>
+                <a class="navbar-brand fw-bold" href="index.html">Fernandes <span
+                        class="text-primary">Technology</span></a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent"
+                    aria-expanded="false" aria-label="Toggle navigation"><span
+                        class="navbar-toggler-icon"></span></button>
                 <div class="collapse navbar-collapse" id="navbarSupportedContent">
                     <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
-                        <li class="nav-item"><a class="nav-link" href="index.html">Home</a></li>
-                        <li class="nav-item"><a class="nav-link" href="about.html">Sobre</a></li>
-                        <li class="nav-item"><a class="nav-link active" href="contact.html">Contato</a></li>
-                        <li class="nav-item"><a class="nav-link" href="portfolio.html">Portfólio</a></li>
+                        <li class="nav-item"><a class="nav-link" href="index.html" data-i18n="home">Home</a></li>
+                        <li class="nav-item"><a class="nav-link" href="about.html" data-i18n="about">Sobre</a></li>
+                        <li class="nav-item"><a class="nav-link" href="contact.html" data-i18n="contact">Contato</a>
+                        </li>
+                        <li class="nav-item"><a class="nav-link" href="portfolio.html"
+                                data-i18n="portfolio">Portfólio</a></li>
+                        <li class="nav-item ms-lg-3">
+                            <select id="languageSelector"
+                                class="form-select form-select-sm bg-dark text-white border-secondary">
+                                <option value="pt">BR Português</option>
+                                <option value="en">US English</option>
+                            </select>
+                        </li>
                     </ul>
                 </div>
             </div>
@@ -33,14 +48,15 @@
             <div class="container px-5">
                 <div class="bg-light rounded-4 py-5 px-4 px-md-5">
                     <div class="text-center mb-5">
-                        <div class="feature bg-primary bg-gradient text-white rounded-3 mb-3"><i class="bi bi-envelope"></i></div>
+                        <div class="feature bg-primary bg-gradient text-white rounded-3 mb-3"><i
+                                class="bi bi-envelope"></i></div>
                         <h1 class="fw-bolder">Solicite um Orçamento</h1>
                     </div>
                     <div class="row gx-5 justify-content-center">
                         <div class="col-lg-8 col-xl-6">
                             <form id="contactForm">
                                 <div style="display:none;"><input type="text" id="hp_field" tabindex="-1"></div>
-                                
+
                                 <div class="form-floating mb-3">
                                     <input class="form-control" id="name" type="text" placeholder="Nome" required />
                                     <label for="name">Nome completo</label>
@@ -54,7 +70,8 @@
                                 <div class="row mb-3">
                                     <div class="col-md-7">
                                         <label class="form-label text-muted small ms-2">WhatsApp / Telefone</label>
-                                        <input class="form-control" id="phone" type="tel" style="width: 100%;" required />
+                                        <input class="form-control" id="phone" type="tel" style="width: 100%;"
+                                            required />
                                     </div>
                                     <div class="col-md-5">
                                         <label class="form-label text-muted small ms-2">Assunto</label>
@@ -67,7 +84,8 @@
                                 </div>
 
                                 <div class="form-floating mb-3">
-                                    <textarea class="form-control" id="message" style="height: 10rem" required></textarea>
+                                    <textarea class="form-control" id="message" style="height: 10rem"
+                                        required></textarea>
                                     <label for="message">Como podemos ajudar?</label>
                                 </div>
 
@@ -75,7 +93,8 @@
                                     <div class="cf-turnstile" data-sitekey="0x4AAAAAACY6XcqMAebTDngX"></div>
                                 </div>
 
-                                <div class="d-grid"><button class="btn btn-primary btn-lg" id="submitButton" type="submit">Enviar Mensagem</button></div>
+                                <div class="d-grid"><button class="btn btn-primary btn-lg" id="submitButton"
+                                        type="submit">Enviar Mensagem</button></div>
                             </form>
                         </div>
                     </div>
@@ -85,8 +104,19 @@
     </main>
 
     <footer class="bg-dark py-4 mt-auto">
-        <div class="container px-5 text-center">
-            <div class="small m-0 text-white">Copyright &copy; Fernandes Technology 2026</div>
+        <div class="container px-5">
+            <div class="row align-items-center justify-content-between flex-column flex-sm-row">
+                <div class="col-auto">
+                    <div class="small m-0 text-white">Copyright &copy; Fernandes Technology 2026</div>
+                </div>
+                <div class="col-auto">
+                    <a class="link-light small" href="docs/privacy-policy.pdf">Privacidade</a>
+                    <span class="text-white mx-1">&middot;</span>
+                    <a class="link-light small" href="docs/terms-of-use.pdf">Termos</a>
+                    <span class="text-white mx-1">&middot;</span>
+                    <a class="link-light small" href="contact.html">Contato</a>
+                </div>
+            </div>
         </div>
     </footer>
 
@@ -102,7 +132,7 @@
 
         document.getElementById('contactForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            
+
             if (!iti.isValidNumber()) {
                 Swal.fire({ icon: 'error', title: 'Telefone inválido' });
                 return;
@@ -144,4 +174,5 @@
         });
     </script>
 </body>
+
 </html>
