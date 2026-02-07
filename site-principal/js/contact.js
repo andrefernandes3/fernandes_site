@@ -3,7 +3,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const phoneInput = document.querySelector("#phone");
     let iti;
 
-    // Só tenta ativar se o campo existir e a biblioteca estiver carregada
+    // Só ativa se o campo existir e a biblioteca carregou
     if (phoneInput && window.intlTelInput) {
         iti = window.intlTelInput(phoneInput, {
             initialCountry: "br",
@@ -19,15 +19,32 @@ document.addEventListener('DOMContentLoaded', () => {
         contactForm.addEventListener('submit', async (e) => {
             e.preventDefault();
 
+            // --- DETECÇÃO DE IDIOMA PARA O JAVASCRIPT ---
+            const currentLang = localStorage.getItem('selectedLanguage') || 'pt';
+            const isEnglish = currentLang === 'en';
+
+            // Dicionário de mensagens do JS
+            const texts = {
+                phoneTitle: isEnglish ? 'Invalid Phone' : 'Telefone inválido',
+                phoneText: isEnglish ? 'Check the number and country.' : 'Verifique o número e o país selecionado.',
+                btnSending: isEnglish ? "Sending..." : "A enviar...", // <--- O QUE VOCÊ PEDIU
+                successTitle: isEnglish ? 'Success!' : 'Sucesso!',
+                successText: isEnglish ? 'Message sent successfully.' : 'Mensagem enviada com sucesso.',
+                errorTitle: isEnglish ? 'Error' : 'Erro',
+                errorText: isEnglish ? 'Could not send. Try again.' : 'Não foi possível enviar. Tente novamente.'
+            };
+
             // Validação do Telefone
             if (iti && !iti.isValidNumber()) {
-                Swal.fire({ icon: 'warning', title: 'Telefone inválido', text: 'Verifique o número.' });
+                Swal.fire({ icon: 'warning', title: texts.phoneTitle, text: texts.phoneText });
                 return;
             }
 
             const btn = document.getElementById('submitButton');
-            const originalText = btn.innerText;
-            btn.innerText = "A enviar...";
+            const originalText = btn.innerText; // Guarda o texto original ("Enviar" ou "Send")
+            
+            // Aplica a tradução no estado de carregamento
+            btn.innerText = texts.btnSending; 
             btn.disabled = true;
 
             const turnstileResponse = document.querySelector('[name="cf-turnstile-response"]')?.value;
@@ -40,7 +57,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 message: document.getElementById('message').value,
                 hp_field: document.getElementById('hp_field').value,
                 'cf-turnstile-response': turnstileResponse,
-                lang: localStorage.getItem('selectedLanguage') || 'pt'
+                lang: currentLang // Envia para a API saber qual e-mail mandar
             };
 
             try {
@@ -53,8 +70,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (response.ok) {
                     Swal.fire({ 
                         icon: 'success', 
-                        title: 'Sucesso!', 
-                        text: 'Mensagem enviada.',
+                        title: texts.successTitle, 
+                        text: texts.successText,
                         confirmButtonColor: '#0d6efd'
                     });
                     contactForm.reset();
@@ -63,9 +80,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     throw new Error();
                 }
             } catch (error) {
-                Swal.fire({ icon: 'error', title: 'Erro', text: 'Tente novamente.' });
+                Swal.fire({ icon: 'error', title: texts.errorTitle, text: texts.errorText });
             } finally {
-                btn.innerText = originalText;
+                btn.innerText = originalText; // Devolve o texto original do botão
                 btn.disabled = false;
             }
         });

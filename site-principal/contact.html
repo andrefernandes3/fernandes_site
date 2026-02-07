@@ -61,91 +61,76 @@
 
                     <!-- FORM -->
                     <div class="row gx-5 justify-content-center">
-    <div class="col-lg-8 col-xl-6">
-        <form id="contactForm">
-            <div style="display:none;">
-                <input type="text" id="hp_field" tabindex="-1">
-            </div>
+                        <div class="col-lg-8 col-xl-6">
+                            <form id="contactForm">
+                                <div style="display:none;">
+                                    <input type="text" id="hp_field" tabindex="-1">
+                                </div>
 
-            <!-- Nome -->
-            <div class="form-floating mb-3">
-                <input class="form-control"
-                       id="name"
-                       type="text"
-                       placeholder="Full Name"
-                       required
-                       data-i18n-placeholder="form_name_placeholder" />
-                <label for="name" data-i18n="form_name_label">
-                    Full Name
-                </label>
-            </div>
+                                <!-- Nome -->
+                                <div class="form-floating mb-3">
+                                    <input class="form-control" id="name" type="text" placeholder="Full Name" required
+                                        data-i18n-placeholder="form_name_placeholder" />
+                                    <label for="name" data-i18n="form_name_label">
+                                        Full Name
+                                    </label>
+                                </div>
 
-            <!-- Email -->
-            <div class="form-floating mb-3">
-                <input class="form-control"
-                       id="email"
-                       type="email"
-                       placeholder="name@example.com"
-                       required
-                       data-i18n-placeholder="form_email_placeholder" />
-                <label for="email" data-i18n="form_email_label">
-                    Email Address
-                </label>
-            </div>
+                                <!-- Email -->
+                                <div class="form-floating mb-3">
+                                    <input class="form-control" id="email" type="email" placeholder="name@example.com"
+                                        required data-i18n-placeholder="form_email_placeholder" />
+                                    <label for="email" data-i18n="form_email_label">
+                                        Email Address
+                                    </label>
+                                </div>
 
-            <!-- Telefone + Assunto -->
-            <div class="row mb-3">
-                <div class="col-md-7">
-                    <label class="form-label text-muted small ms-2"
-                           data-i18n="form_phone_label">
-                        Phone / WhatsApp
-                    </label>
-                    <input class="form-control" id="phone" type="tel" required />
-                </div>
+                                <!-- Telefone + Assunto -->
+                                <div class="row mb-3">
+                                    <div class="col-md-7">
+                                        <label class="form-label text-muted small ms-2" data-i18n="form_phone_label">
+                                            Phone / WhatsApp
+                                        </label>
+                                        <input class="form-control" id="phone" type="tel" required />
+                                    </div>
 
-                <div class="col-md-5">
-                    <label class="form-label text-muted small ms-2"
-                           data-i18n="form_subject_label">
-                        Subject
-                    </label>
-                    <select class="form-select" id="subject" style="height: 58px;">
-                        <option value="Consultoria TI">Consultoria TI</option>
-                        <option value="Projeto SaaS">Projeto SaaS</option>
-                        <option value="Suporte">Suporte</option>
-                    </select>
-                </div>
-            </div>
+                                    <div class="col-md-5">
+                                        <label class="form-label text-muted small ms-2" data-i18n="form_subject_label">
+                                            Subject
+                                        </label>
+                                        <select class="form-select" id="subject" style="height: 58px;">
+                                            <option value="Consultoria TI">Consultoria TI</option>
+                                            <option value="Projeto SaaS">Projeto SaaS</option>
+                                            <option value="Suporte">Suporte</option>
+                                        </select>
+                                    </div>
+                                </div>
 
-            <!-- Mensagem -->
-            <div class="form-floating mb-3">
-                <textarea class="form-control"
-                          id="message"
-                          style="height: 10rem"
-                          required
-                          placeholder="Describe your needs here..."
-                          data-i18n-placeholder="form_message_placeholder"></textarea>
-                <label for="message" data-i18n="form_message_label">
-                    Message
-                </label>
-            </div>
+                                <!-- Mensagem -->
+                                <div class="form-floating mb-3">
+                                    <textarea class="form-control" id="message" style="height: 10rem" required
+                                        placeholder="Describe your needs here..."
+                                        data-i18n-placeholder="form_message_placeholder"></textarea>
+                                    <label for="message" data-i18n="form_message_label">
+                                        Message
+                                    </label>
+                                </div>
 
-            <!-- Turnstile -->
-            <div class="d-flex justify-content-center mb-4">
-                <div class="cf-turnstile" data-sitekey="0x4AAAAAACY6XcqMAebTDngX"></div>
-            </div>
+                                <!-- Turnstile -->
+                                <div class="d-flex justify-content-center mb-4">
+                                    <div class="cf-turnstile" data-sitekey="0x4AAAAAACY6XcqMAebTDngX"></div>
+                                </div>
 
-            <!-- Botão -->
-            <div class="d-grid">
-                <button class="btn btn-primary btn-lg"
-                        id="submitButton"
-                        type="submit"
-                        data-i18n="form_submit_btn">
-                    Send Message
-                </button>
-            </div>
-        </form>
-    </div>
-</div>
+                                <!-- Botão -->
+                                <div class="d-grid">
+                                    <button class="btn btn-primary btn-lg" id="submitButton" type="submit"
+                                        data-i18n="form_submit_btn">
+                                        Send Message
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
 
 
                     <!-- INFO CARDS -->
