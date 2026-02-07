@@ -1,68 +1,34 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
     <head>
-        <!-- Meta tags para configuração básica do documento -->
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
-        <meta name="description" content="Portfólio da Fernandes Technology: cases de sucesso e projetos personalizados em desenvolvimento de software, consultoria em TI e automação." />
+        <meta name="description" content="Portfólio de projetos e competências técnicas da Fernandes Technology." />
         <meta name="author" content="Fernandes Technology" />
+        <title>Portfólio | Fernandes Technology</title>
         
-        <!-- Título da página -->
-        <title>Consultoria em TI e Soluções Tecnológicas | Fernandes Technology - Portfolio</title>
-        
-        <!-- Favicon (ícone na aba do navegador) -->
         <link rel="icon" type="image/x-icon" href="assets/favicon.ico" />
-        
-        <!-- Bootstrap Icons (biblioteca de ícones) -->
         <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.5.0/font/bootstrap-icons.css" rel="stylesheet" />
-        
-        <!-- Core theme CSS (inclui Bootstrap) -->
         <link href="css/style.css" rel="stylesheet" />
-        
-        <!-- Bootstrap Select CSS (para estilização de selects) -->
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-select@1.14.0-beta2/dist/css/bootstrap-select.min.css">
-        
-        <!-- Font Awesome (biblioteca de ícones) -->
+        <link href="css/custom.css" rel="stylesheet" />
         <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
     </head>
     <body class="d-flex flex-column h-100">
-        <!-- Conteúdo principal da página -->
         <main class="flex-shrink-0">
-            <!-- Navegação -->
             <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
                 <div class="container px-5">
-                    <!-- Logo da empresa -->
-                    <a class="navbar-brand" href="index.html">Fernandes Technology</a>
-                    
-                    <!-- Botão de toggle para mobile -->
-                    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
-                        <span class="navbar-toggler-icon"></span>
-                    </button>
-                    
-                    <!-- Itens do menu de navegação -->
+                    <a class="navbar-brand fw-bold" href="index.html">Fernandes <span class="text-primary">Technology</span></a>
+                    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation"><span class="navbar-toggler-icon"></span></button>
                     <div class="collapse navbar-collapse" id="navbarSupportedContent">
                         <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
                             <li class="nav-item"><a class="nav-link" href="index.html" data-i18n="home">Home</a></li>
-                            <li class="nav-item"><a class="nav-link" href="about.html" data-i18n="about">About</a></li>
-                            <li class="nav-item"><a class="nav-link" href="contact.html" data-i18n="contact">Contact</a></li>
-                            <li class="nav-item"><a class="nav-link" href="manutence.html" data-i18n="blog">Blog</a></li>
-                            <li class="nav-item"><a class="nav-link" href="manutence.html" data-i18n="portfolio">Portfolio</a></li>                            
- 							
-                            <!-- <!-- Dropdown do Blog 
-                            <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle" id="navbarDropdownBlog" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false" data-i18n="blog">Blog</a>
-                                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdownBlog">
-                                    <li><a class="dropdown-item" href="blog-home.html">Blog Home</a></li>
-                                    <li><a class="dropdown-item" href="blog-post.html">Blog Post</a></li>
-                                </ul>
-                            </li>  -->                    
-                          
-                            
-                            <!-- Seletor de idioma -->
-                            <li class="nav-item">
-                                <select id="languageSelector" class="form-select form-select-sm">
-                                    <option value="en"><i class="fas fa-flag-usa"></i> English</option>
-                                    <option value="pt"><i class="fas fa-flag-brazil"></i> Português</option>
+                            <li class="nav-item"><a class="nav-link" href="about.html" data-i18n="about">Sobre</a></li>
+                            <li class="nav-item"><a class="nav-link" href="contact.html" data-i18n="contact">Contato</a></li>
+                            <li class="nav-item"><a class="nav-link" href="portfolio.html" data-i18n="portfolio">Portfólio</a></li>
+                            <li class="nav-item ms-lg-3">
+                                <select id="languageSelector" class="form-select form-select-sm bg-dark text-white border-secondary">
+                                    <option value="pt">BR Português</option>
+                                    <option value="en">US English</option>
                                 </select>
                             </li>
                         </ul>
@@ -70,68 +36,75 @@
                 </div>
             </nav>
 
-            <!-- Page Content-->
             <section class="py-5">
                 <div class="container px-5 my-5">
                     <div class="text-center mb-5">
-                        <h1 class="fw-bolder">Our Work</h1>
-                        <p class="lead fw-normal text-muted mb-0">Company portfolio</p>
+                        <h1 class="fw-bolder">Projetos & Competências</h1>
+                        <p class="lead fw-normal text-muted mb-0">Soluções desenvolvidas com foco em escalabilidade e performance.</p>
                     </div>
                     <div class="row gx-5">
-                        <div class="col-lg-6">
+                        <div class="col-lg-6 mb-5">
                             <div class="position-relative mb-5">
-                                <img class="img-fluid rounded-3 mb-3" src="https://dummyimage.com/600x400/343a40/6c757d" alt="..." />
-                                <a class="h3 fw-bolder text-decoration-none link-dark stretched-link" href="#!">Project name</a>
+                                <img class="img-fluid rounded-3 mb-3 shadow" src="https://dummyimage.com/600x400/343a40/6c757d&text=Fernandes+Desk" alt="Projeto Help Desk" />
+                                <a class="h3 fw-bolder text-decoration-none link-dark stretched-link" href="#!">Fernandes Desk (SaaS)</a>
+                                <p class="text-muted mt-2">Ferramenta multitenant de ticket e suporte (estilo Zendesk) focada em TI Hard, integrada com inventário e gestão de SLAs. Desenvolvida em Node.js e MongoDB Atlas.</p>
+                                <span class="badge bg-primary rounded-pill">Em Desenvolvimento</span>
                             </div>
                         </div>
-                        <div class="col-lg-6">
+                        <div class="col-lg-6 mb-5">
                             <div class="position-relative mb-5">
-                                <img class="img-fluid rounded-3 mb-3" src="https://dummyimage.com/600x400/343a40/6c757d" alt="..." />
-                                <a class="h3 fw-bolder text-decoration-none link-dark stretched-link" href="#!">Project name</a>
-                            </div>
-                        </div>
-                        <div class="col-lg-6">
-                            <div class="position-relative mb-5 mb-lg-0">
-                                <img class="img-fluid rounded-3 mb-3" src="https://dummyimage.com/600x400/343a40/6c757d" alt="..." />
-                                <a class="h3 fw-bolder text-decoration-none link-dark stretched-link" href="#!">Project name</a>
-                            </div>
-                        </div>
-                        <div class="col-lg-6">
-                            <div class="position-relative">
-                                <img class="img-fluid rounded-3 mb-3" src="https://dummyimage.com/600x400/343a40/6c757d" alt="..." />
-                                <a class="h3 fw-bolder text-decoration-none link-dark stretched-link" href="#!">Project name</a>
+                                <img class="img-fluid rounded-3 mb-3 shadow" src="https://dummyimage.com/600x400/0d6efd/ffffff&text=Cloud+Infrastructure" alt="Azure Cloud" />
+                                <a class="h3 fw-bolder text-decoration-none link-dark stretched-link" href="#!">Cloud & DevOps</a>
+                                <p class="text-muted mt-2">Implementação de arquiteturas serverless e Static Web Apps no Azure para clientes internacionais, garantindo 99.9% de disponibilidade.</p>
+                                <span class="badge bg-dark rounded-pill">Ativo</span>
                             </div>
                         </div>
                     </div>
                 </div>
             </section>
+
             <section class="py-5 bg-light">
                 <div class="container px-5 my-5">
-                    <h2 class="display-4 fw-bolder mb-4">Let's build something together</h2>
-                    <a class="btn btn-lg btn-primary" href="#!">Contact us</a>
+                    <h2 class="display-6 fw-bolder text-center mb-5">Stack Tecnológica</h2>
+                    <div class="row gx-5 justify-content-center text-center">
+                        <div class="col-lg-2 col-md-4 col-6 mb-4">
+                            <i class="fab fa-node-js fa-3x text-success"></i>
+                            <p class="mt-2 fw-bold">Node.js</p>
+                        </div>
+                        <div class="col-lg-2 col-md-4 col-6 mb-4">
+                            <i class="fas fa-database fa-3x text-primary"></i>
+                            <p class="mt-2 fw-bold">MongoDB</p>
+                        </div>
+                        <div class="col-lg-2 col-md-4 col-6 mb-4">
+                            <i class="fab fa-microsoft fa-3x text-info"></i>
+                            <p class="mt-2 fw-bold">Azure</p>
+                        </div>
+                        <div class="col-lg-2 col-md-4 col-6 mb-4">
+                            <i class="fab fa-git-alt fa-3x text-danger"></i>
+                            <p class="mt-2 fw-bold">Git/GitHub</p>
+                        </div>
+                    </div>
                 </div>
             </section>
         </main>
-        <!-- Footer-->
+
         <footer class="bg-dark py-4 mt-auto">
             <div class="container px-5">
                 <div class="row align-items-center justify-content-between flex-column flex-sm-row">
-                    <div class="col-auto"><div class="small m-0 text-white">Copyright &copy; Fernandes Technology 2025</div></div>
+                    <div class="col-auto"><div class="small m-0 text-white">Copyright &copy; Fernandes Technology 2026</div></div>
                     <div class="col-auto">
-                        <a class="link-light small" href="#!" data-i18n="privacy">Privacy</a>
+                        <a class="link-light small" href="docs/privacy-policy.pdf">Privacidade</a>
                         <span class="text-white mx-1">&middot;</span>
-                        <a class="link-light small" href="#!" data-i18n="terms">Terms</a>
+                        <a class="link-light small" href="docs/terms-of-use.pdf">Termos</a>
                         <span class="text-white mx-1">&middot;</span>
-                        <a class="link-light small" href="#!" data-i18n="contactUs">Contact</a>
+                        <a class="link-light small" href="contact.html">Contato</a>
                     </div>
                 </div>
             </div>
         </footer>
-        <!-- Bootstrap core JS-->
+
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
-        <!-- Core theme JS-->
         <script src="js/scripts.js"></script>
-        <!-- Language switcher JS -->
         <script src="js/languageSwitcher.js"></script>
     </body>
 </html>
