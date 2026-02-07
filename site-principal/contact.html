@@ -149,42 +149,49 @@
     <script src="js/scripts.js"></script>
     <script src="js/languageSwitcher.js"></script>
     <script>
-        document.getElementById('contactForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
+    document.getElementById('contactForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
 
-            const btn = document.getElementById('submitButton');
-            const originalText = btn.innerText;
-            btn.innerText = "A enviar...";
-            btn.disabled = true;
+        const btn = document.getElementById('submitButton');
+        const originalText = btn.innerText;
+        btn.innerText = "A enviar...";
+        btn.disabled = true;
 
-            const formData = {
-                name: document.getElementById('name').value,
-                email: document.getElementById('email').value,
-                phone: document.getElementById('phone').value,
-                message: document.getElementById('message').value
-            };
+        // CAPTURA O TOKEN DO TURNSTILE
+        const turnstileResponse = document.querySelector('[name="cf-turnstile-response"]').value;
 
-            try {
-                const response = await fetch('/api/contact-form', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(formData)
-                });
+        const formData = {
+            name: document.getElementById('name').value,
+            email: document.getElementById('email').value,
+            phone: document.getElementById('phone').value,
+            message: document.getElementById('message').value,
+            hp_field: document.getElementById('hp_field').value, // Honeypot
+            'cf-turnstile-response': turnstileResponse // Token do Cloudflare
+        };
 
-                if (response.ok) {
-                    alert('Mensagem enviada com sucesso! Entraremos em contacto em breve.');
-                    e.target.reset();
-                } else {
-                    alert('Erro ao enviar. Por favor, tente novamente mais tarde.');
-                }
-            } catch (error) {
-                alert('Ocorreu um erro na ligação com o servidor.');
-            } finally {
-                btn.innerText = originalText;
-                btn.disabled = false;
+        try {
+            const response = await fetch('/api/contact-form', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(formData)
+            });
+
+            if (response.ok) {
+                alert('Mensagem enviada com sucesso!');
+                e.target.reset();
+                if (typeof turnstile !== 'undefined') turnstile.reset(); // Reseta o captcha
+            } else {
+                const errorData = await response.text();
+                alert('Erro ao enviar: ' + errorData);
             }
-        });
-    </script>
+        } catch (error) {
+            alert('Erro de conexão com o servidor.');
+        } finally {
+            btn.innerText = originalText;
+            btn.disabled = false;
+        }
+    });
+</script>
 
 </body>
 
