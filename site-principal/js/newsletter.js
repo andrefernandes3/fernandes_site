@@ -1,40 +1,64 @@
-document.getElementById('newsletterForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
+document.addEventListener('DOMContentLoaded', () => {
+    const newsletterForm = document.getElementById('newsletterForm');
 
-    const btn = document.getElementById('newsletterBtn');
-    const emailInput = document.getElementById('newsletterEmail');
+    // Se o formulário não existir nesta página, paramos aqui para evitar erros
+    if (!newsletterForm) return;
 
-    const originalText = btn.innerText;
-    btn.innerText = "Assinando..."; // Feedback visual
-    btn.disabled = true;
+    newsletterForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
 
-    try {
-        const response = await fetch('/api/newsletter', { // Nova API que criaremos
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: emailInput.value })
-        });
+        const btn = document.getElementById('newsletterBtn');
+        const emailInput = document.getElementById('newsletterEmail');
+        
+        // 1. Detectar Idioma Atual
+        const currentLang = localStorage.getItem('language') || 'pt';
+        const isEnglish = currentLang === 'en';
 
-        if (response.ok) {
-            Swal.fire({
-                icon: 'success',
-                title: 'Inscrito!',
-                text: 'Obrigado por se juntar à nossa lista.',
-                timer: 3000,
-                showConfirmButton: false
+        // 2. Textos Dinâmicos
+        const texts = {
+            saving: isEnglish ? "Saving..." : "Salvando...",
+            btnDefault: isEnglish ? "Subscribe" : "Assinar",
+            successTitle: isEnglish ? "Subscribed!" : "Inscrito!",
+            successText: isEnglish ? "Thanks for joining our list." : "Obrigado por se juntar à nossa lista.",
+            errorTitle: isEnglish ? "Oops..." : "Ops...",
+            errorText: isEnglish ? "Error subscribing. Try again." : "Erro ao cadastrar. Tente novamente."
+        };
+
+        const originalText = btn.innerText;
+        btn.innerText = texts.saving;
+        btn.disabled = true;
+
+        try {
+            const response = await fetch('/api/newsletter', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: emailInput.value })
             });
-            document.getElementById('newsletterForm').reset();
-        } else {
-            throw new Error();
+
+            if (response.ok) {
+                Swal.fire({
+                    icon: 'success',
+                    title: texts.successTitle,
+                    text: texts.successText,
+                    timer: 3000,
+                    showConfirmButton: false
+                });
+                
+                // CORREÇÃO CRÍTICA: Reset direto no elemento do formulário
+                newsletterForm.reset(); 
+                
+            } else {
+                throw new Error();
+            }
+        } catch (error) {
+            Swal.fire({
+                icon: 'error',
+                title: texts.errorTitle,
+                text: texts.errorText,
+            });
+        } finally {
+            btn.innerText = texts.btnDefault; // Restaura o texto original (ou traduzido)
+            btn.disabled = false;
         }
-    } catch (error) {
-        Swal.fire({
-            icon: 'error',
-            title: 'Ops...',
-            text: 'Erro ao cadastrar. Tente novamente.',
-        });
-    } finally {
-        btn.innerText = originalText;
-        btn.disabled = false;
-    }
+    });
 });
