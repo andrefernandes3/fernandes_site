@@ -5,7 +5,7 @@ document.getElementById('newsletterForm').addEventListener('submit', async (e) =
     const emailInput = document.getElementById('newsletterEmail');
 
     const originalText = btn.innerText;
-    btn.innerText = "Salvnado..."; // Feedback visual
+    btn.innerText = "Assinando..."; // Feedback visual
     btn.disabled = true;
 
     try {
@@ -23,7 +23,7 @@ document.getElementById('newsletterForm').addEventListener('submit', async (e) =
                 timer: 3000,
                 showConfirmButton: false
             });
-            emailInput.value = ''; // Limpa o campo
+            document.getElementById('newsletterForm').reset();
         } else {
             throw new Error();
         }
