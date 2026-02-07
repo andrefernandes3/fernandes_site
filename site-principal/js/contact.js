@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
-    
+
     // Verifica se o campo de telefone existe antes de tentar ativar a biblioteca
     const phoneInput = document.querySelector("#phone");
     if (!phoneInput) return; // Se não tiver telefone nessa página, para aqui.
@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     const contactForm = document.getElementById('contactForm');
-    
+
     if (contactForm) {
         contactForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -37,11 +37,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const formData = {
                 name: document.getElementById('name').value,
                 email: document.getElementById('email').value,
-                phone: formattedPhone, 
+                phone: formattedPhone,
                 subject: document.getElementById('subject').value,
                 message: document.getElementById('message').value,
                 hp_field: document.getElementById('hp_field').value,
-                'cf-turnstile-response': turnstileResponse
+                'cf-turnstile-response': turnstileResponse,
+                // Integração com languageSwitcher
+                lang: localStorage.getItem('language') || 'pt'
             };
 
             try {
@@ -52,9 +54,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
 
                 if (response.ok) {
-                    Swal.fire({ 
-                        icon: 'success', 
-                        title: 'Sucesso!', 
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Sucesso!',
                         text: 'Mensagem enviada. Entraremos em contato em breve.',
                         confirmButtonColor: '#0d6efd'
                     });
