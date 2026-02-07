@@ -27,7 +27,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const texts = {
                 phoneTitle: isEnglish ? 'Invalid Phone' : 'Telefone inválido',
                 phoneText: isEnglish ? 'Check the number and country.' : 'Verifique o número e o país selecionado.',
-                btnSending: isEnglish ? "Sending..." : "A enviar...", // <--- O QUE VOCÊ PEDIU
+                btnSending: isEnglish ? "Sending..." : "Enviando...", // <--- O QUE VOCÊ PEDIU
                 successTitle: isEnglish ? 'Success!' : 'Sucesso!',
                 successText: isEnglish ? 'Message sent successfully.' : 'Mensagem enviada com sucesso.',
                 errorTitle: isEnglish ? 'Error' : 'Erro',
