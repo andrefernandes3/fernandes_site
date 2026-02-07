@@ -88,7 +88,7 @@ module.exports = async function (context, req) {
 
         // 2. Boas-vindas para o CLIENTE
         await transporter.sendMail({
-            from: `"André Fernandes Tech" <${process.env.EMAIL_USER}>`,
+            from: `"Fernandes Technology" <${process.env.EMAIL_USER}>`,
             to: email,
             subject: texts.subject,
             html: htmlTemplate

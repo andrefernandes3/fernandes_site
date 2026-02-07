@@ -58,7 +58,9 @@ const translations = {
 		customSolutions: "Customized Solutions",
 		customSolutionsDescription: "We develop tailor-made solutions to meet the needs of your business." ,                               
 		support247: "24/7 Support",
-		support247Description: "We offer full technical support to ensure the continuous operation of your systems."
+		support247Description: "We offer full technical support to ensure the continuous operation of your systems.",
+        newsletter_title: "Tech News & Insights.",
+        btn_subscribe: "Subscribe"
 	},
     pt: {
         missionTitle: "Nossa missão é simplificar a tecnologia para todos.",
@@ -119,7 +121,9 @@ const translations = {
 		customSolutions: "Soluções Personalizadas",
 		customSolutionsDescription: "Desenvolvemos soluções sob medida para atender às necessidades do seu negócio" ,                               
 		support247: "Suporte 24/7",
-		support247Description: "Oferecemos suporte técnico completo para garantir o funcionamento contínuo dos seus sistemas."
+		support247Description: "Oferecemos suporte técnico completo para garantir o funcionamento contínuo dos seus sistemas.",
+        newsletter_title: "Novidades Tech & Insights.",
+        btn_subscribe: "Inscrever-se"
 	}
 };
 
