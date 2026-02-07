@@ -9,7 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const btn = document.getElementById('newsletterBtn');
         const emailInput = document.getElementById('newsletterEmail');
-        
+
         // 1. Detectar Idioma Atual
         const currentLang = localStorage.getItem('language') || 'pt';
         const isEnglish = currentLang === 'en';
@@ -32,7 +32,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await fetch('/api/newsletter', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email: emailInput.value })
+                // Dentro do objeto que é enviado no body:
+                body: JSON.stringify({
+                    email: emailInput.value,
+                    hp: document.getElementById('newsletter_hp').value // Envia o valor do honeypot
+                })
             });
 
             if (response.ok) {
@@ -43,10 +47,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     timer: 3000,
                     showConfirmButton: false
                 });
-                
+
                 // CORREÇÃO CRÍTICA: Reset direto no elemento do formulário
-                newsletterForm.reset(); 
-                
+                newsletterForm.reset();
+
             } else {
                 throw new Error();
             }
