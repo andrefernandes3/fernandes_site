@@ -5,13 +5,15 @@ module.exports = async function (context, req) {
     const { name, email, phone, message } = req.body;
 
     // Configuração com variáveis de ambiente (Segurança)
-    let transporter = nodemailer.createTransport({
-        service: 'gmail', // Ou o seu provedor profissional
-        auth: {
-            user: process.env.EMAIL_USER,
-            pass: process.env.EMAIL_PASS
-        }
-    });
+    const transporter = nodemailer.createTransport({
+    host: "smtp.zoho.com", // Servidor oficial do Zoho
+    port: 465,            // Porta segura para SSL
+    secure: true,         // Obrigatório true para porta 465
+    auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
+    }
+});
 
     try {
         await transporter.sendMail({
