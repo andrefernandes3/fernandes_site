@@ -63,7 +63,7 @@ module.exports = async function (context, req) {
                 <h2 style="color: #212529; margin-top: 0;">${texts.title}</h2>
                 <p style="font-size: 16px; line-height: 1.6;">${texts.intro}</p>
                 <br>
-                <a href="https://fernandestechnology.tech" style="background-color: #212529; color: #ffffff; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;">Visit Website</a>
+                <a href="https://fernandesit.com" style="background-color: #212529; color: #ffffff; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;">Visit Website</a>
             </div>
             <div style="background-color: #f8f9fa; padding: 15px; text-align: center; font-size: 12px; color: #6c757d; border-top: 1px solid #e0e0e0;">
                 <p>${texts.footer}</p>
@@ -81,14 +81,14 @@ module.exports = async function (context, req) {
         // 1. Notificação para VOCÊ
         await transporter.sendMail({
             from: `"Newsletter Bot" <${process.env.EMAIL_USER}>`,
-            to: "contato@fernandestechnology.tech",
+            to: "contato@fernandestit.com",
             subject: `🔔 Novo Lead (${lang.toUpperCase()}): ${email}`,
             text: `O e-mail ${email} inscreveu-se na versão ${lang.toUpperCase()} do site.`
         });
 
         // 2. Boas-vindas para o CLIENTE
         await transporter.sendMail({
-            from: `"André @ Fernandes Tech" <${process.env.EMAIL_USER}>`,
+            from: `"André Fernandes Tech" <${process.env.EMAIL_USER}>`,
             to: email,
             subject: texts.subject,
             html: htmlTemplate
