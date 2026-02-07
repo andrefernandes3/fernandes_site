@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
@@ -10,12 +11,16 @@
     <link href="css/custom.css" rel="stylesheet" />
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/css/intlTelInput.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/js/intlTelInput.min.js"></script>
 </head>
+
 <body class="d-flex flex-column h-100">
     <main class="flex-shrink-0">
         <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
             <div class="container px-5">
-                <a class="navbar-brand fw-bold" href="index.html">Fernandes <span class="text-primary">Technology</span></a>
+                <a class="navbar-brand fw-bold" href="index.html">Fernandes <span
+                        class="text-primary">Technology</span></a>
             </div>
         </nav>
 
@@ -23,7 +28,8 @@
             <div class="container px-5">
                 <div class="bg-light rounded-4 py-5 px-4 px-md-5">
                     <div class="text-center mb-5">
-                        <div class="feature bg-primary bg-gradient text-white rounded-3 mb-3"><i class="bi bi-envelope"></i></div>
+                        <div class="feature bg-primary bg-gradient text-white rounded-3 mb-3"><i
+                                class="bi bi-envelope"></i></div>
                         <h1 class="fw-bolder">Solicite um Orçamento</h1>
                         <p class="lead fw-normal text-muted mb-0">Vamos discutir como posso ajudar o seu negócio.</p>
                     </div>
@@ -46,9 +52,11 @@
 
                                 <div class="row">
                                     <div class="col-md-6">
-                                        <div class="form-floating mb-3">
-                                            <input class="form-control" id="phone" type="tel" placeholder="Telefone" />
-                                            <label for="phone">Telefone / WhatsApp</label>
+                                        <div class="mb-3">
+                                            <label for="phone" class="form-label text-muted small ms-2">WhatsApp /
+                                                Telefone</label>
+                                            <input class="form-control" id="phone" type="tel" style="width: 100%;"
+                                                required />
                                         </div>
                                     </div>
                                     <div class="col-md-6">
@@ -64,7 +72,8 @@
                                 </div>
 
                                 <div class="form-floating mb-3">
-                                    <textarea class="form-control" id="message" style="height: 10rem" placeholder="Mensagem" required></textarea>
+                                    <textarea class="form-control" id="message" style="height: 10rem"
+                                        placeholder="Mensagem" required></textarea>
                                     <label for="message">Como podemos ajudar?</label>
                                 </div>
 
@@ -73,7 +82,8 @@
                                 </div>
 
                                 <div class="d-grid">
-                                    <button class="btn btn-primary btn-lg" id="submitButton" type="submit">Enviar Mensagem</button>
+                                    <button class="btn btn-primary btn-lg" id="submitButton" type="submit">Enviar
+                                        Mensagem</button>
                                 </div>
                             </form>
                         </div>
@@ -84,20 +94,38 @@
     </main>
 
     <script>
+        // Inicializa o seletor de países
+        const phoneInput = document.querySelector("#phone");
+        const iti = window.intlTelInput(phoneInput, {
+            initialCountry: "br",
+            preferredCountries: ["br", "us"],
+            utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/js/utils.js",
+            separateDialCode: true // Mostra o DDI separado
+        });
+
         document.getElementById('contactForm').addEventListener('submit', async (e) => {
             e.preventDefault();
+
+            // VALIDAÇÃO TÉCNICA DO TELEFONE
+            if (!iti.isValidNumber()) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Telefone Inválido',
+                    text: 'Por favor, insira um número de telefone válido para o país selecionado.'
+                });
+                return;
+            }
 
             const btn = document.getElementById('submitButton');
             btn.innerText = "A enviar...";
             btn.disabled = true;
 
-            // Coleta do token do Cloudflare
             const turnstileResponse = document.querySelector('[name="cf-turnstile-response"]')?.value;
 
             const formData = {
                 name: document.getElementById('name').value,
                 email: document.getElementById('email').value,
-                phone: document.getElementById('phone').value,
+                phone: iti.getNumber(), // PEGA O NÚMERO COMPLETO COM DDI (ex: +5511999999999)
                 subject: document.getElementById('subject').value,
                 message: document.getElementById('message').value,
                 hp_field: document.getElementById('hp_field').value,
@@ -121,14 +149,13 @@
                     e.target.reset();
                     if (typeof turnstile !== 'undefined') turnstile.reset();
                 } else {
-                    const errorMsg = await response.text();
-                    throw new Error(errorMsg || 'Erro no servidor');
+                    throw new Error();
                 }
             } catch (error) {
                 Swal.fire({
                     icon: 'error',
                     title: 'Ops...',
-                    text: 'Não foi possível enviar agora. Tente novamente mais tarde.',
+                    text: 'Erro ao enviar. Tente novamente mais tarde.',
                 });
             } finally {
                 btn.innerText = "Enviar Mensagem";
