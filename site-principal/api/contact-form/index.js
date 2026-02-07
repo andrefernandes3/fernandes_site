@@ -19,7 +19,7 @@ module.exports = async function (context, req) {
         await transporter.sendMail({
     from: `"${name}" <${process.env.EMAIL_USER}>`, // O remetente oficial deve ser o teu Zoho
     replyTo: email, // O e-mail do cliente vai aqui (para poderes responder diretamente)
-    to: "contato@fernandesit.com",
+    to: "no-reply@fernandesit.com",
     subject: `Novo Contato do Site: ${name}`,
     text: `Nome: ${name}\nE-mail: ${email}\nTelefone: ${phone}\nMensagem: ${message}`,
 });
