@@ -1,12 +1,15 @@
 const nodemailer = require('nodemailer');
+const { MongoClient } = require('mongodb');
+
+// Pega a conexão do ambiente do Azure
+const mongoUri = process.env.MONGO_CONNECTION_STRING;
 
 module.exports = async function (context, req) {
     const { name, email, phone, message, subject, hp_field } = req.body;
     const turnstileToken = req.body['cf-turnstile-response'];
 
-    // 1. Verificação Honeypot
+    // 1. Verificação Honeypot (Anti-Bot Simples)
     if (hp_field) {
-        context.log("Bot detectado via Honeypot.");
         context.res = { status: 200, body: "OK" };
         return;
     }
@@ -25,7 +28,33 @@ module.exports = async function (context, req) {
         return;
     }
 
-    // 3. Configuração Zoho (Se passar nas verificações acima)
+    // 3. SALVAR NO MONGODB (Novo Bloco)
+    if (mongoUri) {
+        try {
+            const client = new MongoClient(mongoUri);
+            await client.connect();
+            const database = client.db('fernandes_db'); // Nome do seu Banco
+            const collection = database.collection('contacts'); // Nome da Coleção
+
+            await collection.insertOne({
+                name,
+                email,
+                phone,
+                subject,
+                message,
+                receivedAt: new Date(),
+                source: 'contact_form'
+            });
+            await client.close();
+        } catch (dbError) {
+            context.log.error("Erro ao salvar no MongoDB:", dbError);
+            // Não paramos o código aqui para garantir que o e-mail chegue mesmo se o banco falhar
+        }
+    } else {
+        context.log.warn("MONGO_CONNECTION_STRING não definida. Pulando salvamento.");
+    }
+
+    // 4. Envio de E-mails (Nodemailer)
     const transporter = nodemailer.createTransport({
         host: "smtp.zoho.com",
         port: 465,
@@ -37,47 +66,32 @@ module.exports = async function (context, req) {
     });
 
     try {
-        // 1. Enviar e-mail de notificação para VOCÊ
+        // E-mail para VOCÊ
         await transporter.sendMail({
             from: `"${name}" <${process.env.EMAIL_USER}>`,
             replyTo: email,
-            to: "contato@fernandesit.com", // Ajustado para o seu e-mail de recebimento
+            to: "contato@fernandesit.com",
             subject: `[${subject}] Novo Contato: ${name}`,
-            text: `Assunto: ${subject}\nNome: ${name}\nE-mail: ${email}\nTelefone: ${phone}\nMensagem: ${message}`,
+            text: `Nome: ${name}\nE-mail: ${email}\nTelefone: ${phone}\nMensagem: ${message}`,
         });
 
-        // 2. Enviar Auto-Resposta para o CLIENTE
+        // Auto-resposta para o CLIENTE
         await transporter.sendMail({
             from: `"Fernandes Technology" <${process.env.EMAIL_USER}>`,
-            to: email, 
+            to: email,
             subject: "Recebemos sua mensagem | Fernandes Technology",
             html: `
-                <div style="font-family: sans-serif; color: #333; max-width: 600px; margin: auto; border: 1px solid #eee; padding: 20px;">
-                    <h2 style="color: #0d6efd;">Olá, ${name}!</h2>
-                    <p>Obrigado por entrar em contato com a <strong>Fernandes Technology</strong>.</p>
-                    <p>Recebemos sua solicitação sobre <strong>${subject}</strong> e já estamos analisando as informações.</p>
-                    <p>Entraremos em contato em até 24 horas úteis.</p>
-                    <br>
-                    <hr style="border: 0; border-top: 1px solid #eee;">
-                    <p style="font-size: 0.8em; color: #777; text-align: center;">
-                        <strong>Fernandes Technology</strong><br>
-                        Esta é uma mensagem automática, não é necessário respondê-la.
-                    </p>
+                <div style="font-family: sans-serif; color: #333;">
+                    <h2>Olá, ${name}!</h2>
+                    <p>Recebemos sua mensagem sobre <strong>${subject}</strong>.</p>
+                    <p>Entraremos em contato em breve.</p>
                 </div>
             `
         });
 
-        // Só responde sucesso ao navegador após os DOIS e-mails serem enviados
-        context.res = { 
-            status: 200, 
-            body: "Mensagens enviadas com sucesso!" 
-        };
-
+        context.res = { status: 200, body: "Enviado!" };
     } catch (error) {
-        context.log.error("Erro ao enviar e-mail:", error);
-        context.res = { 
-            status: 500, 
-            body: "Erro interno ao processar o envio." 
-        };
+        context.log.error("Erro de e-mail:", error);
+        context.res = { status: 500, body: "Erro no envio." };
     }
 };
