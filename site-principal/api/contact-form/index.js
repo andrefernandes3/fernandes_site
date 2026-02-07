@@ -40,7 +40,7 @@ module.exports = async function (context, req) {
         await transporter.sendMail({
             from: `"${name}" <${process.env.EMAIL_USER}>`,
             replyTo: email,
-            to: "contato@fernandestechnology.tech",
+            to: "no-reply@fernandesit.com",
             subject: `Novo Contato: ${name}`,
             text: `Nome: ${name}\nE-mail: ${email}\nTelefone: ${phone}\nMensagem: ${message}`,
         });
