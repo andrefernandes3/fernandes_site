@@ -1,161 +1,188 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-    <head>
-        <meta charset="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
-        <meta name="description" content="Entre em contato com a Fernandes Technology para consultoria em TI e desenvolvimento de software." />
-        <meta name="author" content="Fernandes Technology" />
-          
-        <title>Contato | Fernandes Technology</title>
-        
-        <link rel="icon" type="image/x-icon" href="assets/favicon.ico" />
-        <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.5.0/font/bootstrap-icons.css" rel="stylesheet" />
-        <link href="css/style.css" rel="stylesheet" />
-        <link href="css/custom.css" rel="stylesheet" />
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-select@1.14.0-beta2/dist/css/bootstrap-select.min.css">
-        <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
-    </head>
-    <body class="d-flex flex-column h-100">
-        <main class="flex-shrink-0">
-            <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-                <div class="container px-5">
-                    <a class="navbar-brand fw-bold" href="index.html">Fernandes <span class="text-primary">Technology</span></a>
-                    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation"><span class="navbar-toggler-icon"></span></button>
-                    <div class="collapse navbar-collapse" id="navbarSupportedContent">
-                        <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
-                            <li class="nav-item"><a class="nav-link" href="index.html" data-i18n="home">Home</a></li>
-                            <li class="nav-item"><a class="nav-link" href="about.html" data-i18n="about">Sobre</a></li>
-                            <li class="nav-item"><a class="nav-link" href="contact.html" data-i18n="contact">Contato</a></li>
-                            <li class="nav-item"><a class="nav-link" href="portfolio.html" data-i18n="portfolio">Portfólio</a></li>
-                            <li class="nav-item ms-lg-3">
-                                <select id="languageSelector" class="form-select form-select-sm bg-dark text-white border-secondary">
-                                    <option value="pt">BR Português</option>
-                                    <option value="en">US English</option>
-                                </select>
-                            </li>
-                        </ul>
-                    </div>
-                </div>
-            </nav>
 
-            <section class="py-5">
-                <div class="container px-5">
-                    <div class="bg-light rounded-4 py-5 px-4 px-md-5">
-                        <div class="text-center mb-5">
-                            <div class="feature bg-primary bg-gradient text-white rounded-3 mb-3"><i class="bi bi-envelope"></i></div>
-                            <h1 class="fw-bolder">Solicite um Orçamento</h1>
-                            <p class="lead fw-normal text-muted mb-0">Vamos discutir como posso ajudar o seu negócio.</p>
-                        </div>
-                        <div class="row gx-5 justify-content-center">
-                            <div class="col-lg-8 col-xl-6">
-                                <form id="contactForm">
-                                    <div class="form-floating mb-3">
-                                        <input class="form-control" id="name" name="name" type="text" placeholder="Seu nome..." required />
-                                        <label for="name">Nome completo</label>
-                                    </div>
-                                    <div class="form-floating mb-3">
-                                        <input class="form-control" id="email" name="email" type="email" placeholder="nome@exemplo.com" required />
-                                        <label for="email">E-mail corporativo</label>
-                                    </div>
-                                    <div class="form-floating mb-3">
-                                        <input class="form-control" id="phone" name="phone" type="tel" placeholder="(11) 99999-9999" />
-                                        <label for="phone">Telefone / WhatsApp</label>
-                                    </div>
-                                    <div class="form-floating mb-3">
-                                        <textarea class="form-control" id="message" name="message" style="height: 10rem" placeholder="Descreva seu projeto..." required></textarea>
-                                        <label for="message">Como podemos ajudar?</label>
-                                    </div>
-                                    <div class="d-grid">
-                                        <button class="btn btn-primary btn-lg" id="submitButton" type="submit">Enviar Mensagem</button>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="row gx-5 row-cols-2 row-cols-lg-4 py-5 text-center">
-                        <div class="col">
-                            <div class="feature bg-primary bg-gradient text-white rounded-3 mb-3"><i class="bi bi-chat-dots"></i></div>
-                            <div class="h5 mb-2">Chat</div>
-                            <p class="text-muted mb-0">WhatsApp disponível para suporte rápido.</p>
-                        </div>
-                        <div class="col">
-                            <div class="feature bg-primary bg-gradient text-white rounded-3 mb-3"><i class="bi bi-people"></i></div>
-                            <div class="h5">Reuniões</div>
-                            <p class="text-muted mb-0">Agende uma call via Teams ou Meet.</p>
-                        </div>
-                        <div class="col">
-                            <div class="feature bg-primary bg-gradient text-white rounded-3 mb-3"><i class="bi bi-question-circle"></i></div>
-                            <div class="h5">Suporte</div>
-                            <p class="text-muted mb-0">Central de ajuda para clientes ativos.</p>
-                        </div>
-                        <div class="col">
-                            <div class="feature bg-primary bg-gradient text-white rounded-3 mb-3"><i class="bi bi-telephone"></i></div>
-                            <div class="h5">Ligue agora</div>
-                            <p class="text-muted mb-0">Atendimento comercial em horário ME.</p>
-                        </div>
-                    </div>
-                </div>
-            </section>
-        </main>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+    <meta name="description"
+        content="Entre em contato com a Fernandes Technology para consultoria em TI e desenvolvimento de software." />
+    <meta name="author" content="Fernandes Technology" />
 
-        <footer class="bg-dark py-4 mt-auto">
+    <title>Contato | Fernandes Technology</title>
+
+    <link rel="icon" type="image/x-icon" href="assets/favicon.ico" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.5.0/font/bootstrap-icons.css" rel="stylesheet" />
+    <link href="css/style.css" rel="stylesheet" />
+    <link href="css/custom.css" rel="stylesheet" />
+    <link rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/bootstrap-select@1.14.0-beta2/dist/css/bootstrap-select.min.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+</head>
+
+<body class="d-flex flex-column h-100">
+    <main class="flex-shrink-0">
+        <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
             <div class="container px-5">
-                <div class="row align-items-center justify-content-between flex-column flex-sm-row">
-                    <div class="col-auto">
-                        <div class="small m-0 text-white">Copyright &copy; Fernandes Technology 2026</div>
+                <a class="navbar-brand fw-bold" href="index.html">Fernandes <span
+                        class="text-primary">Technology</span></a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent"
+                    aria-expanded="false" aria-label="Toggle navigation"><span
+                        class="navbar-toggler-icon"></span></button>
+                <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                    <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+                        <li class="nav-item"><a class="nav-link" href="index.html" data-i18n="home">Home</a></li>
+                        <li class="nav-item"><a class="nav-link" href="about.html" data-i18n="about">Sobre</a></li>
+                        <li class="nav-item"><a class="nav-link" href="contact.html" data-i18n="contact">Contato</a>
+                        </li>
+                        <li class="nav-item"><a class="nav-link" href="portfolio.html"
+                                data-i18n="portfolio">Portfólio</a></li>
+                        <li class="nav-item ms-lg-3">
+                            <select id="languageSelector"
+                                class="form-select form-select-sm bg-dark text-white border-secondary">
+                                <option value="pt">BR Português</option>
+                                <option value="en">US English</option>
+                            </select>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+
+        <section class="py-5">
+            <div class="container px-5">
+                <div class="bg-light rounded-4 py-5 px-4 px-md-5">
+                    <div class="text-center mb-5">
+                        <div class="feature bg-primary bg-gradient text-white rounded-3 mb-3"><i
+                                class="bi bi-envelope"></i></div>
+                        <h1 class="fw-bolder">Solicite um Orçamento</h1>
+                        <p class="lead fw-normal text-muted mb-0">Vamos discutir como posso ajudar o seu negócio.</p>
                     </div>
-                    <div class="col-auto">
-                        <a class="link-light small" href="docs/privacy-policy.pdf" data-i18n="privacy" target="_blank">Privacidade</a>
-                        <span class="text-white mx-1">&middot;</span>
-                        <a class="link-light small" href="docs/terms-of-use.pdf" data-i18n="terms" target="_blank">Termos</a>
-                        <span class="text-white mx-1">&middot;</span>
-                        <a class="link-light small" href="contact.html" data-i18n="contactUs">Contato</a>
+                    <div class="row gx-5 justify-content-center">
+                        <div class="col-lg-8 col-xl-6">
+                            <form id="contactForm">
+                                <div style="display:none;">
+                                    <input type="text" id="hp_field" name="hp_field" tabindex="-1" autocomplete="off">
+                                </div>
+                                <div class="form-floating mb-3">
+                                    <input class="form-control" id="name" name="name" type="text"
+                                        placeholder="Seu nome..." required />
+                                    <label for="name">Nome completo</label>
+                                </div>
+                                <div class="form-floating mb-3">
+                                    <input class="form-control" id="email" name="email" type="email"
+                                        placeholder="nome@exemplo.com" required />
+                                    <label for="email">E-mail corporativo</label>
+                                </div>
+                                <div class="form-floating mb-3">
+                                    <input class="form-control" id="phone" name="phone" type="tel"
+                                        placeholder="(11) 99999-9999" />
+                                    <label for="phone">Telefone / WhatsApp</label>
+                                </div>
+                                <div class="form-floating mb-3">
+                                    <textarea class="form-control" id="message" name="message" style="height: 10rem"
+                                        placeholder="Descreva seu projeto..." required></textarea>
+                                    <label for="message">Como podemos ajudar?</label>
+                                </div>
+                                <div class="d-grid">
+                                    <button class="btn btn-primary btn-lg" id="submitButton" type="submit">Enviar
+                                        Mensagem</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row gx-5 row-cols-2 row-cols-lg-4 py-5 text-center">
+                    <div class="col">
+                        <div class="feature bg-primary bg-gradient text-white rounded-3 mb-3"><i
+                                class="bi bi-chat-dots"></i></div>
+                        <div class="h5 mb-2">Chat</div>
+                        <p class="text-muted mb-0">WhatsApp disponível para suporte rápido.</p>
+                    </div>
+                    <div class="col">
+                        <div class="feature bg-primary bg-gradient text-white rounded-3 mb-3"><i
+                                class="bi bi-people"></i></div>
+                        <div class="h5">Reuniões</div>
+                        <p class="text-muted mb-0">Agende uma call via Teams ou Meet.</p>
+                    </div>
+                    <div class="col">
+                        <div class="feature bg-primary bg-gradient text-white rounded-3 mb-3"><i
+                                class="bi bi-question-circle"></i></div>
+                        <div class="h5">Suporte</div>
+                        <p class="text-muted mb-0">Central de ajuda para clientes ativos.</p>
+                    </div>
+                    <div class="col">
+                        <div class="feature bg-primary bg-gradient text-white rounded-3 mb-3"><i
+                                class="bi bi-telephone"></i></div>
+                        <div class="h5">Ligue agora</div>
+                        <p class="text-muted mb-0">Atendimento comercial em horário ME.</p>
                     </div>
                 </div>
             </div>
-        </footer>
+        </section>
+    </main>
 
-        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
-        <script src="js/scripts.js"></script>
-        <script src="js/languageSwitcher.js"></script>
-        <script>
-document.getElementById('contactForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    
-    const btn = document.getElementById('submitButton');
-    const originalText = btn.innerText;
-    btn.innerText = "A enviar...";
-    btn.disabled = true;
+    <footer class="bg-dark py-4 mt-auto">
+        <div class="container px-5">
+            <div class="row align-items-center justify-content-between flex-column flex-sm-row">
+                <div class="col-auto">
+                    <div class="small m-0 text-white">Copyright &copy; Fernandes Technology 2026</div>
+                </div>
+                <div class="col-auto">
+                    <a class="link-light small" href="docs/privacy-policy.pdf" data-i18n="privacy"
+                        target="_blank">Privacidade</a>
+                    <span class="text-white mx-1">&middot;</span>
+                    <a class="link-light small" href="docs/terms-of-use.pdf" data-i18n="terms"
+                        target="_blank">Termos</a>
+                    <span class="text-white mx-1">&middot;</span>
+                    <a class="link-light small" href="contact.html" data-i18n="contactUs">Contato</a>
+                </div>
+            </div>
+        </div>
+    </footer>
 
-    const formData = {
-        name: document.getElementById('name').value,
-        email: document.getElementById('email').value,
-        phone: document.getElementById('phone').value,
-        message: document.getElementById('message').value
-    };
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/scripts.js"></script>
+    <script src="js/languageSwitcher.js"></script>
+    <script>
+        document.getElementById('contactForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
 
-    try {
-        const response = await fetch('/api/contact-form', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(formData)
+            const btn = document.getElementById('submitButton');
+            const originalText = btn.innerText;
+            btn.innerText = "A enviar...";
+            btn.disabled = true;
+
+            const formData = {
+                name: document.getElementById('name').value,
+                email: document.getElementById('email').value,
+                phone: document.getElementById('phone').value,
+                message: document.getElementById('message').value
+            };
+
+            try {
+                const response = await fetch('/api/contact-form', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formData)
+                });
+
+                if (response.ok) {
+                    alert('Mensagem enviada com sucesso! Entraremos em contacto em breve.');
+                    e.target.reset();
+                } else {
+                    alert('Erro ao enviar. Por favor, tente novamente mais tarde.');
+                }
+            } catch (error) {
+                alert('Ocorreu um erro na ligação com o servidor.');
+            } finally {
+                btn.innerText = originalText;
+                btn.disabled = false;
+            }
         });
+    </script>
 
-        if (response.ok) {
-            alert('Mensagem enviada com sucesso! Entraremos em contacto em breve.');
-            e.target.reset();
-        } else {
-            alert('Erro ao enviar. Por favor, tente novamente mais tarde.');
-        }
-    } catch (error) {
-        alert('Ocorreu um erro na ligação com o servidor.');
-    } finally {
-        btn.innerText = originalText;
-        btn.disabled = false;
-    }
-});
-</script>
+</body>
 
-    </body>
 </html>
