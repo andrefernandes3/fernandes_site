@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     const newsletterForm = document.getElementById('newsletterForm');
 
-    // Se o formulário não existir nesta página, paramos aqui para evitar erros
+    // Se o formulário não existir nesta página, paramos aqui
     if (!newsletterForm) return;
 
     newsletterForm.addEventListener('submit', async (e) => {
@@ -9,17 +9,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const btn = document.getElementById('newsletterBtn');
         const emailInput = document.getElementById('newsletterEmail');
-
-        // 1. Detectar Idioma Atual
-        const currentLang = localStorage.getItem('language') || 'pt';
+        
+        // CORREÇÃO AQUI: Usamos a chave correta 'selectedLanguage'
+        const currentLang = localStorage.getItem('selectedLanguage') || 'pt';
         const isEnglish = currentLang === 'en';
 
-        // 2. Textos Dinâmicos
+        // Textos Dinâmicos para o Botão e Alertas
         const texts = {
-            saving: isEnglish ? "Saving..." : "Salvando...",
+            saving: isEnglish ? "Joining..." : "A entrar...",
             btnDefault: isEnglish ? "Subscribe" : "Assinar",
             successTitle: isEnglish ? "Subscribed!" : "Inscrito!",
-            successText: isEnglish ? "Thanks for joining our list." : "Obrigado por se juntar à nossa lista.",
+            successText: isEnglish ? "Thanks for joining our tech list." : "Obrigado por se juntar à nossa lista de tecnologia.",
             errorTitle: isEnglish ? "Oops..." : "Ops...",
             errorText: isEnglish ? "Error subscribing. Try again." : "Erro ao cadastrar. Tente novamente."
         };
@@ -32,10 +32,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await fetch('/api/newsletter', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                // Dentro do objeto que é enviado no body:
-                body: JSON.stringify({
+                body: JSON.stringify({ 
                     email: emailInput.value,
-                    hp: document.getElementById('newsletter_hp').value // Envia o valor do honeypot
+                    hp: document.getElementById('newsletter_hp').value, // Anti-spam
+                    lang: currentLang // Envia o idioma para o servidor
                 })
             });
 
@@ -45,12 +45,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     title: texts.successTitle,
                     text: texts.successText,
                     timer: 3000,
-                    showConfirmButton: false
+                    showConfirmButton: false,
+                    confirmButtonColor: '#0d6efd'
                 });
-
-                // CORREÇÃO CRÍTICA: Reset direto no elemento do formulário
-                newsletterForm.reset();
-
+                
+                newsletterForm.reset(); 
+                
             } else {
                 throw new Error();
             }
@@ -61,7 +61,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 text: texts.errorText,
             });
         } finally {
-            btn.innerText = texts.btnDefault; // Restaura o texto original (ou traduzido)
+            btn.innerText = texts.btnDefault;
             btn.disabled = false;
         }
     });

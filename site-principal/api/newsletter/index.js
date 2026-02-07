@@ -1,82 +1,102 @@
 const nodemailer = require('nodemailer');
 const { MongoClient } = require('mongodb');
 
-// Pegue essa string do seu MongoDB Atlas (igual usou no projeto Quiz)
-const mongoUri = process.env.MONGO_CONNECTION_STRING; 
+const mongoUri = process.env.MONGO_CONNECTION_STRING;
 
 module.exports = async function (context, req) {
-    const { email, hp } = req.body;
+    // 1. Recebe 'lang' (padrão 'pt' se falhar)
+    const { email, hp, lang = 'pt' } = req.body;
 
-    // 1. Proteção Anti-Spam (Honeypot)
+    // --- SEGURANÇA (Honeypot) ---
     if (hp) {
-        // Se o campo invisível foi preenchido, é um bot.
-        // Fingimos sucesso para o bot não tentar de novo.
         context.res = { status: 200, body: "Sucesso" };
         return;
     }
 
     if (!email) {
-        context.res = { status: 400, body: "E-mail obrigatório" };
+        context.res = { status: 400, body: "Email required" };
         return;
     }
 
-    try {
-        // 2. Salvar no MongoDB
-        if (mongoUri) {
+    // --- MONGODB (Salva o lead com o idioma) ---
+    if (mongoUri) {
+        try {
             const client = new MongoClient(mongoUri);
             await client.connect();
-            const database = client.db('fernandes_db'); // Nome do seu banco
+            const database = client.db('fernandes_db');
             const collection = database.collection('newsletter_leads');
 
-            // Verifica se já existe para não duplicar
+            // Verifica duplicidade
             const existingUser = await collection.findOne({ email: email });
             if (!existingUser) {
                 await collection.insertOne({
                     email: email,
+                    lang: lang, // Importante para campanhas futuras segmentadas por idioma
                     subscribedAt: new Date(),
                     source: 'site_footer',
                     active: true
                 });
             }
             await client.close();
+        } catch (error) {
+            context.log.error("Erro Mongo Newsletter:", error);
         }
+    }
 
-        // 3. Enviar Notificação por E-mail (Código existente)
-        const transporter = nodemailer.createTransport({
-            host: "smtp.zoho.com",
-            port: 465,
-            secure: true,
-            auth: {
-                user: process.env.EMAIL_USER,
-                pass: process.env.EMAIL_PASS
-            }
-        });
+    // --- TRADUÇÃO DO E-MAIL ---
+    const isEn = lang === 'en';
+    
+    const texts = {
+        subject: isEn ? "Welcome to Fernandes Technology!" : "Bem-vindo à Fernandes Technology!",
+        title: isEn ? "Thanks for subscribing!" : "Obrigado por se inscrever!",
+        intro: isEn ? "It's a pleasure to have you here. You will now receive updates on technology, development, and our new projects." : "É um prazer ter você por aqui. Em breve compartilharei novidades sobre tecnologia, desenvolvimento e meus novos projetos.",
+        footer: isEn ? "© 2026 Fernandes Technology. No spam, only tech." : "© 2026 Fernandes Technology. Sem spam, apenas tecnologia."
+    };
 
+    // --- TEMPLATE VISUAL ---
+    const htmlTemplate = `
+        <div style="font-family: 'Segoe UI', Arial, sans-serif; color: #333; max-width: 600px; border: 1px solid #e0e0e0; margin: 0 auto;">
+            <div style="background-color: #0d6efd; padding: 20px; text-align: center;">
+                <h1 style="color: #fff; margin: 0; font-size: 24px;">Fernandes Technology</h1>
+            </div>
+            <div style="padding: 30px;">
+                <h2 style="color: #212529; margin-top: 0;">${texts.title}</h2>
+                <p style="font-size: 16px; line-height: 1.6;">${texts.intro}</p>
+                <br>
+                <a href="https://fernandestechnology.tech" style="background-color: #212529; color: #ffffff; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;">Visit Website</a>
+            </div>
+            <div style="background-color: #f8f9fa; padding: 15px; text-align: center; font-size: 12px; color: #6c757d; border-top: 1px solid #e0e0e0;">
+                <p>${texts.footer}</p>
+            </div>
+        </div>
+    `;
+
+    // --- ENVIO ---
+    const transporter = nodemailer.createTransport({
+        host: "smtp.zoho.com", port: 465, secure: true,
+        auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS }
+    });
+
+    try {
+        // 1. Notificação para VOCÊ
         await transporter.sendMail({
-            from: `"Newsletter Site" <${process.env.EMAIL_USER}>`,
+            from: `"Newsletter Bot" <${process.env.EMAIL_USER}>`,
             to: "contato@fernandestechnology.tech",
-            subject: `🔔 Novo Lead: ${email}`,
-            text: `O e-mail ${email} foi salvo no banco de dados e inscrito na newsletter.`
+            subject: `🔔 Novo Lead (${lang.toUpperCase()}): ${email}`,
+            text: `O e-mail ${email} inscreveu-se na versão ${lang.toUpperCase()} do site.`
         });
 
-        // 4. Auto-resposta para o cliente
+        // 2. Boas-vindas para o CLIENTE
         await transporter.sendMail({
-            from: `"Fernandes Technology" <${process.env.EMAIL_USER}>`,
+            from: `"André @ Fernandes Tech" <${process.env.EMAIL_USER}>`,
             to: email,
-            subject: "Bem-vindo! | Fernandes Technology",
-            html: `
-                <div style="font-family: Arial, sans-serif;">
-                    <h2 style="color: #0d6efd;">Obrigado por se inscrever!</h2>
-                    <p>Você agora faz parte da nossa lista exclusiva de tecnologia.</p>
-                </div>
-            `
+            subject: texts.subject,
+            html: htmlTemplate
         });
 
         context.res = { status: 200, body: "Sucesso" };
-
     } catch (error) {
-        context.log.error("Erro Newsletter:", error);
-        // Mesmo se der erro no banco, tentamos não mostrar erro 500 para o usuário se for algo simples
+        context.log.error("Erro envio email:", error);
         context.res = { status: 500, body: "Erro interno" };
     }
 };
