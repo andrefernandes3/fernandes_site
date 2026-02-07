@@ -1,0 +1,67 @@
+/* Customizações Fernandes Technology */
+
+/* 1. Estilização da Imagem da Hero Section */
+header img {
+    transition: transform 0.3s ease-in-out;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4); /* Sombra mais profunda para destaque */
+}
+
+header img:hover {
+    transform: translateY(-5px); /* Efeito suave ao passar o mouse */
+}
+
+/* 2. Ajuste de cores para o tom "Tech" */
+.text-primary {
+    color: #0d6efd !important; /* Azul padrão, mas podemos trocar por um #00d4ff se quiser algo mais neon */
+}
+
+.bg-dark {
+    background-color: #0f1114 !important; /* Um cinza quase preto mais moderno que o padrão */
+}
+
+/* 3. Melhoria visual dos Cards de Funcionalidades */
+.feature {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 3.5rem;
+    width: 3.5rem;
+    font-size: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.card:hover {
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    transition: 0.3s;
+}
+
+/* 4. Estilização do Seletor de Idiomas */
+#languageSelector {
+    border-radius: 8px;
+    padding: 0.25rem 0.5rem;
+    cursor: pointer;
+    font-size: 0.85rem;
+}
+
+/* 5. Ajuste para Mobile (garantir que a imagem não fique colada no texto) */
+@media (max-width: 991.98px) {
+    header .my-5 {
+        margin-top: 2rem !important;
+        margin-bottom: 2rem !important;
+    }
+    
+    header img {
+        max-width: 90%; /* Evita que a imagem ocupe a tela inteira em celulares grandes */
+        margin-bottom: 2rem;
+    }
+}
+
+/* Fix para o menu não pular entre páginas */
+html {
+    overflow-y: scroll;
+}
+
+.navbar {
+    min-height: 72px; /* Garante altura fixa para o header */
+}
