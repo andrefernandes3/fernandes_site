@@ -23,7 +23,7 @@ module.exports = async function (context, req) {
         // 1. Avisa VOCÊ que tem um novo inscrito
         await transporter.sendMail({
             from: `"Newsletter Site" <${process.env.EMAIL_USER}>`,
-            to: "contato@fernandestechnology.tech", // Seu e-mail
+            to: "contato@fernandesit.com", // Seu e-mail
             subject: `🔔 Novo Inscrito na Newsletter: ${email}`,
             text: `O e-mail ${email} acabou de se inscrever no site.`
         });
