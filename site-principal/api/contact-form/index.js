@@ -41,7 +41,7 @@ module.exports = async function (context, req) {
         await transporter.sendMail({
             from: `"${name}" <${process.env.EMAIL_USER}>`,
             replyTo: email,
-            to: "contato@fernandestechnology.tech", // Ajustado para o seu e-mail de recebimento
+            to: "contato@fernandesit.com", // Ajustado para o seu e-mail de recebimento
             subject: `[${subject}] Novo Contato: ${name}`,
             text: `Assunto: ${subject}\nNome: ${name}\nE-mail: ${email}\nTelefone: ${phone}\nMensagem: ${message}`,
         });
