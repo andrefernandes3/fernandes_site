@@ -1,26 +1,27 @@
 document.addEventListener('DOMContentLoaded', () => {
-
-    // Verifica se o campo de telefone existe antes de tentar ativar a biblioteca
+    // 1. Configuração do Telefone (DDI)
     const phoneInput = document.querySelector("#phone");
-    if (!phoneInput) return; // Se não tiver telefone nessa página, para aqui.
+    let iti;
 
-    // Inicializa a biblioteca de DDI
-    const iti = window.intlTelInput(phoneInput, {
-        initialCountry: "br",
-        preferredCountries: ["br", "us"],
-        utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/js/utils.js",
-        separateDialCode: true
-    });
+    // Só tenta ativar se o campo existir e a biblioteca estiver carregada
+    if (phoneInput && window.intlTelInput) {
+        iti = window.intlTelInput(phoneInput, {
+            initialCountry: "br",
+            preferredCountries: ["br", "us"],
+            utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/js/utils.js",
+            separateDialCode: true
+        });
+    }
 
+    // 2. Envio do Formulário
     const contactForm = document.getElementById('contactForm');
-
     if (contactForm) {
         contactForm.addEventListener('submit', async (e) => {
             e.preventDefault();
 
             // Validação do Telefone
-            if (!iti.isValidNumber()) {
-                Swal.fire({ icon: 'warning', title: 'Telefone inválido', text: 'Verifique o número e o país selecionado.' });
+            if (iti && !iti.isValidNumber()) {
+                Swal.fire({ icon: 'warning', title: 'Telefone inválido', text: 'Verifique o número.' });
                 return;
             }
 
@@ -31,18 +32,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const turnstileResponse = document.querySelector('[name="cf-turnstile-response"]')?.value;
 
-            // Pega o número formatado (ex: +5511999999999)
-            const formattedPhone = iti.getNumber();
-
             const formData = {
                 name: document.getElementById('name').value,
                 email: document.getElementById('email').value,
-                phone: formattedPhone,
+                phone: iti ? iti.getNumber() : document.getElementById('phone').value,
                 subject: document.getElementById('subject').value,
                 message: document.getElementById('message').value,
                 hp_field: document.getElementById('hp_field').value,
                 'cf-turnstile-response': turnstileResponse,
-                // Integração com languageSwitcher
                 lang: localStorage.getItem('selectedLanguage') || 'pt'
             };
 
@@ -54,10 +51,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
 
                 if (response.ok) {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Sucesso!',
-                        text: 'Mensagem enviada. Entraremos em contato em breve.',
+                    Swal.fire({ 
+                        icon: 'success', 
+                        title: 'Sucesso!', 
+                        text: 'Mensagem enviada.',
                         confirmButtonColor: '#0d6efd'
                     });
                     contactForm.reset();
@@ -66,7 +63,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     throw new Error();
                 }
             } catch (error) {
-                Swal.fire({ icon: 'error', title: 'Erro', text: 'Não foi possível enviar. Tente novamente.' });
+                Swal.fire({ icon: 'error', title: 'Erro', text: 'Tente novamente.' });
             } finally {
                 btn.innerText = originalText;
                 btn.disabled = false;
