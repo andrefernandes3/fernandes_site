@@ -30,7 +30,7 @@ module.exports = async function (context, req) {
 
         // 2. (Opcional) Manda e-mail de boas-vindas para o cliente
         await transporter.sendMail({
-            from: `"André Fernandes" <${process.env.EMAIL_USER}>`,
+            from: `"Fernandes Technology" <${process.env.EMAIL_USER}>`,
             to: email,
             subject: "Bem-vindo à Fernandes Technology!",
             html: `
@@ -38,7 +38,7 @@ module.exports = async function (context, req) {
                     <h2>Obrigado por se inscrever!</h2>
                     <p>É um prazer ter você por aqui. Em breve compartilharei novidades sobre tecnologia, desenvolvimento e meus novos projetos.</p>
                     <br>
-                    <p>Atenciosamente,<br><strong>André Fernandes</strong></p>
+                    <p>Atenciosamente,<br><strong>Fernandes Technology</strong></p>
                 </div>
             `
         });
