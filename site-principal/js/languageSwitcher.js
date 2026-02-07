@@ -43,7 +43,31 @@ const translations = {
         value_2_title: "Global Presence",
         value_2_desc: "Proven experience serving clients in Brazil and the United States.",
         value_3_title: "Lean Agility",
-        value_3_desc: "Our lean structure allows for quick responses without corporate bureaucracy."
+        value_3_desc: "Our lean structure allows for quick responses without corporate bureaucracy.",
+        // --- CONTACT PAGE ---
+        contact_hero_title: "Get in Touch",
+        contact_hero_subtitle: "Have a project in mind? Let's talk!",
+        
+        // Form
+        form_name_label: "Full Name",
+        form_name_placeholder: "Full Name",
+        form_email_label: "Email Address",
+        form_email_placeholder: "name@example.com",
+        form_phone_label: "Phone / WhatsApp",
+        form_subject_label: "Subject",
+        form_subject_placeholder: "What's this about?",
+        form_message_label: "Message",
+        form_message_placeholder: "Describe your needs here...",
+        form_submit_btn: "Send Message",
+
+        // Cards
+        card_address_title: "Location",
+        card_hours_title: "Business Hours",
+        card_hours_desc: "9 AM - 6 PM (EST/Brasília)",
+        card_email_title: "Email",
+        card_email_desc: "We reply within 24h",
+        card_chat_title: "Chat",
+        card_chat_desc: "WhatsApp Support"
     },
     pt: {
         home: "Início",
@@ -89,7 +113,31 @@ const translations = {
         value_2_title: "Presença Global",
         value_2_desc: "Experiência comprovada atendendo clientes no Brasil e nos Estados Unidos.",
         value_3_title: "Agilidade ME",
-        value_3_desc: "A estrutura de Microempresa permite respostas rápidas, sem burocracia corporativa."
+        value_3_desc: "A estrutura de Microempresa permite respostas rápidas, sem burocracia corporativa.",
+        // --- PÁGINA CONTATO ---
+        contact_hero_title: "Entre em contato",
+        contact_hero_subtitle: "Tem um projeto em mente? Vamos conversar!",
+        
+        // Formulário
+        form_name_label: "Nome completo",
+        form_name_placeholder: "Nome completo",
+        form_email_label: "Endereço de e-mail",
+        form_email_placeholder: "nome@exemplo.com",
+        form_phone_label: "Telefone / WhatsApp",
+        form_subject_label: "Assunto",
+        form_subject_placeholder: "Sobre o que vamos falar?",
+        form_message_label: "Mensagem",
+        form_message_placeholder: "Descreva sua necessidade aqui...",
+        form_submit_btn: "Enviar Mensagem",
+
+        // Cards (Rodapé do formulário)
+        card_address_title: "Localização",
+        card_hours_title: "Horário",
+        card_hours_desc: "09:00 - 18:00 (Brasília/EST)",
+        card_email_title: "E-mail",
+        card_email_desc: "Respondemos em até 24h",
+        card_chat_title: "Chat",
+        card_chat_desc: "Suporte via WhatsApp"
     }
 };
 
