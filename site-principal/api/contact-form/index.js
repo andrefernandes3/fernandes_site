@@ -1,7 +1,7 @@
 const nodemailer = require('nodemailer');
 
 module.exports = async function (context, req) {
-    const { name, email, phone, message, hp_field } = req.body;
+    const { name, email, phone, message, subject, hp_field } = req.body;
     const turnstileToken = req.body['cf-turnstile-response'];
 
     // 1. Verificação Honeypot
@@ -41,8 +41,8 @@ module.exports = async function (context, req) {
             from: `"${name}" <${process.env.EMAIL_USER}>`,
             replyTo: email,
             to: "no-reply@fernandesit.com",
-            subject: `Novo Contato: ${name}`,
-            text: `Nome: ${name}\nE-mail: ${email}\nTelefone: ${phone}\nMensagem: ${message}`,
+            subject: `[${subject}] Novo Contato: ${name}`,
+            text: `Assunto: ${subject}\nNome: ${name}\nE-mail: ${email}\nTelefone: ${phone}\nMensagem: ${message}`,
         });
         context.res = { status: 200, body: "Enviado!" };
     } catch (error) {
