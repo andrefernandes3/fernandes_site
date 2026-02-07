@@ -141,19 +141,21 @@
 
         <section class="py-5 bg-light">
             <div class="container px-5 my-5">
-                <aside class="bg-primary bg-gradient rounded-3 p-4 p-sm-5">
+                <aside class="bg-primary bg-gradient rounded-3 p-4 p-sm-5 mt-5">
                     <div
                         class="d-flex align-items-center justify-content-between flex-column flex-xl-row text-center text-xl-start">
                         <div class="mb-4 mb-xl-0">
-                            <div class="fs-3 fw-bold text-white">Pronto para o próximo nível?</div>
-                            <div class="text-white-50">Assine nossa newsletter para insights sobre tecnologia.</div>
-                        </div>
-                        <div class="ms-xl-4">
-                            <div class="input-group mb-2">
-                                <input class="form-control" type="email" placeholder="Seu melhor e-mail..."
-                                    aria-label="E-mail" />
-                                <button class="btn btn-outline-light" type="button">Assinar</button>
+                            <div class="fs-3 fw-bold text-white">Novidades Tech & Insights.</div>
+                            <div class="text-white-50">Cadastre-se para receber atualizações sobre nossos projetos.
                             </div>
+                        </div>
+                        <div class="ms-xl-4 w-100 w-xl-auto">
+                            <form id="newsletterForm" class="d-flex flex-column flex-sm-row gap-2">
+                                <input class="form-control" id="newsletterEmail" type="email"
+                                    placeholder="Seu melhor e-mail..." aria-label="E-mail" required />
+                                <button class="btn btn-outline-light" id="newsletterBtn" type="submit">Assinar</button>
+                            </form>
+                            <div class="small text-white-50 mt-2">Prometemos não enviar spam.</div>
                         </div>
                     </div>
                 </aside>
@@ -172,7 +174,7 @@
                         target="_blank">Privacidade</a>
                     <span class="text-white mx-1">&middot;</span>
                     <a class="link-light small" href="docs/terms-of-use.pdf" data-i18n="terms"
-                        target="_blank">Termos</a>                    
+                        target="_blank">Termos</a>
                 </div>
             </div>
         </div>
