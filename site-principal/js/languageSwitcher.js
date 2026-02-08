@@ -1,5 +1,8 @@
 const translations = {
     en: {
+        // --- NOVAS CHAVES DE SEO ---
+        meta_title: "Fernandes Technology | Innovative IT Solutions",
+        meta_description: "Custom software development, cloud infrastructure, and specialized IT support for global companies.",
         home: "Home",
         about: "About",
         contact: "Contact",
@@ -70,6 +73,9 @@ const translations = {
         card_chat_desc: "WhatsApp Support"
     },
     pt: {
+        // --- NOVAS CHAVES DE SEO ---
+        meta_title: "Fernandes Technology | Soluções Inovadoras em TI",
+        meta_description: "Desenvolvimento de software sob medida, infraestrutura em nuvem e suporte especializado em TI para empresas globais.",
         home: "Início",
         about: "Sobre",
         contact: "Contato",
@@ -143,31 +149,52 @@ const translations = {
 
 // Função para aplicar as traduções
 function applyTranslations(lang) {
+    const langData = translations[lang];
+    if (!langData) return;
+
+    // 1. Traduz elementos comuns com [data-i18n]
     document.querySelectorAll('[data-i18n]').forEach(element => {
         const key = element.getAttribute('data-i18n');
-        if (translations[lang] && translations[lang][key]) {
-            element.textContent = translations[lang][key];
+        if (langData[key]) {
+            element.textContent = langData[key];
         }
     });
+
+    // 2. Traduz Placeholders de inputs (como os do formulário de contato)
+    document.querySelectorAll('[data-i18n-placeholder]').forEach(element => {
+        const key = element.getAttribute('data-i18n-placeholder');
+        if (langData[key]) {
+            element.setAttribute('placeholder', langData[key]);
+        }
+    });
+
+    // 3. ATUALIZAÇÃO DE SEO DINÂMICO
+    // Atualiza o Título da Aba do navegador
+    if (langData.meta_title) {
+        document.title = langData.meta_title;
+    }
+
+    // Atualiza a Meta Description (importante para o Google)
+    const metaDescription = document.querySelector('meta[name="description"]');
+    if (metaDescription && langData.meta_description) {
+        metaDescription.setAttribute('content', langData.meta_description);
+    }
 }
 
-// Evento para mudar o idioma
+// O restante do seu código (eventos de clique e DOMContentLoaded) permanece o mesmo
 document.getElementById('languageSelector').addEventListener('change', function () {
     const lang = this.value;
-    localStorage.setItem('selectedLanguage', lang); // Armazenar o idioma selecionado
-    applyTranslations(lang); // Aplicar as traduções
+    localStorage.setItem('selectedLanguage', lang);
+    applyTranslations(lang);
 });
 
-// Carregar o idioma salvo ao iniciar a página
 window.addEventListener('DOMContentLoaded', function () {
-    const savedLang = localStorage.getItem('selectedLanguage') || 'pt'; // Recuperar o idioma salvo ou usar 'pt' como padrão
+    const savedLang = localStorage.getItem('selectedLanguage') || 'pt';
     const languageSelector = document.getElementById('languageSelector');
 
-    // Definir o valor do seletor de idioma
     if (languageSelector) {
         languageSelector.value = savedLang;
     }
 
-    // Aplicar as traduções
     applyTranslations(savedLang);
 });
