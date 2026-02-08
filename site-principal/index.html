@@ -208,70 +208,77 @@
     <script src="js/chat.js"></script>
 
     <script>
-        document.getElementById('button-newsletter').addEventListener('click', function() {
+        document.getElementById('button-newsletter').addEventListener('click', async function() {
             const emailInput = document.getElementById('newsletterInput');
             const email = emailInput.value.trim();
+            const btn = document.getElementById('button-newsletter');
             
-            // 1. Descobre o idioma atual do usuário
+            // 1. Idioma
             const currentLang = localStorage.getItem('selectedLanguage') || 'pt';
-
-            // 2. Dicionário de Mensagens
             const messages = {
                 pt: {
-                    error_title: 'Atenção',
-                    error_text: 'Por favor, digite um e-mail válido.',
-                    loading_title: 'Enviando...',
-                    success_title: 'Inscrito com Sucesso!',
-                    success_text: 'Obrigado! Em breve você receberá nossas novidades Tech.'
+                    error_empty: 'Por favor, digite seu e-mail.',
+                    error_server: 'Erro ao conectar. Tente novamente.',
+                    loading: 'Salvando...',
+                    success_title: 'Sucesso!',
+                    success_text: 'E-mail cadastrado na nossa base!'
                 },
                 en: {
-                    error_title: 'Warning',
-                    error_text: 'Please enter a valid email address.',
-                    loading_title: 'Sending...',
-                    success_title: 'Subscribed Successfully!',
-                    success_text: 'Thank you! You will receive our Tech updates soon.'
+                    error_empty: 'Please enter your email.',
+                    error_server: 'Connection error. Try again.',
+                    loading: 'Saving...',
+                    success_title: 'Success!',
+                    success_text: 'Email registered in our database!'
                 }
             };
-
-            // Seleciona as frases certas
             const text = messages[currentLang];
 
-            // 3. Validação
+            // 2. Validação local
             if (!email) {
-                Swal.fire({
-                    title: text.error_title,
-                    text: text.error_text,
-                    icon: 'warning',
-                    confirmButtonColor: '#0d6efd'
-                });
+                Swal.fire({ title: 'Ops!', text: text.error_empty, icon: 'warning', confirmButtonColor: '#0d6efd' });
                 return;
             }
 
-            // 4. Simula o envio (Loading)
-            let timerInterval;
-            Swal.fire({
-                title: text.loading_title,
-                html: '', // Pode por texto extra aqui se quiser
-                timer: 1500, // Demora 1.5 segundos para parecer real
-                timerProgressBar: true,
-                didOpen: () => {
-                    Swal.showLoading();
-                },
-                willClose: () => {
-                    clearInterval(timerInterval);
-                }
-            }).then((result) => {
-                // 5. Mostra Sucesso após o "envio"
-                if (result.dismiss === Swal.DismissReason.timer) {
+            // 3. UI de Carregamento
+            const originalBtnText = btn.innerText;
+            btn.innerText = text.loading;
+            btn.disabled = true;
+
+            try {
+                // 4. ENVIO REAL PARA O BACKEND
+                const response = await fetch('/api/newsletter', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: email })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
                     Swal.fire({
                         title: text.success_title,
                         text: text.success_text,
                         icon: 'success',
                         confirmButtonColor: '#0d6efd'
                     });
-                    emailInput.value = ''; // Limpa o campo
+                    emailInput.value = ''; // Limpa
+                } else {
+                    throw new Error(data.error || 'Erro desconhecido');
                 }
-            });
+
+            } catch (error) {
+                console.error(error);
+                Swal.fire({
+                    title: 'Erro',
+                    text: text.error_server,
+                    icon: 'error',
+                    confirmButtonColor: '#0d6efd'
+                });
+            } finally {
+                // Restaura o botão
+                btn.innerText = originalBtnText;
+                btn.disabled = false;
+            }
         });
     </script>
 </body>
