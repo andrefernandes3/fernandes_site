@@ -1,102 +1,88 @@
-const nodemailer = require('nodemailer');
-const { MongoClient } = require('mongodb');
-
-const mongoUri = process.env.MONGO_CONNECTION_STRING;
+const { MongoClient } = require("mongodb");
+const nodemailer = require("nodemailer");
 
 module.exports = async function (context, req) {
-    // 1. Recebe 'lang' (padrão 'pt' se falhar)
-    const { email, hp, lang = 'pt' } = req.body;
-
-    // --- SEGURANÇA (Honeypot) ---
-    if (hp) {
-        context.res = { status: 200, body: "Sucesso" };
-        return;
-    }
+    // 1. Prepara resposta JSON (Isso corrige o erro do print)
+    const headers = { "Content-Type": "application/json" };
+    
+    const { email, lang } = req.body;
+    const userLang = lang || 'pt';
 
     if (!email) {
-        context.res = { status: 400, body: "Email required" };
+        context.res = { 
+            status: 400, 
+            headers: headers,
+            body: { error: userLang === 'en' ? "Email is required" : "E-mail é obrigatório" } 
+        };
         return;
     }
 
-    // --- MONGODB (Salva o lead com o idioma) ---
-    if (mongoUri) {
-        try {
-            const client = new MongoClient(mongoUri);
+    try {
+        // 2. SALVA NO BANCO (Independente do idioma!)
+        const uri = process.env.MONGODB_URI;
+        if (uri) {
+            const client = new MongoClient(uri);
             await client.connect();
-            const database = client.db('fernandes_db');
-            const collection = database.collection('newsletter_leads');
+            const database = client.db("fernandes_tech_db");
+            const collection = database.collection("newsletter_subscribers");
 
             // Verifica duplicidade
-            const existingUser = await collection.findOne({ email: email });
-            if (!existingUser) {
+            const existing = await collection.findOne({ email: email });
+            if (!existing) {
                 await collection.insertOne({
                     email: email,
-                    lang: lang, // Importante para campanhas futuras segmentadas por idioma
+                    language: userLang, // Salva se é PT ou EN
                     subscribedAt: new Date(),
-                    source: 'site_footer',
-                    active: true
+                    source: "website_footer"
                 });
             }
             await client.close();
-        } catch (error) {
-            context.log.error("Erro Mongo Newsletter:", error);
         }
-    }
 
-    // --- TRADUÇÃO DO E-MAIL ---
-    const isEn = lang === 'en';
-    
-    const texts = {
-        subject: isEn ? "Welcome to Fernandes Technology!" : "Bem-vindo à Fernandes Technology!",
-        title: isEn ? "Thanks for subscribing!" : "Obrigado por se inscrever!",
-        intro: isEn ? "It's a pleasure to have you here. You will now receive updates on technology, development, and our new projects." : "É um prazer ter você por aqui. Em breve compartilharei novidades sobre tecnologia, desenvolvimento e meus novos projetos.",
-        footer: isEn ? "© 2026 Fernandes Technology. No spam, only tech." : "© 2026 Fernandes Technology. Sem spam, apenas tecnologia."
-    };
-
-    // --- TEMPLATE VISUAL ---
-    const htmlTemplate = `
-        <div style="font-family: 'Segoe UI', Arial, sans-serif; color: #333; max-width: 600px; border: 1px solid #e0e0e0; margin: 0 auto;">
-            <div style="background-color: #0d6efd; padding: 20px; text-align: center;">
-                <h1 style="color: #fff; margin: 0; font-size: 24px;">Fernandes Technology</h1>
-            </div>
-            <div style="padding: 30px;">
-                <h2 style="color: #212529; margin-top: 0;">${texts.title}</h2>
-                <p style="font-size: 16px; line-height: 1.6;">${texts.intro}</p>
-                <br>
-                <a href="https://fernandesit.com" style="background-color: #212529; color: #ffffff; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;">Visit Website</a>
-            </div>
-            <div style="background-color: #f8f9fa; padding: 15px; text-align: center; font-size: 12px; color: #6c757d; border-top: 1px solid #e0e0e0;">
-                <p>${texts.footer}</p>
-            </div>
-        </div>
-    `;
-
-    // --- ENVIO ---
-    const transporter = nodemailer.createTransport({
+        const transporter = nodemailer.createTransport({
         host: "smtp.zoho.com", port: 465, secure: true,
         auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS }
     });
 
-    try {
-        // 1. Notificação para VOCÊ
-        await transporter.sendMail({
-            from: `"Newsletter Bot" <${process.env.EMAIL_USER}>`,
-            to: "contato@fernandestit.com",
-            subject: `🔔 Novo Lead (${lang.toUpperCase()}): ${email}`,
-            text: `O e-mail ${email} inscreveu-se na versão ${lang.toUpperCase()} do site.`
-        });
+        const emailContent = userLang === 'en' ? {
+            subject: "Welcome to Fernandes Technology!",
+            text: "Hello! You are now subscribed to our tech newsletter.",
+            html: "<h3>Welcome!</h3><p>You are now subscribed to Fernandes Technology newsletter.</p>"
+        } : {
+            subject: "Bem-vindo à Fernandes Technology!",
+            text: "Olá! Você está inscrito na nossa newsletter de tecnologia.",
+            html: "<h3>Bem-vindo!</h3><p>Obrigado por se inscrever na newsletter da Fernandes Technology.</p>"
+        };
 
-        // 2. Boas-vindas para o CLIENTE
-        await transporter.sendMail({
-            from: `"Fernandes Technology" <${process.env.EMAIL_USER}>`,
-            to: email,
-            subject: texts.subject,
-            html: htmlTemplate
-        });
+        if (process.env.EMAIL_USER) {
+            await transporter.sendMail({
+                from: `"Fernandes Tech" <${process.env.EMAIL_USER}>`,
+                to: email,
+                subject: emailContent.subject,
+                text: emailContent.text,
+                html: emailContent.html
+            });
+        }
 
-        context.res = { status: 200, body: "Sucesso" };
+        // 4. RETORNA SUCESSO (EM JSON CORRETO)
+        context.res = {
+            status: 200,
+            headers: headers,
+            body: { 
+                // Aqui mandamos um Objeto {}, não a palavra "Sucesso" solta
+                message: userLang === 'en' ? "Success!" : "Sucesso!",
+                details: "Cadastrado com sucesso."
+            }
+        };
+
     } catch (error) {
-        context.log.error("Erro envio email:", error);
-        context.res = { status: 500, body: "Erro interno" };
+        context.log.error("Erro Newsletter:", error);
+        context.res = {
+            status: 500,
+            headers: headers,
+            body: { 
+                error: userLang === 'en' ? "Server error." : "Erro no servidor."
+            }
+        };
     }
 };
