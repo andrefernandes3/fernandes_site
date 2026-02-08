@@ -1,54 +1,70 @@
-const { GoogleGenerativeAI } = require("@google/generative-ai");
-
 module.exports = async function (context, req) {
+    // Cabeçalho padrão para garantir que o frontend receba JSON
+    const headers = { "Content-Type": "application/json" };
+
     try {
-        const apiKey = process.env.GEMINI_API_KEY; 
-        if (!apiKey) throw new Error("API Key não configurada.");
+        const apiKey = process.env.GROQ_API_KEY; 
+        if (!apiKey) throw new Error("API Key (GROQ_API_KEY) não configurada.");
 
-        const genAI = new GoogleGenerativeAI(apiKey);
-        
-        // AGORA VAI FUNCIONAR: Com a biblioteca atualizada, ele reconhece o modelo Flash
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-
-        const companyContext = `
-        VOCÊ É: O assistente virtual oficial da Fernandes Technology.
-        SUA PERSONA: Profissional, especialista em TI, direto e prestativo.
+        // Contexto da Fernandes Technology
+        const systemPrompt = `
+        VOCÊ É: O assistente virtual da Fernandes Technology.
         
         SOBRE A EMPRESA:
-        - Nome: Fernandes Technology.
-        - Fundador: André Fernandes.
-        - Localização: Brasil (Osasco/SP) e EUA (New Jersey).
-        - Foco: Consultoria de TI Enterprise para empresas que buscam agilidade.
-        
-        SERVIÇOS:
-        - Desenvolvimento Web (Node.js, React).
-        - Cloud (Azure, AWS).
-        - Banco de Dados (MongoDB, SQL).
-        - DevOps (Docker, CI/CD).
+        - Nome: Fernandes Technology (Fundador: André Fernandes).
+        - Local: Brasil (Osasco) e EUA (New Jersey).
+        - Foco: Consultoria TI Enterprise, Node.js, Azure, MongoDB.
         
         REGRAS:
-        - Preço: "Depende do escopo. Vamos agendar uma conversa?"
-        - Contato: "Use o formulário ou envie e-mail para contato@fernandestechnology.tech"
-        - Idioma: Responda no idioma do cliente.
+        - Respostas curtas (máx 3 frases).
+        - Profissional e direto.
+        - Se perguntarem preço: "Depende do escopo. Vamos agendar uma reunião?"
+        - Se perguntarem contato: "Pelo formulário ou WhatsApp no site."
+        - Responda no idioma da pergunta.
         `;
 
-        const userMessage = req.body.message || "";
-        const prompt = `${companyContext}\n\nPERGUNTA: "${userMessage}"\nRESPOSTA:`;
+        const userMessage = req.body.message || "Olá";
 
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        const text = response.text();
+        // CHAMADA DIRETA (Sem biblioteca)
+        const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+            method: "POST",
+            headers: {
+                "Authorization": `Bearer ${apiKey}`,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                messages: [
+                    { role: "system", content: systemPrompt },
+                    { role: "user", content: userMessage }
+                ],
+                model: "llama3-8b-8192", // Modelo Rápido e Grátis
+                temperature: 0.5,
+                max_tokens: 200
+            })
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Erro na API Groq: ${errorText}`);
+        }
+
+        const data = await response.json();
+        const replyText = data.choices[0]?.message?.content || "Sem resposta.";
 
         context.res = {
             status: 200,
-            body: { reply: text }
+            headers: headers,
+            body: { reply: replyText }
         };
 
     } catch (error) {
         context.log.error("Erro Chat:", error);
+        
+        // Retorna JSON mesmo no erro para não quebrar o frontend
         context.res = { 
             status: 500, 
-            body: { reply: "Desculpe, estou atualizando meu sistema. Tente já já." } 
+            headers: headers,
+            body: { reply: "Desculpe, estou em manutenção. Tente novamente." } 
         };
     }
 };
