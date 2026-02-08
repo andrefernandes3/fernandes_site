@@ -1,29 +1,39 @@
 const https = require('https');
 
 module.exports = async function (context, req) {
-    // 1. Prepara a resposta padrão (JSON)
     const headers = { "Content-Type": "application/json" };
     
     try {
-        // 2. Valida a Chave
-        const apiKey = process.env.GROQ_API_KEY;
-        if (!apiKey) {
-            throw new Error("Chave GROQ_API_KEY não configurada no servidor.");
+        // --- 1. SEGURANÇA NA LEITURA DA MENSAGEM ---
+        let userMessage = "Olá"; // Valor padrão para não quebrar
+
+        // Tenta ler do body (POST)
+        if (req.body && req.body.message) {
+            userMessage = req.body.message;
+        } 
+        // Tenta ler da query (GET - útil para testes no navegador)
+        else if (req.query && req.query.message) {
+            userMessage = req.query.message;
         }
+        
+        context.log("Mensagem recebida:", userMessage);
 
-        const userMessage = req.body.message || "Olá";
+        // --- 2. VALIDAÇÃO DA CHAVE ---
+        const apiKey = process.env.GROQ_API_KEY;
+        if (!apiKey) throw new Error("Chave GROQ_API_KEY não configurada no servidor.");
 
-        // 3. Configura a requisição para a Groq
-        const data = JSON.stringify({
+        // --- 3. REQUISIÇÃO PARA GROQ (Nativa) ---
+        const requestData = JSON.stringify({
             messages: [
-                {
-                    role: "system",
-                    content: "Você é a IA da Fernandes Technology (Consultoria TI, Azure, Node.js). Responda de forma curta, técnica e em português."
+                { 
+                    role: "system", 
+                    content: "Você é a IA da Fernandes Technology (Consultoria TI, Azure, Node.js). Responda de forma curta, técnica e em português do Brasil." 
                 },
                 { role: "user", content: userMessage }
             ],
-            model: "llama3-8b-8192",
-            temperature: 0.5
+            model: "llama3-8b-8192", // Modelo rápido e estável
+            temperature: 0.5,
+            max_tokens: 300
         });
 
         const options = {
@@ -33,31 +43,36 @@ module.exports = async function (context, req) {
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${apiKey}`,
-                'Content-Length': data.length
+                'Content-Length': Buffer.byteLength(requestData)
             }
         };
 
-        // 4. Executa a chamada (Sem usar fetch/axios)
-        const groqResponse = await new Promise((resolve, reject) => {
-            const reqApi = https.request(options, (resApi) => {
+        const apiResponse = await new Promise((resolve, reject) => {
+            const request = https.request(options, (response) => {
                 let body = '';
-                resApi.on('data', (chunk) => body += chunk);
-                resApi.on('end', () => {
-                    if (resApi.statusCode >= 200 && resApi.statusCode < 300) {
-                        resolve(JSON.parse(body));
-                    } else {
-                        reject(new Error(`Erro API Groq (${resApi.statusCode}): ${body}`));
+                response.on('data', chunk => body += chunk);
+                response.on('end', () => {
+                    try {
+                        const jsonResponse = JSON.parse(body || '{}');
+                        resolve({ status: response.statusCode, data: jsonResponse });
+                    } catch (e) {
+                        reject(new Error("Erro ao processar resposta da Groq."));
                     }
                 });
             });
-            reqApi.on('error', (e) => reject(e));
-            reqApi.write(data);
-            reqApi.end();
+            request.on('error', (e) => reject(e));
+            request.write(requestData);
+            request.end();
         });
 
-        const replyText = groqResponse.choices[0]?.message?.content || "Sem resposta.";
+        // --- 4. TRATAMENTO DA RESPOSTA ---
+        if (apiResponse.status !== 200) {
+            const errorMsg = apiResponse.data.error?.message || "Erro desconhecido na IA";
+            throw new Error(`Groq API Error: ${errorMsg}`);
+        }
 
-        // 5. Sucesso!
+        const replyText = apiResponse.data.choices?.[0]?.message?.content || "Desculpe, não consegui formular uma resposta.";
+
         context.res = {
             status: 200,
             headers: headers,
@@ -65,9 +80,8 @@ module.exports = async function (context, req) {
         };
 
     } catch (error) {
-        context.log.error("Erro Chat:", error.message);
+        context.log.error("ERRO CRÍTICO NO CHAT:", error.message);
         
-        // Retorna ERRO EM JSON para o frontend não quebrar
         context.res = {
             status: 500,
             headers: headers,
