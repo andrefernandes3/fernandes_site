@@ -8,27 +8,25 @@ const translations = {
         home: "Home",
         about: "About",
         contact: "Contact",
-        portfolio: "Portfolio",
+        services: "Services",
         privacy: "Privacy",
         terms: "Terms",
+
+        // --- HOME PAGE REDESIGN ---
+        home_feature_1_title: "Scalable Development",
+        home_feature_1_desc: "We don't just write code, we build business assets. Our Node.js and React solutions are designed to grow with your company, without technical debt.",
+        home_feature_2_title: "Smart Infrastructure",
+        home_feature_2_desc: "Forget slow servers. We migrate and manage your operation in the cloud (Azure/AWS) focusing on cost reduction and maximum security.",
+        stat_support: "Technical Support",
+        stat_global: "Global Reach",
+        uptime: "Guaranteed Uptime",
 
         // --- HOME / GENERAL ---
         bootstrapTemplateTitle: "Innovative Solutions to Modernize Your Business",
         bootstrapTemplateDescription: "At Fernandes Technology, we offer innovative solutions to modernize your business. Explore our services and discover how we can help you.",
         copyright: "Copyright &copy; Fernandes Technology 2026",
         contactUs: "Request a Quote",
-        ourServices: "Our Services",
-
-        // --- FEATURES ---
-        features_title: "End-to-end Digital Transformation.",
-        feature_custom_dev_title: "Custom Development",
-        feature_custom_dev_desc: "Web systems and custom tools tailored to your workflow.",
-        feature_cloud_title: "Cloud & Infrastructure",
-        feature_cloud_desc: "Cloud migration and server management with a focus on high availability.",
-        feature_security_title: "Information Security",
-        feature_security_desc: "Data protection and compliance to keep your business secure.",
-        feature_support_title: "Specialized Support",
-        feature_support_desc: "Agile technical support to ensure your operation never stops.",
+        ourServices: "Our Services",        
 
         // --- NEWSLETTER ---
         newsletter_title: "Tech News & Insights.",
@@ -37,6 +35,30 @@ const translations = {
         newsletter_btn: "Subscribe",
         newsletter_spam: "We promise not to send spam.",
         newsletterPrivacy: "We care about your privacy and will never share your data.",
+
+        // --- SERVICES PAGE ---
+        nav_services: "Services",
+        services_hero_title: "Technical Expertise to Scale Your Business",
+        services_hero_desc: "From software architecture to cloud infrastructure. We deliver enterprise solutions that drive growth.",
+        services_explore_btn: "Explore Solutions",
+        services_section_title: "What We Do Best",
+        services_section_subtitle: "Our core specializations.",
+        
+        srv_dev_title: "Custom Development",
+        srv_dev_desc: "Robust APIs, modern web systems, and SaaS platforms built with Node.js and scalable architecture.",
+        srv_cloud_title: "Cloud & DevOps",
+        srv_cloud_desc: "Azure & AWS experts. Legacy migration, serverless architecture, and automated CI/CD pipelines.",
+        srv_data_title: "Data Engineering",
+        srv_data_desc: "Modeling and optimization of SQL and NoSQL (MongoDB) databases. We turn raw data into performance.",
+        srv_ai_title: "AI Solutions",
+        srv_ai_desc: "Integration of LLMs (like GPT/Groq) to create intelligent assistants and business process automation.",
+        srv_consult_title: "Strategic Consulting",
+        srv_consult_desc: "Technical diagnosis, architecture design, and mentorship for internal development teams.",
+        srv_support_title: "Support & Maintenance",
+        srv_support_desc: "Proactive monitoring and agile technical support to ensure the stability of critical applications.",
+        
+        srv_cta_final_title: "Have a technical challenge?",
+        srv_cta_final_desc: "Let's discuss how our expertise can solve your technology problems.",
 
         // --- ABOUT PAGE ---
         about_title: "Our Mission is to Simplify Technology.",
@@ -98,27 +120,25 @@ const translations = {
         home: "Início",
         about: "Sobre",
         contact: "Contato",
-        portfolio: "Portfólio",
+        services: "Serviços",
         privacy: "Privacidade",
         terms: "Termos",
+
+        // --- HOME PAGE REDESIGN ---
+        home_feature_1_title: "Desenvolvimento que Escala",
+        home_feature_1_desc: "Não criamos apenas código, criamos ativos de negócio. Nossas soluções em Node.js e React são desenhadas para crescer com sua empresa, sem dívida técnica.",
+        home_feature_2_title: "Infraestrutura Inteligente",
+        home_feature_2_desc: "Esqueça servidores lentos. Migramos e gerenciamos sua operação na nuvem (Azure/AWS) focando em redução de custos e segurança máxima.",
+        stat_support: "Suporte Técnico",
+        stat_global: "Atuação Global",
+        uptime: "Uptime Garantido",
 
         // --- HOME / GERAL ---
         bootstrapTemplateTitle: "Soluções Inovadoras para Modernizar seu Negócio",
         bootstrapTemplateDescription: "Na Fernandes Technology, oferecemos soluções inovadoras para modernizar seu negócio. Conheça nossos serviços e descubra como podemos ajudar você.",
         copyright: "Copyright &copy; Fernandes Technology 2026",
         contactUs: "Solicitar Orçamento",
-        ourServices: "Nossos Serviços",
-
-        // --- FEATURES ---
-        features_title: "Transformação Digital de ponta a ponta.",
-        feature_custom_dev_title: "Desenvolvimento Sob Medida",
-        feature_custom_dev_desc: "Sistemas web e ferramentas personalizadas para o seu fluxo de trabalho.",
-        feature_cloud_title: "Cloud & Infraestrutura",
-        feature_cloud_desc: "Migração para nuvem e gestão de servidores com foco em alta disponibilidade.",
-        feature_security_title: "Segurança da Informação",
-        feature_security_desc: "Proteção de dados e conformidade para manter sua empresa segura.",
-        feature_support_title: "Suporte Especializado",
-        feature_support_desc: "Atendimento técnico ágil para garantir que sua operação nunca pare.",
+        ourServices: "Nossos Serviços",        
 
         // --- NEWSLETTER ---
         newsletter_title: "Novidades Tech & Insights.",
@@ -127,6 +147,30 @@ const translations = {
         newsletter_btn: "Inscrever-se",
         newsletter_spam: "Prometemos não enviar spam.",
         newsletterPrivacy: "Nós nos importamos com a privacidade e nunca compartilharemos seus dados.",
+
+        // --- PÁGINA SERVIÇOS ---
+        nav_services: "Serviços",
+        services_hero_title: "Expertise Técnica para Escalar seu Negócio",
+        services_hero_desc: "Da arquitetura de software à infraestrutura em nuvem. Entregamos soluções enterprise que impulsionam o crescimento.",
+        services_explore_btn: "Explorar Soluções",
+        services_section_title: "O Que Fazemos de Melhor",
+        services_section_subtitle: "Nossas especialidades principais.",
+        
+        srv_dev_title: "Desenvolvimento Customizado",
+        srv_dev_desc: "APIs robustas, sistemas web modernos e plataformas SaaS construídas com Node.js e arquitetura escalável.",
+        srv_cloud_title: "Cloud & DevOps",
+        srv_cloud_desc: "Especialistas em Azure e AWS. Migração de legado, arquitetura serverless e esteiras de CI/CD automatizadas.",
+        srv_data_title: "Engenharia de Dados",
+        srv_data_desc: "Modelagem e otimização de bancos SQL e NoSQL (MongoDB). Transformamos dados brutos em performance.",
+        srv_ai_title: "Soluções de IA",
+        srv_ai_desc: "Integração de LLMs (como GPT/Groq) para criar assistentes inteligentes e automação de processos de negócio.",
+        srv_consult_title: "Consultoria Estratégica",
+        srv_consult_desc: "Diagnóstico técnico, desenho de arquitetura e mentoria para times de desenvolvimento internos.",
+        srv_support_title: "Suporte e Sustentação",
+        srv_support_desc: "Monitoramento proativo e suporte técnico ágil para garantir a estabilidade de aplicações críticas.",
+        
+        srv_cta_final_title: "Tem um desafio técnico?",
+        srv_cta_final_desc: "Vamos discutir como nossa expertise pode resolver seus problemas de tecnologia.",
 
         // --- PÁGINA SOBRE ---
         about_title: "Nossa Missão é Simplificar a Tecnologia.",
