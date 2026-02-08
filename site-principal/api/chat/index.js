@@ -1,35 +1,44 @@
 const https = require('https');
 
 module.exports = async function (context, req) {
-    const headers = { "Content-Type": "application/json" };
-    
-    try {
-        // --- CORREÇÃO DE SEGURANÇA AQUI ---
-        // Verifica se req.body existe antes de tentar ler
-        let userMessage = "Olá"; // Valor padrão
+    // Cabeçalhos básicos + CORS
+    const headers = {
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Origin": "*",           // ← ajuste para seu domínio em produção (ex: https://seusite.com)
+        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization"
+    };
 
-        if (req.body && req.body.message) {
-            userMessage = req.body.message;
-        } else if (typeof req.body === "string") {
-            // Às vezes o Azure envia o body como texto puro
-            try {
-                const parsed = JSON.parse(req.body);
-                userMessage = parsed.message || "Olá";
-            } catch (e) {
-                userMessage = req.body;
+    // Trata requisição OPTIONS (pré-flight CORS)
+    if (req.method === "OPTIONS") {
+        context.res = { status: 204, headers };
+        return;
+    }
+
+    try {
+        // --- Leitura segura do body ---
+        let userMessage = "Olá";
+        if (req.body) {
+            if (typeof req.body === 'object' && req.body.message) {
+                userMessage = req.body.message;
+            } else if (typeof req.body === 'string') {
+                try {
+                    const parsed = JSON.parse(req.body);
+                    userMessage = parsed.message || req.body.trim() || "Olá";
+                } catch {
+                    userMessage = req.body.trim() || "Olá";
+                }
             }
         }
-        
-        context.log("Mensagem processada:", userMessage);
 
-        // Validação da Chave
+        context.log.info(`Mensagem recebida: "${userMessage}"`);
+
         const apiKey = process.env.GROQ_API_KEY;
         if (!apiKey) {
-            throw new Error("Chave GROQ_API_KEY não configurada no Azure.");
+            throw new Error("Variável de ambiente GROQ_API_KEY não configurada no Azure.");
         }
 
-        // Configura a requisição para a Groq
-        const data = JSON.stringify({
+        const payload = {
             messages: [
                 {
                     role: "system",
@@ -38,8 +47,11 @@ module.exports = async function (context, req) {
                 { role: "user", content: userMessage }
             ],
             model: "llama3-8b-8192",
-            temperature: 0.5
-        });
+            temperature: 0.5,
+            max_tokens: 512
+        };
+
+        const data = JSON.stringify(payload);
 
         const options = {
             hostname: 'api.groq.com',
@@ -52,43 +64,54 @@ module.exports = async function (context, req) {
             }
         };
 
-        // Chamada nativa
         const groqResponse = await new Promise((resolve, reject) => {
-            const reqApi = https.request(options, (resApi) => {
+            const apiReq = https.request(options, (apiRes) => {
                 let body = '';
-                resApi.on('data', (chunk) => body += chunk);
-                resApi.on('end', () => {
-                    if (resApi.statusCode >= 200 && resApi.statusCode < 300) {
+                apiRes.on('data', chunk => body += chunk);
+                apiRes.on('end', () => {
+                    if (apiRes.statusCode >= 200 && apiRes.statusCode < 300) {
                         try {
                             resolve(JSON.parse(body));
                         } catch (e) {
-                            reject(new Error("Resposta da Groq não é um JSON válido."));
+                            reject(new Error(`Resposta Groq inválida (não-JSON): ${body.substring(0, 200)}`));
                         }
                     } else {
-                        reject(new Error(`Erro API Groq (${resApi.statusCode}): ${body}`));
+                        reject(new Error(`Groq erro ${apiRes.statusCode}: ${body.substring(0, 300)}`));
                     }
                 });
             });
-            reqApi.on('error', (e) => reject(e));
-            reqApi.write(data);
-            reqApi.end();
+
+            apiReq.on('error', reject);
+            apiReq.write(data);
+            apiReq.end();
         });
 
-        const replyText = groqResponse.choices?.[0]?.message?.content || "Sem resposta da IA.";
+        const reply = groqResponse.choices?.[0]?.message?.content?.trim() 
+            || "Sem resposta válida da IA.";
 
         context.res = {
             status: 200,
-            headers: headers,
-            body: { reply: replyText }
+            headers,
+            body: { reply }
         };
 
-    } catch (error) {
-        context.log.error("ERRO NO CHAT:", error.message);
-        
+    } catch (err) {
+        context.log.error("ERRO NO CHAT:", err);
+
+        let errorMsg = "Erro interno no servidor.";
+        let status = 500;
+
+        if (err.message.includes("GROQ_API_KEY")) {
+            errorMsg = "Configuração incompleta no servidor (chave da API ausente).";
+            status = 503; // Service Unavailable
+        } else if (err.message.includes("Groq erro")) {
+            errorMsg = "Erro na comunicação com a IA. Tente novamente mais tarde.";
+        }
+
         context.res = {
-            status: 500,
-            headers: headers,
-            body: { reply: `Erro no servidor: ${error.message}` } 
+            status,
+            headers,
+            body: { reply: errorMsg, details: err.message }
         };
     }
 };
