@@ -1,0 +1,8 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "AzureWebJobsStorage": "",
+    "FUNCTIONS_WORKER_RUNTIME": "node",
+    "GROQ_API_KEY": "AIzaSyD7rD5_FKsPzrRhjzFN3VjFFYcnYxS1cG8"
+  }
+}

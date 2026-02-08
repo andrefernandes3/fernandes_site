@@ -1,56 +1,63 @@
+const https = require('https');
+
 module.exports = async function (context, req) {
-    // Cabeçalho padrão para garantir que o frontend receba JSON
+    // 1. Prepara a resposta padrão (JSON)
     const headers = { "Content-Type": "application/json" };
-
+    
     try {
-        const apiKey = process.env.GROQ_API_KEY; 
-        if (!apiKey) throw new Error("API Key (GROQ_API_KEY) não configurada.");
-
-        // Contexto da Fernandes Technology
-        const systemPrompt = `
-        VOCÊ É: O assistente virtual da Fernandes Technology.
-        
-        SOBRE A EMPRESA:
-        - Nome: Fernandes Technology (Fundador: André Fernandes).
-        - Local: Brasil (Osasco) e EUA (New Jersey).
-        - Foco: Consultoria TI Enterprise, Node.js, Azure, MongoDB.
-        
-        REGRAS:
-        - Respostas curtas (máx 3 frases).
-        - Profissional e direto.
-        - Se perguntarem preço: "Depende do escopo. Vamos agendar uma reunião?"
-        - Se perguntarem contato: "Pelo formulário ou WhatsApp no site."
-        - Responda no idioma da pergunta.
-        `;
+        // 2. Valida a Chave
+        const apiKey = process.env.GROQ_API_KEY;
+        if (!apiKey) {
+            throw new Error("Chave GROQ_API_KEY não configurada no servidor.");
+        }
 
         const userMessage = req.body.message || "Olá";
 
-        // CHAMADA DIRETA (Sem biblioteca)
-        const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-            method: "POST",
-            headers: {
-                "Authorization": `Bearer ${apiKey}`,
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                messages: [
-                    { role: "system", content: systemPrompt },
-                    { role: "user", content: userMessage }
-                ],
-                model: "llama3-8b-8192", // Modelo Rápido e Grátis
-                temperature: 0.5,
-                max_tokens: 200
-            })
+        // 3. Configura a requisição para a Groq
+        const data = JSON.stringify({
+            messages: [
+                {
+                    role: "system",
+                    content: "Você é a IA da Fernandes Technology (Consultoria TI, Azure, Node.js). Responda de forma curta, técnica e em português."
+                },
+                { role: "user", content: userMessage }
+            ],
+            model: "llama3-8b-8192",
+            temperature: 0.5
         });
 
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`Erro na API Groq: ${errorText}`);
-        }
+        const options = {
+            hostname: 'api.groq.com',
+            path: '/openai/v1/chat/completions',
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${apiKey}`,
+                'Content-Length': data.length
+            }
+        };
 
-        const data = await response.json();
-        const replyText = data.choices[0]?.message?.content || "Sem resposta.";
+        // 4. Executa a chamada (Sem usar fetch/axios)
+        const groqResponse = await new Promise((resolve, reject) => {
+            const reqApi = https.request(options, (resApi) => {
+                let body = '';
+                resApi.on('data', (chunk) => body += chunk);
+                resApi.on('end', () => {
+                    if (resApi.statusCode >= 200 && resApi.statusCode < 300) {
+                        resolve(JSON.parse(body));
+                    } else {
+                        reject(new Error(`Erro API Groq (${resApi.statusCode}): ${body}`));
+                    }
+                });
+            });
+            reqApi.on('error', (e) => reject(e));
+            reqApi.write(data);
+            reqApi.end();
+        });
 
+        const replyText = groqResponse.choices[0]?.message?.content || "Sem resposta.";
+
+        // 5. Sucesso!
         context.res = {
             status: 200,
             headers: headers,
@@ -58,13 +65,13 @@ module.exports = async function (context, req) {
         };
 
     } catch (error) {
-        context.log.error("Erro Chat:", error);
+        context.log.error("Erro Chat:", error.message);
         
-        // Retorna JSON mesmo no erro para não quebrar o frontend
-        context.res = { 
-            status: 500, 
+        // Retorna ERRO EM JSON para o frontend não quebrar
+        context.res = {
+            status: 500,
             headers: headers,
-            body: { reply: "Desculpe, estou em manutenção. Tente novamente." } 
+            body: { reply: `Erro no servidor: ${error.message}` } 
         };
     }
 };
