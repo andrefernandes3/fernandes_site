@@ -7,12 +7,12 @@ module.exports = async function (context, req) {
 
         const genAI = new GoogleGenerativeAI(apiKey);
         
-        // MUDANÇA AQUI: Usando o modelo estável 'gemini-pro'
-        const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+        // AGORA VAI FUNCIONAR: Com a biblioteca atualizada, ele reconhece o modelo Flash
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
         const companyContext = `
         VOCÊ É: O assistente virtual oficial da Fernandes Technology.
-        SUA PERSONA: Profissional, especialista em TI, direto e prestativo. Use emojis moderados.
+        SUA PERSONA: Profissional, especialista em TI, direto e prestativo.
         
         SOBRE A EMPRESA:
         - Nome: Fernandes Technology.
@@ -20,23 +20,20 @@ module.exports = async function (context, req) {
         - Localização: Brasil (Osasco/SP) e EUA (New Jersey).
         - Foco: Consultoria de TI Enterprise para empresas que buscam agilidade.
         
-        SERVIÇOS (Tech Stack):
-        - Desenvolvimento Web: Node.js, React, Sites rápidos e responsivos.
-        - Cloud: Especialistas em Azure e AWS (Arquitetura, Migração, Serverless).
-        - Banco de Dados: MongoDB (NoSQL) e SQL Server.
-        - DevOps: Pipelines CI/CD, Docker, Automação.
+        SERVIÇOS:
+        - Desenvolvimento Web (Node.js, React).
+        - Cloud (Azure, AWS).
+        - Banco de Dados (MongoDB, SQL).
+        - DevOps (Docker, CI/CD).
         
-        REGRAS DE ATENDIMENTO:
-        1. Se perguntarem preço: "Depende do escopo do projeto. Posso pedir para o André entrar em contato?"
-        2. Se perguntarem contato: Indique o formulário do site ou e-mail contato@fernandestechnology.tech.
-        3. Idioma: Responda SEMPRE no idioma que o usuário perguntar (Português ou Inglês).
-        4. Tamanho: Respostas curtas e objetivas (máximo 3 parágrafos).
-        
-        OBJETIVO: Tirar dúvidas técnicas e convencer o cliente a agendar uma reunião.
+        REGRAS:
+        - Preço: "Depende do escopo. Vamos agendar uma conversa?"
+        - Contato: "Use o formulário ou envie e-mail para contato@fernandestechnology.tech"
+        - Idioma: Responda no idioma do cliente.
         `;
 
         const userMessage = req.body.message || "";
-        const prompt = `${companyContext}\n\nPERGUNTA DO CLIENTE: "${userMessage}"\nSUA RESPOSTA:`;
+        const prompt = `${companyContext}\n\nPERGUNTA: "${userMessage}"\nRESPOSTA:`;
 
         const result = await model.generateContent(prompt);
         const response = await result.response;
@@ -48,10 +45,10 @@ module.exports = async function (context, req) {
         };
 
     } catch (error) {
-        context.log.error("Erro no Chat:", error);
+        context.log.error("Erro Chat:", error);
         context.res = { 
             status: 500, 
-            body: { reply: "Desculpe, estou em manutenção rápida. Tente novamente em 1 minuto." } 
+            body: { reply: "Desculpe, estou atualizando meu sistema. Tente já já." } 
         };
     }
 };
