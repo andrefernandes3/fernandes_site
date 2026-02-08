@@ -213,8 +213,9 @@
             const email = emailInput.value.trim();
             const btn = document.getElementById('button-newsletter');
             
-            // 1. Idioma
+            // 1. Pega o idioma atual
             const currentLang = localStorage.getItem('selectedLanguage') || 'pt';
+
             const messages = {
                 pt: {
                     error_empty: 'Por favor, digite seu e-mail.',
@@ -233,26 +234,29 @@
             };
             const text = messages[currentLang];
 
-            // 2. Validação local
             if (!email) {
                 Swal.fire({ title: 'Ops!', text: text.error_empty, icon: 'warning', confirmButtonColor: '#0d6efd' });
                 return;
             }
 
-            // 3. UI de Carregamento
+            // UI Loading
             const originalBtnText = btn.innerText;
             btn.innerText = text.loading;
             btn.disabled = true;
 
             try {
-                // 4. ENVIO REAL PARA O BACKEND
+                // 2. Envia E-mail E Idioma para a API
                 const response = await fetch('/api/newsletter', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email: email })
+                    body: JSON.stringify({ 
+                        email: email,
+                        lang: currentLang // <--- O SEGREDO ESTÁ AQUI
+                    })
                 });
 
-                const data = await response.json();
+                // Tenta ler o JSON. Se falhar, captura o erro.
+                const data = await response.json(); 
 
                 if (response.ok) {
                     Swal.fire({
@@ -261,13 +265,13 @@
                         icon: 'success',
                         confirmButtonColor: '#0d6efd'
                     });
-                    emailInput.value = ''; // Limpa
+                    emailInput.value = '';
                 } else {
                     throw new Error(data.error || 'Erro desconhecido');
                 }
 
             } catch (error) {
-                console.error(error);
+                console.error("Erro Newsletter:", error);
                 Swal.fire({
                     title: 'Erro',
                     text: text.error_server,
@@ -275,7 +279,6 @@
                     confirmButtonColor: '#0d6efd'
                 });
             } finally {
-                // Restaura o botão
                 btn.innerText = originalBtnText;
                 btn.disabled = false;
             }
