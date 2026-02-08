@@ -2,7 +2,6 @@ const { MongoClient } = require("mongodb");
 const nodemailer = require("nodemailer");
 
 module.exports = async function (context, req) {
-    // 1. Prepara resposta JSON (Isso corrige o erro do print)
     const headers = { "Content-Type": "application/json" };
     
     const { email, lang } = req.body;
@@ -18,7 +17,7 @@ module.exports = async function (context, req) {
     }
 
     try {
-        // 2. SALVA NO BANCO (Independente do idioma!)
+        // 1. SALVA NO BANCO (Lógica mantida)
         const uri = process.env.MONGODB_URI;
         if (uri) {
             const client = new MongoClient(uri);
@@ -26,12 +25,11 @@ module.exports = async function (context, req) {
             const database = client.db("fernandes_tech_db");
             const collection = database.collection("newsletter_subscribers");
 
-            // Verifica duplicidade
             const existing = await collection.findOne({ email: email });
             if (!existing) {
                 await collection.insertOne({
                     email: email,
-                    language: userLang, // Salva se é PT ou EN
+                    language: userLang,
                     subscribedAt: new Date(),
                     source: "website_footer"
                 });
@@ -39,37 +37,71 @@ module.exports = async function (context, req) {
             await client.close();
         }
 
-        const transporter = nodemailer.createTransport({
+        // 2. PREPARA O E-MAIL (DESIGN NOVO)      
+    const transporter = nodemailer.createTransport({
         host: "smtp.zoho.com", port: 465, secure: true,
         auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS }
     });
 
-        const emailContent = userLang === 'en' ? {
+        // Textos Traduzidos
+        const content = userLang === 'en' ? {
             subject: "Welcome to Fernandes Technology!",
-            text: "Hello! You are now subscribed to our tech newsletter.",
-            html: "<h3>Welcome!</h3><p>You are now subscribed to Fernandes Technology newsletter.</p>"
+            title: "Thanks for subscribing!",
+            message: "It's a pleasure to have you here. Soon I will share news about technology, development, and my new projects.",
+            btnText: "Visit Website",
+            footer: "© 2026 Fernandes Technology. No spam, just tech."
         } : {
             subject: "Bem-vindo à Fernandes Technology!",
-            text: "Olá! Você está inscrito na nossa newsletter de tecnologia.",
-            html: "<h3>Bem-vindo!</h3><p>Obrigado por se inscrever na newsletter da Fernandes Technology.</p>"
+            title: "Obrigado por se inscrever!",
+            message: "É um prazer ter você por aqui. Em breve compartilharei novidades sobre tecnologia, desenvolvimento e meus novos projetos.",
+            btnText: "Visitar Site",
+            footer: "© 2026 Fernandes Technology. Sem spam, apenas tecnologia."
         };
 
+        // O HTML Bonito (Template)
+        const htmlTemplate = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden;">
+            <div style="background-color: #0d6efd; padding: 20px; text-align: center;">
+                <h1 style="color: #ffffff; margin: 0; font-size: 24px;">Fernandes Technology</h1>
+            </div>
+
+            <div style="padding: 30px; background-color: #ffffff; color: #333333;">
+                <h2 style="color: #212529; margin-top: 0;">${content.title}</h2>
+                <p style="font-size: 16px; line-height: 1.5; color: #555555;">
+                    ${content.message}
+                </p>
+                
+                <div style="margin-top: 30px;">
+                    <a href="https://fernandesit.com" style="background-color: #212529; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">
+                        ${content.btnText}
+                    </a>
+                </div>
+            </div>
+
+            <div style="background-color: #f8f9fa; padding: 20px; text-align: center; border-top: 1px solid #e0e0e0;">
+                <p style="font-size: 12px; color: #888888; margin: 0;">
+                    ${content.footer}
+                </p>
+            </div>
+        </div>
+        `;
+
+        // 3. ENVIA
         if (process.env.EMAIL_USER) {
             await transporter.sendMail({
                 from: `"Fernandes Tech" <${process.env.EMAIL_USER}>`,
                 to: email,
-                subject: emailContent.subject,
-                text: emailContent.text,
-                html: emailContent.html
+                subject: content.subject,
+                text: content.message, // Fallback para clientes sem HTML
+                html: htmlTemplate
             });
         }
 
-        // 4. RETORNA SUCESSO (EM JSON CORRETO)
+        // 4. RESPOSTA JSON
         context.res = {
             status: 200,
             headers: headers,
             body: { 
-                // Aqui mandamos um Objeto {}, não a palavra "Sucesso" solta
                 message: userLang === 'en' ? "Success!" : "Sucesso!",
                 details: "Cadastrado com sucesso."
             }
