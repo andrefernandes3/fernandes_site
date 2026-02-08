@@ -25,25 +25,43 @@ document.addEventListener('DOMContentLoaded', () => {
     toggleBtn.addEventListener('click', toggleChat);
     closeBtn.addEventListener('click', toggleChat);
 
-    // Enviar Mensagem
+    // Enviar Mensagem (ATUALIZADO PARA API REAL)
     async function sendMessage() {
         const text = input.value.trim();
         if (!text) return;
 
-        // 1. Adiciona msg do usuário
+        // 1. Mostra msg do usuário
         addMessage(text, 'user');
         input.value = '';
+        input.focus();
 
-        // 2. Simula "Digitando..."
+        // 2. Mostra "Digitando..."
         const typingId = showTyping();
-        
-        // 3. Simula resposta (Aqui entrará sua API depois)
-        setTimeout(() => {
+
+        try {
+            // 3. Chama a API Serverless (Backend)
+            const response = await fetch('/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: text })
+            });
+
+            const data = await response.json();
+            
+            // 4. Remove "Digitando" e mostra resposta real
             removeTyping(typingId);
-            // Resposta fake inteligente
-            const reply = getDemoResponse(text); 
-            addMessage(reply, 'bot');
-        }, 1500);
+            
+            if (response.ok) {
+                addMessage(data.reply, 'bot');
+            } else {
+                addMessage("Ops, tive um erro de conexão. Tente novamente.", 'bot');
+            }
+
+        } catch (error) {
+            removeTyping(typingId);
+            addMessage("Erro de rede. Verifique sua conexão.", 'bot');
+            console.error(error);
+        }
     }
 
     // Adiciona bolha no chat
@@ -70,21 +88,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function removeTyping(id) {
         const el = document.getElementById(id);
         if(el) el.remove();
-    }
-
-    // Respostas de Demonstração (Enquanto não tem IA)
-    function getDemoResponse(input) {
-        const lower = input.toLowerCase();
-        const isEn = localStorage.getItem('selectedLanguage') === 'en';
-
-        if (lower.includes('olá') || lower.includes('hi') || lower.includes('hello')) {
-            return isEn ? "Hello! How can I help with your tech project today?" : "Olá! Como posso ajudar com seu projeto de tecnologia hoje?";
-        }
-        if (lower.includes('preço') || lower.includes('price') || lower.includes('custo')) {
-            return isEn ? "We offer custom quotes. Would you like to schedule a call?" : "Trabalhamos com orçamentos personalizados. Gostaria de agendar uma conversa?";
-        }
-        return isEn ? "I'm a demo of the future Fernandes AI. I'm learning fast!" : "Sou uma demonstração da futura Fernandes AI. Estou aprendendo rápido!";
-    }
+    }  
 
     // Eventos de Envio
     sendBtn.addEventListener('click', sendMessage);
