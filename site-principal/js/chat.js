@@ -2,7 +2,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // ────────────────────────────────────────────────
     //   CONFIGURAÇÃO – NUNCA MAIS COLOQUE CHAVE AQUI!
     // ────────────────────────────────────────────────
-    const BACKEND_URL = "https://fernandesTech.azurestaticapps.net/api/chat"; // ← AJUSTE AQUI
+    const BACKEND_URL = "https://cors-anywhere.herokuapp.com/https://fernandesTech.azurestaticapps.net/api/chat"; // ← AJUSTE AQUI
 
     const toggleBtn    = document.getElementById('chatToggleBtn');
     const chatContainer = document.getElementById('chatContainer');
