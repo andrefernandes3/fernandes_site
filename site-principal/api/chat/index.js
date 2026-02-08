@@ -4,36 +4,41 @@ module.exports = async function (context, req) {
     const headers = { "Content-Type": "application/json" };
     
     try {
-        // --- 1. SEGURANÇA NA LEITURA DA MENSAGEM ---
-        let userMessage = "Olá"; // Valor padrão para não quebrar
+        // --- CORREÇÃO DE SEGURANÇA AQUI ---
+        // Verifica se req.body existe antes de tentar ler
+        let userMessage = "Olá"; // Valor padrão
 
-        // Tenta ler do body (POST)
         if (req.body && req.body.message) {
             userMessage = req.body.message;
-        } 
-        // Tenta ler da query (GET - útil para testes no navegador)
-        else if (req.query && req.query.message) {
-            userMessage = req.query.message;
+        } else if (typeof req.body === "string") {
+            // Às vezes o Azure envia o body como texto puro
+            try {
+                const parsed = JSON.parse(req.body);
+                userMessage = parsed.message || "Olá";
+            } catch (e) {
+                userMessage = req.body;
+            }
         }
         
-        context.log("Mensagem recebida:", userMessage);
+        context.log("Mensagem processada:", userMessage);
 
-        // --- 2. VALIDAÇÃO DA CHAVE ---
+        // Validação da Chave
         const apiKey = process.env.GROQ_API_KEY;
-        if (!apiKey) throw new Error("Chave GROQ_API_KEY não configurada no servidor.");
+        if (!apiKey) {
+            throw new Error("Chave GROQ_API_KEY não configurada no Azure.");
+        }
 
-        // --- 3. REQUISIÇÃO PARA GROQ (Nativa) ---
-        const requestData = JSON.stringify({
+        // Configura a requisição para a Groq
+        const data = JSON.stringify({
             messages: [
-                { 
-                    role: "system", 
-                    content: "Você é a IA da Fernandes Technology (Consultoria TI, Azure, Node.js). Responda de forma curta, técnica e em português do Brasil." 
+                {
+                    role: "system",
+                    content: "Você é a IA da Fernandes Technology (Consultoria TI, Azure, Node.js). Responda de forma curta, técnica e em português."
                 },
                 { role: "user", content: userMessage }
             ],
-            model: "llama3-8b-8192", // Modelo rápido e estável
-            temperature: 0.5,
-            max_tokens: 300
+            model: "llama3-8b-8192",
+            temperature: 0.5
         });
 
         const options = {
@@ -43,35 +48,33 @@ module.exports = async function (context, req) {
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${apiKey}`,
-                'Content-Length': Buffer.byteLength(requestData)
+                'Content-Length': Buffer.byteLength(data)
             }
         };
 
-        const apiResponse = await new Promise((resolve, reject) => {
-            const request = https.request(options, (response) => {
+        // Chamada nativa
+        const groqResponse = await new Promise((resolve, reject) => {
+            const reqApi = https.request(options, (resApi) => {
                 let body = '';
-                response.on('data', chunk => body += chunk);
-                response.on('end', () => {
-                    try {
-                        const jsonResponse = JSON.parse(body || '{}');
-                        resolve({ status: response.statusCode, data: jsonResponse });
-                    } catch (e) {
-                        reject(new Error("Erro ao processar resposta da Groq."));
+                resApi.on('data', (chunk) => body += chunk);
+                resApi.on('end', () => {
+                    if (resApi.statusCode >= 200 && resApi.statusCode < 300) {
+                        try {
+                            resolve(JSON.parse(body));
+                        } catch (e) {
+                            reject(new Error("Resposta da Groq não é um JSON válido."));
+                        }
+                    } else {
+                        reject(new Error(`Erro API Groq (${resApi.statusCode}): ${body}`));
                     }
                 });
             });
-            request.on('error', (e) => reject(e));
-            request.write(requestData);
-            request.end();
+            reqApi.on('error', (e) => reject(e));
+            reqApi.write(data);
+            reqApi.end();
         });
 
-        // --- 4. TRATAMENTO DA RESPOSTA ---
-        if (apiResponse.status !== 200) {
-            const errorMsg = apiResponse.data.error?.message || "Erro desconhecido na IA";
-            throw new Error(`Groq API Error: ${errorMsg}`);
-        }
-
-        const replyText = apiResponse.data.choices?.[0]?.message?.content || "Desculpe, não consegui formular uma resposta.";
+        const replyText = groqResponse.choices?.[0]?.message?.content || "Sem resposta da IA.";
 
         context.res = {
             status: 200,
@@ -80,7 +83,7 @@ module.exports = async function (context, req) {
         };
 
     } catch (error) {
-        context.log.error("ERRO CRÍTICO NO CHAT:", error.message);
+        context.log.error("ERRO NO CHAT:", error.message);
         
         context.res = {
             status: 500,
