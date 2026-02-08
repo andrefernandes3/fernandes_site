@@ -222,26 +222,70 @@
         document.getElementById('button-newsletter').addEventListener('click', function() {
             const emailInput = document.getElementById('newsletterInput');
             const email = emailInput.value.trim();
+            
+            // 1. Descobre o idioma atual do usuário
+            const currentLang = localStorage.getItem('selectedLanguage') || 'pt';
 
-            if(email) {
-                // Simula sucesso
+            // 2. Dicionário de Mensagens
+            const messages = {
+                pt: {
+                    error_title: 'Atenção',
+                    error_text: 'Por favor, digite um e-mail válido.',
+                    loading_title: 'Enviando...',
+                    success_title: 'Inscrito com Sucesso!',
+                    success_text: 'Obrigado! Em breve você receberá nossas novidades Tech.'
+                },
+                en: {
+                    error_title: 'Warning',
+                    error_text: 'Please enter a valid email address.',
+                    loading_title: 'Sending...',
+                    success_title: 'Subscribed Successfully!',
+                    success_text: 'Thank you! You will receive our Tech updates soon.'
+                }
+            };
+
+            // Seleciona as frases certas
+            const text = messages[currentLang];
+
+            // 3. Validação
+            if (!email) {
                 Swal.fire({
-                    title: 'Sucesso!',
-                    text: 'Obrigado por se inscrever! Em breve enviaremos novidades.',
-                    icon: 'success',
-                    confirmButtonColor: '#0d6efd'
-                });
-                emailInput.value = ''; // Limpa o campo
-            } else {
-                // Erro se vazio
-                 Swal.fire({
-                    title: 'Atenção',
-                    text: 'Por favor, digite seu e-mail para continuar.',
+                    title: text.error_title,
+                    text: text.error_text,
                     icon: 'warning',
                     confirmButtonColor: '#0d6efd'
                 });
+                return;
             }
+
+            // 4. Simula o envio (Loading)
+            let timerInterval;
+            Swal.fire({
+                title: text.loading_title,
+                html: '', // Pode por texto extra aqui se quiser
+                timer: 1500, // Demora 1.5 segundos para parecer real
+                timerProgressBar: true,
+                didOpen: () => {
+                    Swal.showLoading();
+                },
+                willClose: () => {
+                    clearInterval(timerInterval);
+                }
+            }).then((result) => {
+                // 5. Mostra Sucesso após o "envio"
+                if (result.dismiss === Swal.DismissReason.timer) {
+                    Swal.fire({
+                        title: text.success_title,
+                        text: text.success_text,
+                        icon: 'success',
+                        confirmButtonColor: '#0d6efd'
+                    });
+                    emailInput.value = ''; // Limpa o campo
+                }
+            });
         });
     </script>
+</body>
+</html>
 </body>
 </html>
