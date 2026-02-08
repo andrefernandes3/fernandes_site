@@ -155,31 +155,20 @@
         <section class="py-5">
             <div class="container px-5 my-5">
                 <aside class="bg-primary bg-gradient rounded-3 p-4 p-sm-5 mt-5">
-                    <div
-                        class="d-flex align-items-center justify-content-between flex-column flex-xl-row text-center text-xl-start">
+                    <div class="d-flex align-items-center justify-content-between flex-column flex-xl-row text-center text-xl-start">
                         <div class="mb-4 mb-xl-0">
-                            <div class="fs-3 fw-bold text-white" data-i18n="newsletter_title">Novidades Tech & Insights.
-                            </div>
-                            <div class="text-white-50" data-i18n="newsletter_desc">Cadastre-se para receber atualizações
-                                sobre nossos projetos.</div>
+                            <div class="fs-3 fw-bold text-white" data-i18n="newsletter_title">Novidades Tech & Insights.</div>
+                            <div class="text-white-50" data-i18n="newsletter_desc">Cadastre-se para receber atualizações sobre nossos projetos.</div>
                         </div>
                         <div class="ms-xl-4">
-                            <form id="newsletterForm" class="d-flex flex-column flex-sm-row gap-2">
-                                <div style="display:none;"><input type="text" id="newsletter_hp" tabindex="-1"
-                                        autocomplete="off"></div>
-
-                                <input class="form-control w-100" id="newsletterEmail" type="email"
-                                    placeholder="Seu melhor e-mail..." aria-label="E-mail" required
-                                    data-i18n-placeholder="newsletter_placeholder" />
-
-                                <button class="btn btn-outline-light" id="newsletterBtn" type="submit"
-                                    data-i18n="newsletter_btn">Increver-se</button>
-                            </form>
-                            <div class="small text-white-50" data-i18n="newsletter_spam">Prometemos não enviar
-                                spam.</div>
+                            <div class="input-group mb-2">
+                                <input class="form-control" id="newsletterInput" type="text" placeholder="Seu melhor e-mail..." aria-label="Email address..." aria-describedby="button-newsletter" data-i18n-placeholder="newsletter_placeholder" />
+                                <button class="btn btn-outline-light" id="button-newsletter" type="button" data-i18n="newsletter_btn">Inscrever-se</button>
+                            </div>
+                            <div class="small text-white-50" data-i18n="newsletterPrivacy">Nós nos importamos com a privacidade.</div>
                         </div>
                     </div>
-                </aside>
+                </aside>            
             </div>
         </section>
     </main>
