@@ -2,7 +2,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // ────────────────────────────────────────────────
     //   CONFIGURAÇÃO – NUNCA MAIS COLOQUE CHAVE AQUI!
     // ────────────────────────────────────────────────
-    const BACKEND_URL = "https://sua-function-app.azurewebsites.net/api/sua-function-name"; // ← AJUSTE AQUI
+    const BACKEND_URL = "https://fernandesTech.azurestaticapps.net/api/chat"; // ← AJUSTE AQUI
 
     const toggleBtn    = document.getElementById('chatToggleBtn');
     const chatContainer = document.getElementById('chatContainer');
