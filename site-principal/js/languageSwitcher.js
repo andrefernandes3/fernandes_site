@@ -70,7 +70,11 @@ const translations = {
         card_email_title: "Email",
         card_email_desc: "We reply within 24h",
         card_chat_title: "Chat",
-        card_chat_desc: "WhatsApp Support"
+        card_chat_desc: "WhatsApp Support",
+        chat_title: "Fernandes AI",
+        chat_status: "Online • Virtual Support",
+        chat_welcome: "Hello! I'm Fernandes Tech AI. How can I help scale your business today?",
+        chat_placeholder: "Type your question..."
     },
     pt: {
         // --- NOVAS CHAVES DE SEO ---
@@ -143,7 +147,11 @@ const translations = {
         card_email_title: "E-mail",
         card_email_desc: "Respondemos em até 24h",
         card_chat_title: "Chat",
-        card_chat_desc: "Suporte via WhatsApp"
+        card_chat_desc: "Suporte via WhatsApp",
+        chat_title: "Fernandes AI",
+        chat_status: "Online • Suporte Virtual",
+        chat_welcome: "Olá! Sou a IA da Fernandes Tech. Como posso escalar seu negócio hoje?",
+        chat_placeholder: "Digite sua dúvida..."
     }
 };
 
