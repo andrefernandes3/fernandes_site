@@ -2,28 +2,28 @@ const { MongoClient } = require("mongodb");
 const nodemailer = require("nodemailer");
 
 module.exports = async function (context, req) {
-    // Garante resposta JSON para não quebrar o site
+    // Cabeçalho para garantir JSON sempre
     const headers = { "Content-Type": "application/json" };
     
     const { email, lang } = req.body;
-    const userLang = lang || 'pt'; // Se não vier idioma, assume PT
+    const userLang = lang || 'pt';
 
     if (!email) {
         context.res = { 
             status: 400, 
             headers: headers,
-            body: { error: "Email is required" } 
+            body: { error: userLang === 'en' ? "Email is required" : "E-mail é obrigatório" } 
         };
         return;
     }
 
     try {
-        // --- 1. MONGODB (Salva o Lead) ---
+        // 1. SALVA NO BANCO
         const uri = process.env.MONGODB_URI;
         if (uri) {
             const client = new MongoClient(uri);
             await client.connect();
-            const database = client.db("fernandes_tech_db"); // Nome do seu banco
+            const database = client.db("fernandes_tech_db");
             const collection = database.collection("newsletter_subscribers");
 
             const existing = await collection.findOne({ email: email });
@@ -38,35 +38,13 @@ module.exports = async function (context, req) {
             await client.close();
         }
 
-        // --- 2. CONFIGURAÇÃO DE E-MAIL ---
-        // Se usar Gmail, Outlook ou Zoho, configure as variáveis no Azure
+        // 2. CONFIGURA O ENVIO (Zoho/Gmail/etc)
         const transporter = nodemailer.createTransport({
-            service: 'gmail', // Ou 'Zoho', ou remova service e use host/port
-            auth: {
-                user: process.env.EMAIL_USER,
-                pass: process.env.EMAIL_PASS
-            }
+            host: "smtp.zoho.com", port: 465, secure: true,
+            auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS }
         });
 
-        // --- 3. ENVIO 1: NOTIFICAÇÃO PARA VOCÊ (ADMIN) ---
-        // Este e-mail avisa você que alguém se inscreveu
-        if (process.env.EMAIL_USER) {
-            try {
-                await transporter.sendMail({
-                    from: `"Bot do Site" <${process.env.EMAIL_USER}>`,
-                    to: "contato@fernandesit.com", // Corrigido (estava fernandestit)
-                    subject: `🔔 Novo Lead (${userLang.toUpperCase()}): ${email}`,
-                    text: `Novo inscrito na Newsletter!\n\nE-mail: ${email}\nIdioma: ${userLang}\nData: ${new Date().toLocaleString()}`
-                });
-            } catch (adminError) {
-                context.log.error("Erro ao notificar admin:", adminError);
-                // Não paramos o código aqui, o importante é o cliente receber
-            }
-        }
-
-        // --- 4. ENVIO 2: BOAS-VINDAS PARA O CLIENTE (HTML BONITO) ---
-        
-        // Textos Dinâmicos baseados no idioma
+        // Prepara textos do cliente
         const content = userLang === 'en' ? {
             subject: "Welcome to Fernandes Technology!",
             title: "Thanks for subscribing!",
@@ -81,26 +59,23 @@ module.exports = async function (context, req) {
             footer: "© 2026 Fernandes Technology. Sem spam, apenas tecnologia."
         };
 
-        // Template HTML (Design Azul/Branco/Cinza)
+        // Template HTML do Cliente
         const htmlTemplate = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden;">
             <div style="background-color: #0d6efd; padding: 20px; text-align: center;">
                 <h1 style="color: #ffffff; margin: 0; font-size: 24px;">Fernandes Technology</h1>
             </div>
-
             <div style="padding: 30px; background-color: #ffffff; color: #333333;">
                 <h2 style="color: #212529; margin-top: 0;">${content.title}</h2>
                 <p style="font-size: 16px; line-height: 1.5; color: #555555;">
                     ${content.message}
                 </p>
-                
                 <div style="margin-top: 30px;">
                     <a href="https://fernandesit.com" style="background-color: #212529; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">
                         ${content.btnText}
                     </a>
                 </div>
             </div>
-
             <div style="background-color: #f8f9fa; padding: 20px; text-align: center; border-top: 1px solid #e0e0e0;">
                 <p style="font-size: 12px; color: #888888; margin: 0;">
                     ${content.footer}
@@ -109,28 +84,44 @@ module.exports = async function (context, req) {
         </div>
         `;
 
+        // 3. EXECUTA OS ENVIOS
         if (process.env.EMAIL_USER) {
+            
+            // A) Envio Principal: Para o Cliente (Com HTML Bonito)
             await transporter.sendMail({
                 from: `"Fernandes Tech" <${process.env.EMAIL_USER}>`,
                 to: email,
                 subject: content.subject,
-                text: content.message, 
+                text: content.message,
                 html: htmlTemplate
             });
+
+            // B) Envio de Notificação: Para VOCÊ (Texto Simples)
+            try {
+                await transporter.sendMail({
+                    from: `"Bot Newsletter" <${process.env.EMAIL_USER}>`,
+                    to: "contato@fernandesit.com", // Seu e-mail
+                    subject: `🔔 Novo Lead (${userLang.toUpperCase()}): ${email}`,
+                    text: `Novo inscrito na newsletter!\n\nE-mail: ${email}\nIdioma: ${userLang}\nData: ${new Date().toLocaleString('pt-BR')}`
+                });
+            } catch (adminError) {
+                // Se der erro só na sua notificação, logamos mas não travamos o site para o usuário
+                context.log.error("Erro ao notificar admin:", adminError);
+            }
         }
 
-        // --- 5. RESPOSTA FINAL (JSON) ---
+        // 4. RESPOSTA DE SUCESSO
         context.res = {
             status: 200,
             headers: headers,
             body: { 
                 message: userLang === 'en' ? "Success!" : "Sucesso!",
-                details: "Cadastrado e notificado."
+                details: "Cadastrado com sucesso."
             }
         };
 
     } catch (error) {
-        context.log.error("Erro Geral Newsletter:", error);
+        context.log.error("Erro Newsletter:", error);
         context.res = {
             status: 500,
             headers: headers,
