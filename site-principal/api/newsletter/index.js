@@ -19,7 +19,7 @@ module.exports = async function (context, req) {
 
     try {
         // 1. SALVA NO BANCO
-        const uri = process.env.MONGODB_URI;
+        const uri = process.env.MONGO_CONNECTION_STRING;
         if (uri) {
             const client = new MongoClient(uri);
             await client.connect();
