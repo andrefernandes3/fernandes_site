@@ -23,8 +23,8 @@ module.exports = async function (context, req) {
         if (uri) {
             const client = new MongoClient(uri);
             await client.connect();
-            const database = client.db("fernandes_tech_db");
-            const collection = database.collection("newsletter_subscribers");
+            const database = client.db("fernandes_db");
+            const collection = database.collection("newsletter_leadss");
 
             const existing = await collection.findOne({ email: email });
             if (!existing) {
