@@ -2,27 +2,28 @@ const { MongoClient } = require("mongodb");
 const nodemailer = require("nodemailer");
 
 module.exports = async function (context, req) {
+    // Garante resposta JSON para não quebrar o site
     const headers = { "Content-Type": "application/json" };
     
     const { email, lang } = req.body;
-    const userLang = lang || 'pt';
+    const userLang = lang || 'pt'; // Se não vier idioma, assume PT
 
     if (!email) {
         context.res = { 
             status: 400, 
             headers: headers,
-            body: { error: userLang === 'en' ? "Email is required" : "E-mail é obrigatório" } 
+            body: { error: "Email is required" } 
         };
         return;
     }
 
     try {
-        // 1. SALVA NO BANCO (Lógica mantida)
+        // --- 1. MONGODB (Salva o Lead) ---
         const uri = process.env.MONGODB_URI;
         if (uri) {
             const client = new MongoClient(uri);
             await client.connect();
-            const database = client.db("fernandes_tech_db");
+            const database = client.db("fernandes_tech_db"); // Nome do seu banco
             const collection = database.collection("newsletter_subscribers");
 
             const existing = await collection.findOne({ email: email });
@@ -37,13 +38,35 @@ module.exports = async function (context, req) {
             await client.close();
         }
 
-        // 2. PREPARA O E-MAIL (DESIGN NOVO)      
-    const transporter = nodemailer.createTransport({
-        host: "smtp.zoho.com", port: 465, secure: true,
-        auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS }
-    });
+        // --- 2. CONFIGURAÇÃO DE E-MAIL ---
+        // Se usar Gmail, Outlook ou Zoho, configure as variáveis no Azure
+        const transporter = nodemailer.createTransport({
+            service: 'gmail', // Ou 'Zoho', ou remova service e use host/port
+            auth: {
+                user: process.env.EMAIL_USER,
+                pass: process.env.EMAIL_PASS
+            }
+        });
 
-        // Textos Traduzidos
+        // --- 3. ENVIO 1: NOTIFICAÇÃO PARA VOCÊ (ADMIN) ---
+        // Este e-mail avisa você que alguém se inscreveu
+        if (process.env.EMAIL_USER) {
+            try {
+                await transporter.sendMail({
+                    from: `"Bot do Site" <${process.env.EMAIL_USER}>`,
+                    to: "contato@fernandesit.com", // Corrigido (estava fernandestit)
+                    subject: `🔔 Novo Lead (${userLang.toUpperCase()}): ${email}`,
+                    text: `Novo inscrito na Newsletter!\n\nE-mail: ${email}\nIdioma: ${userLang}\nData: ${new Date().toLocaleString()}`
+                });
+            } catch (adminError) {
+                context.log.error("Erro ao notificar admin:", adminError);
+                // Não paramos o código aqui, o importante é o cliente receber
+            }
+        }
+
+        // --- 4. ENVIO 2: BOAS-VINDAS PARA O CLIENTE (HTML BONITO) ---
+        
+        // Textos Dinâmicos baseados no idioma
         const content = userLang === 'en' ? {
             subject: "Welcome to Fernandes Technology!",
             title: "Thanks for subscribing!",
@@ -58,7 +81,7 @@ module.exports = async function (context, req) {
             footer: "© 2026 Fernandes Technology. Sem spam, apenas tecnologia."
         };
 
-        // O HTML Bonito (Template)
+        // Template HTML (Design Azul/Branco/Cinza)
         const htmlTemplate = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden;">
             <div style="background-color: #0d6efd; padding: 20px; text-align: center;">
@@ -86,29 +109,28 @@ module.exports = async function (context, req) {
         </div>
         `;
 
-        // 3. ENVIA
         if (process.env.EMAIL_USER) {
             await transporter.sendMail({
                 from: `"Fernandes Tech" <${process.env.EMAIL_USER}>`,
                 to: email,
                 subject: content.subject,
-                text: content.message, // Fallback para clientes sem HTML
+                text: content.message, 
                 html: htmlTemplate
             });
         }
 
-        // 4. RESPOSTA JSON
+        // --- 5. RESPOSTA FINAL (JSON) ---
         context.res = {
             status: 200,
             headers: headers,
             body: { 
                 message: userLang === 'en' ? "Success!" : "Sucesso!",
-                details: "Cadastrado com sucesso."
+                details: "Cadastrado e notificado."
             }
         };
 
     } catch (error) {
-        context.log.error("Erro Newsletter:", error);
+        context.log.error("Erro Geral Newsletter:", error);
         context.res = {
             status: 500,
             headers: headers,
