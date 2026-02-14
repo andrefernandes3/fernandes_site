@@ -1,66 +1,44 @@
-// VERSÃO FUNCIONAL COMPROVADA
+const { GoogleGenerativeAI } = require("@google/generative-ai");
+
+// Inicializa o SDK com a sua chave (configurada no Azure)
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+
 module.exports = async function (context, req) {
-    context.log('🚀 INÍCIO DA EXECUÇÃO');
-    
+    context.log('🚀 Processando chat com Gemini');
+
     try {
-        // Responder GET com status da API
-        if (req.method === 'GET') {
-            context.log('📥 Requisição GET recebida');
-            context.res = {
-                status: 200,
-                headers: { 'Content-Type': 'application/json' },
-                body: {
-                    status: 'online',
-                    funcao: 'chat-gemini',
-                    timestamp: new Date().toISOString()
-                }
-            };
-            context.log('📤 Resposta GET enviada');
+        const { message } = req.body || {};
+        
+        if (!message) {
+            context.res = { status: 400, body: { error: "Mensagem vazia" } };
             return;
         }
 
-        // Processar POST
-        if (req.method === 'POST') {
-            context.log('📥 Requisição POST recebida');
-            context.log('Corpo da requisição:', JSON.stringify(req.body));
-            
-            const { message } = req.body || {};
-            context.log('Mensagem extraída:', message);
-            
-            // Resposta de sucesso
-            context.res = {
-                status: 200,
-                headers: { 'Content-Type': 'application/json' },
-                body: {
-                    reply: `Recebi sua mensagem: "${message || 'vazia'}"`,
-                    timestamp: new Date().toISOString()
-                }
-            };
-            context.log('📤 Resposta POST enviada');
-            return;
-        }
+        // Configura o modelo (Gemini 1.5 Flash é rápido e económico)
+        const model = genAI.getGenerativeModel({ 
+            model: "gemini-1.5-flash",
+            systemInstruction: "Tu és o assistente da Fernandes Technology. Seja profissional, prestativo e responda em português. André Fernandes é o fundador."
+        });
 
-        // Outros métodos
-        context.log('❌ Método não suportado:', req.method);
+        // Gera a resposta
+        const result = await model.generateContent(message);
+        const response = await result.response;
+        const text = response.text();
+
         context.res = {
-            status: 405,
-            body: { error: 'Método não permitido' }
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+            body: {
+                reply: text,
+                timestamp: new Date().toISOString()
+            }
         };
 
     } catch (error) {
-        context.log.error('💥 ERRO CATASTRÓFICO:', error);
-        context.log.error('Stack:', error.stack);
-        
+        context.log.error('💥 Erro no Gemini:', error);
         context.res = {
             status: 500,
-            headers: { 'Content-Type': 'application/json' },
-            body: {
-                error: 'Erro interno no servidor',
-                detalhe: error.message,
-                stack: error.stack
-            }
+            body: { error: "Erro ao processar IA", detail: error.message }
         };
-    } finally {
-        context.log('🏁 FIM DA EXECUÇÃO');
     }
 };
