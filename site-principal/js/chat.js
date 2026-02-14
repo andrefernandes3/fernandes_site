@@ -1,57 +1,42 @@
-document.addEventListener("DOMContentLoaded", function () {
+document.addEventListener("DOMContentLoaded", () => {
     const chatInput = document.getElementById('chatInput');
-    const chatSendBtn = document.getElementById('sendBtn');
+    const sendBtn = document.getElementById('sendBtn');
     const chatMessages = document.getElementById('chatMessages');
     const chatContainer = document.getElementById('chatContainer');
-    const chatToggleBtn = document.getElementById('chatToggleBtn');
-    const closeChatBtn = document.getElementById('closeChatBtn');
+    const toggleBtn = document.getElementById('chatToggleBtn');
+    const closeBtn = document.getElementById('closeChatBtn');
 
-    // --- ABRIR/FECHAR ---
-    chatToggleBtn.addEventListener('click', () => {
-        chatContainer.style.display = 'flex';
-    });
+    // Abrir/Fechar
+    toggleBtn.onclick = () => chatContainer.style.display = 'flex';
+    closeBtn.onclick = () => chatContainer.style.display = 'none';
 
-    closeChatBtn.addEventListener('click', () => {
-        chatContainer.style.display = 'none';
-    });
+    async function handleSend() {
+        const text = chatInput.value.trim();
+        if (!text) return;
 
-    // --- ENVIO PARA PRODUÇÃO ---
-    // ... (início do arquivo mantido)
+        // Adiciona mensagem do usuário
+        appendMsg('user', text);
+        chatInput.value = '';
 
-    // --- ENVIO PARA PRODUÇÃO ---
-    async function sendMessage() {
-    const text = chatInput.value.trim();
-    if (!text) return;
+        // Placeholder da IA
+        const typingId = appendMsg('bot', '...');
 
-    appendMessage('user', text);
-    chatInput.value = '';
-    const typingId = appendMessage('bot', '...');
+        try {
+            const res = await fetch("/api/chat", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ message: text })
+            });
 
-    try {
-        const response = await fetch("/api/chat", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ message: text })
-        });
-
-        const data = await response.json(); // Lê o corpo uma única vez
-
-        if (!response.ok) {
-            throw new Error(data.reply || "Erro no servidor");
+            const data = await res.json();
+            document.getElementById(typingId).innerText = data.reply;
+        } catch (e) {
+            document.getElementById(typingId).innerText = "Erro ao conectar. Tente mais tarde.";
         }
-
-        document.getElementById(typingId).innerText = data.reply;
-
-    } catch (error) {
-        console.error("Erro:", error);
-        document.getElementById(typingId).innerText = "Tive um problema. Tente em instantes.";
     }
-}
 
-    // ... (restante do arquivo mantido)
-
-    function appendMessage(sender, text) {
-        const id = 'msg-' + Math.random().toString(36).substr(2, 9);
+    function appendMsg(sender, text) {
+        const id = 'm-' + Date.now();
         const div = document.createElement('div');
         div.className = `message ${sender}`;
         div.id = id;
@@ -61,6 +46,6 @@ document.addEventListener("DOMContentLoaded", function () {
         return id;
     }
 
-    chatSendBtn.addEventListener('click', sendMessage);
-    chatInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
+    sendBtn.onclick = handleSend;
+    chatInput.onkeypress = (e) => { if (e.key === 'Enter') handleSend(); };
 });
