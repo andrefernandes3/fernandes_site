@@ -4,7 +4,8 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
-    <meta name="description" content="Fernandes Technology - Soluções inovadoras em desenvolvimento Node.js, React e infraestrutura Cloud (AWS/Azure).">
+    <meta name="description"
+        content="Fernandes Technology - Soluções inovadoras em desenvolvimento Node.js, React e infraestrutura Cloud (AWS/Azure).">
     <meta name="author" content="Fernandes Technology">
     <meta property="og:title" content="Fernandes Technology | Início">
     <meta property="og:description" content="Modernize seu negócio com soluções de software escaláveis.">
@@ -19,7 +20,7 @@
     <link href="css/custom.css" rel="stylesheet" />
     <link href="css/chat.css" rel="stylesheet" />
 
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>    
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 
 <body class="d-flex flex-column h-100">
@@ -233,10 +234,13 @@
 
             // 1. Pega o idioma atual
             const currentLang = localStorage.getItem('selectedLanguage') || 'pt';
+            // Regex para validar formato de e-mail
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
             const messages = {
                 pt: {
                     error_empty: 'Por favor, digite seu e-mail.',
+                    error_invalid: 'Por favor, insira um e-mail válido.', // Nova mensagem
                     error_server: 'Erro ao conectar. Tente novamente.',
                     loading: 'Salvando...',
                     success_title: 'Sucesso!',
@@ -244,6 +248,7 @@
                 },
                 en: {
                     error_empty: 'Please enter your email.',
+                    error_invalid: 'Please enter a valid email address.', // Nova mensagem
                     error_server: 'Connection error. Try again.',
                     loading: 'Saving...',
                     success_title: 'Success!',
@@ -252,8 +257,15 @@
             };
             const text = messages[currentLang];
 
+            // Validação de campo vazio
             if (!email) {
                 Swal.fire({ title: 'Ops!', text: text.error_empty, icon: 'warning', confirmButtonColor: '#0d6efd' });
+                return;
+            }
+
+            // Validação de formato (Regex)
+            if (!emailRegex.test(email)) {
+                Swal.fire({ title: 'E-mail inválido', text: text.error_invalid, icon: 'error', confirmButtonColor: '#0d6efd' });
                 return;
             }
 
