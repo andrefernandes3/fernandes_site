@@ -311,6 +311,24 @@
                 btn.disabled = false;
             }
         });
+        // Feedback Visual em tempo real: Adicione isso abaixo do seu código anterior
+        document.getElementById('newsletterInput').addEventListener('input', function () {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            const value = this.value.trim();
+
+            if (value === "") {
+                // Se estiver vazio, remove as cores
+                this.classList.remove('is-valid', 'is-invalid');
+            } else if (emailRegex.test(value)) {
+                // Se o formato estiver correto, fica verde (Bootstrap class)
+                this.classList.add('is-valid');
+                this.classList.remove('is-invalid');
+            } else {
+                // Se estiver errado, fica vermelho (Bootstrap class)
+                this.classList.add('is-invalid');
+                this.classList.remove('is-valid');
+            }
+        });
     </script>
 </body>
 
