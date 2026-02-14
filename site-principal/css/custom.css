@@ -93,3 +93,34 @@ html {
 #email.is-valid {
     border-color: #198754 !important;
 }
+
+/* Isso garante que todas as imagens de destaque tenham o mesmo 'shape' */
+.img-feature-fixed {
+    width: 100%; /* Ocupa toda a largura da coluna */
+    aspect-ratio: 16 / 9; /* Força o formato retangular de cinema/TV */
+    object-fit: cover; /* Corta as sobras sem distorcer a imagem */
+    object-position: center; 
+    border-radius: 0.5rem; 
+    display: block;
+}
+/* Alinhamento vertical do texto */
+.row-align-center {
+    display: flex;
+    align-items: center;
+}
+
+.img-standard {
+    width: 100%;
+    /* Altura fixa para garantir que ambas sejam IDÊNTICAS */
+    height: 400px !important; 
+    object-fit: cover; /* Corta as bordas sem esticar a imagem */
+    object-position: center;
+    display: block;
+}
+
+/* Ajuste para telas menores (celulares) não ficarem com a imagem esticada */
+@media (max-width: 991.98px) {
+    .img-standard {
+        height: 250px !important;
+    }
+}
