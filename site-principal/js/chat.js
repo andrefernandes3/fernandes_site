@@ -29,7 +29,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         try {
             // CORREÇÃO: Use caminho relativo para funcionar em local, dev e prod
-            const AZURE_FUNCTION_URL = "/api";
+            const AZURE_FUNCTION_URL = "/api/chat"; // Ajuste conforme necessário para o caminho correto da função
 
             const response = await fetch(AZURE_FUNCTION_URL, {
                 method: "POST",
@@ -41,8 +41,8 @@ document.addEventListener("DOMContentLoaded", function () {
             const data = await response.json();
 
             if (!response.ok) {
-                // Mostra o detalhe do erro se houver
-                throw new Error(data.details || data.reply || "Erro no servidor");
+                const errorText = await response.text(); // Lê como texto se não for 200 OK
+                throw new Error(`Erro ${response.status}: ${errorText}`);
             }
 
             document.getElementById(typingId).innerText = data.reply;
