@@ -1,44 +1,98 @@
-const { GoogleGenerativeAI } = require("@google/generative-ai");
-
-// Inicializa o SDK com a sua chave (configurada no Azure)
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const fetch = require('node-fetch');
 
 module.exports = async function (context, req) {
-    context.log('🚀 Processando chat com Gemini');
-
+    context.log('🚀 Iniciando chat-gemini com Gemini');
+    
     try {
-        const { message } = req.body || {};
-        
-        if (!message) {
-            context.res = { status: 400, body: { error: "Mensagem vazia" } };
+        // GET - status da API
+        if (req.method === 'GET') {
+            context.res = {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+                body: {
+                    status: 'online',
+                    message: 'API do chat com Gemini está pronta!',
+                    timestamp: new Date().toISOString()
+                }
+            };
             return;
         }
 
-        // Configura o modelo (Gemini 1.5 Flash é rápido e económico)
-        const model = genAI.getGenerativeModel({ 
-            model: "gemini-1.5-flash",
-            systemInstruction: "Tu és o assistente da Fernandes Technology. Seja profissional, prestativo e responda em português. André Fernandes é o fundador."
-        });
-
-        // Gera a resposta
-        const result = await model.generateContent(message);
-        const response = await result.response;
-        const text = response.text();
-
-        context.res = {
-            status: 200,
-            headers: { 'Content-Type': 'application/json' },
-            body: {
-                reply: text,
-                timestamp: new Date().toISOString()
+        // POST - processar mensagem com Gemini
+        if (req.method === 'POST') {
+            const { message } = req.body || {};
+            
+            if (!message) {
+                context.res = {
+                    status: 400,
+                    body: { error: 'Mensagem não fornecida' }
+                };
+                return;
             }
+
+            context.log('Mensagem recebida:', message);
+
+            // Pegar a API Key do ambiente (configurada no Azure)
+            const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+            
+            if (!GEMINI_API_KEY) {
+                context.log.error('API Key não configurada');
+                context.res = {
+                    status: 500,
+                    body: { error: 'API Key não configurada no servidor' }
+                };
+                return;
+            }
+
+            // Chamar API do Gemini
+            const response = await fetch(
+                `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`,
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{
+                            parts: [{
+                                text: `Você é assistente da Fernandes Technology. Responda em português: ${message}`
+                            }]
+                        }]
+                    })
+                }
+            );
+
+            const data = await response.json();
+            
+            if (!response.ok) {
+                context.log.error('Erro Gemini:', data);
+                context.res = {
+                    status: 500,
+                    body: { error: 'Erro na API do Gemini', details: data }
+                };
+                return;
+            }
+
+            const reply = data.candidates[0]?.content?.parts[0]?.text || 
+                         'Desculpe, não consegui processar.';
+
+            context.res = {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+                body: { reply }
+            };
+            return;
+        }
+
+        // Método não permitido
+        context.res = {
+            status: 405,
+            body: { error: 'Método não permitido' }
         };
 
     } catch (error) {
-        context.log.error('💥 Erro no Gemini:', error);
+        context.log.error('Erro:', error);
         context.res = {
             status: 500,
-            body: { error: "Erro ao processar IA", detail: error.message }
+            body: { error: error.message }
         };
     }
 };
