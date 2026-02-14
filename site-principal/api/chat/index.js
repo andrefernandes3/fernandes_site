@@ -3,7 +3,7 @@ const https = require('https');
 module.exports = async function (context, req) {
     const headers = {
         "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": "*", // Aberto para facilitar testes iniciais
+        "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "POST, OPTIONS"
     };
 
@@ -17,28 +17,28 @@ module.exports = async function (context, req) {
         const apiKey = process.env.HF_API_KEY;
 
         if (!apiKey) {
-            context.res = { status: 500, headers, body: { reply: "Erro: HF_API_KEY não configurada no Azure." } };
+            context.res = { status: 500, headers, body: { reply: "Erro: Chave API não configurada no Azure." } };
             return;
         }
 
+        // Usando o modelo da Microsoft (DialoGPT) - Excelente para chats rápidos e gratuitos
+        const model = "microsoft/DialoGPT-medium";
+        
         const payload = JSON.stringify({
-            inputs: `Contexto: Você é o assistente técnico da Fernandes Technology. Responda de forma curta em português.\nPergunta: ${userMessage}\nResposta:`,
-            parameters: { max_new_tokens: 250, temperature: 0.7 }
+            inputs: userMessage,
+            parameters: { max_new_tokens: 100, temperature: 0.7 }
         });
 
-        const options = {
-            hostname: 'api-inference.huggingface.co',
-            path: '/models/facebook/blenderbot-400M-distill', // Modelo gratuito e leve (rápido)
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${apiKey}`,
-                'Content-Type': 'application/json',
-                'Content-Length': Buffer.byteLength(payload)
-            }
-        };
-
         const result = await new Promise((resolve, reject) => {
-            const apiReq = https.request(options, (res) => {
+            const apiReq = https.request({
+                hostname: 'api-inference.huggingface.co',
+                path: `/models/${model}`,
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${apiKey}`,
+                    'Content-Type': 'application/json'
+                }
+            }, (res) => {
                 let data = '';
                 res.on('data', (chunk) => data += chunk);
                 res.on('end', () => resolve({ status: res.statusCode, body: data }));
@@ -49,13 +49,23 @@ module.exports = async function (context, req) {
         });
 
         const parsed = JSON.parse(result.body);
-        // O Blenderbot retorna um objeto diferente do Llama
-        const reply = parsed.generated_text || parsed[0]?.generated_text || "Estou processando sua dúvida...";
+        context.log("Resposta da IA:", parsed); // Isso ajuda a ver o erro no Log do Azure
+
+        // Lógica "Caça-Resposta": Tenta encontrar o texto em diferentes formatos comuns
+        let reply = "Desculpe, não consegui processar. Tente novamente.";
+        
+        if (parsed.error) {
+            // Se o modelo estiver carregando, avisa o usuário
+            reply = parsed.estimated_time ? "A IA está acordando... tente enviar de novo em 20 segundos." : parsed.error;
+        } else if (Array.isArray(parsed) && parsed[0]?.generated_text) {
+            reply = parsed[0].generated_text;
+        } else if (parsed.generated_text) {
+            reply = parsed.generated_text;
+        }
 
         context.res = { status: 200, headers, body: { reply } };
 
     } catch (err) {
-        context.log.error("Erro interno:", err);
-        context.res = { status: 500, headers, body: { reply: "Erro ao conectar com a IA." } };
+        context.res = { status: 500, headers, body: { reply: "Erro na comunicação com o servidor." } };
     }
 };
