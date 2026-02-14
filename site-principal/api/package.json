@@ -1,8 +1,9 @@
 {
   "name": "fernandes-tech-api",
   "version": "1.0.0",
-  "main": "index.js",
   "dependencies": {
-    "node-fetch": "^2.6.7"
+    "node-fetch": "^2.6.7",
+    "nodemailer": "^6.9.0",
+    "mongodb": "^6.0.0"
   }
 }
