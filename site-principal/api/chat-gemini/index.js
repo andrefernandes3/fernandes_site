@@ -1,13 +1,24 @@
 const fetch = require('node-fetch');
 
 module.exports = async function (context, req) {
+    context.log('Função chat-gemini foi executada');
+
     try {
+        // Permitir GET para teste
+        if (req.method === 'GET') {
+            context.res = {
+                status: 200,
+                body: { message: "API do Chat Gemini está funcionando! Use POST para enviar mensagens." }
+            };
+            return;
+        }
+
         const { message } = req.body;
         
         if (!message) {
             context.res = {
                 status: 400,
-                body: { error: "Mensagem não fornecida" }
+                body: { error: "Por favor, forneça uma mensagem." }
             };
             return;
         }
@@ -15,14 +26,14 @@ module.exports = async function (context, req) {
         const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
         
         if (!GEMINI_API_KEY) {
+            context.log.error('GEMINI_API_KEY não configurada');
             context.res = {
                 status: 500,
-                body: { error: "API Key não configurada" }
+                body: { error: "API Key não configurada no servidor." }
             };
             return;
         }
 
-        // Prompt personalizado para a Fernandes Technology
         const prompt = `
         Você é um assistente virtual da empresa Fernandes Technology, especializada em:
         - Desenvolvimento Node.js
@@ -32,11 +43,8 @@ module.exports = async function (context, req) {
         - DevOps com Docker
         
         Responda de forma profissional, amigável e em português do Brasil.
-        Se não souber algo, seja honesto e ofereça ajudar com o que está ao seu alcance.
         
-        Pergunta do cliente: ${message}
-        
-        Responda como assistente da Fernandes Technology:
+        Pergunta: ${message}
         `;
 
         const response = await fetch(
@@ -63,9 +71,10 @@ module.exports = async function (context, req) {
         const data = await response.json();
 
         if (!response.ok) {
+            context.log.error('Erro Gemini:', data);
             context.res = {
                 status: response.status,
-                body: { error: "Erro na API do Gemini" }
+                body: { error: "Erro na API do Gemini: " + (data.error?.message || 'Erro desconhecido') }
             };
             return;
         }
@@ -76,16 +85,17 @@ module.exports = async function (context, req) {
         context.res = {
             status: 200,
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*'
             },
             body: { reply }
         };
 
     } catch (error) {
-        context.log.error('Erro no chat:', error);
+        context.log.error('Erro na função:', error);
         context.res = {
             status: 500,
-            body: { error: "Erro interno no servidor" }
+            body: { error: "Erro interno no servidor: " + error.message }
         };
     }
 };
