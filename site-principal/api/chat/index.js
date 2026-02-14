@@ -1,70 +1,59 @@
 const https = require('https');
 
 module.exports = async function (context, req) {
-    // Cabeçalhos básicos + CORS
     const headers = {
         "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": "https://fernandesit.com",           // ← ajuste para seu domínio em produção (ex: https://seusite.com)
+        "Access-Control-Allow-Origin": "https://fernandesit.com", 
         "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type, Authorization"
     };
 
-    // Trata requisição OPTIONS (pré-flight CORS)
     if (req.method === "OPTIONS") {
         context.res = { status: 204, headers };
         return;
     }
 
     try {
-        // --- Leitura segura do body ---
         let userMessage = "Olá";
-        if (req.body) {
-            if (typeof req.body === 'object' && req.body.message) {
-                userMessage = req.body.message;
-            } else if (typeof req.body === 'string') {
-                try {
-                    const parsed = JSON.parse(req.body);
-                    userMessage = parsed.message || req.body.trim() || "Olá";
-                } catch {
-                    userMessage = req.body.trim() || "Olá";
-                }
-            }
+        if (req.body && req.body.message) {
+            userMessage = req.body.message;
         }
 
         context.log.info(`Mensagem recebida: "${userMessage}"`);
 
-        const apiKey = process.env.GROQ_API_KEY;
+        const apiKey = process.env.HF_API_KEY; // Crie essa variável no Azure
         if (!apiKey) {
-            throw new Error("Variável de ambiente GROQ_API_KEY não configurada no Azure.");
+            throw new Error("Variável de ambiente HF_API_KEY não configurada.");
         }
 
-        const payload = {
-            messages: [
-                {
-                    role: "system",
-                    content: "Você é a IA da Fernandes Technology (Consultoria TI, Azure, Node.js). Responda de forma curta, técnica e em português."
-                },
-                { role: "user", content: userMessage }
-            ],
-            model: "llama3-8b-8192",
-            temperature: 0.5,
-            max_tokens: 512
-        };
+        // Prompt formatado para Llama 3 (System + User)
+        const prompt = `<|begin_of_text|><|start_header_id|>system<|end_header_id|>
 
-        const data = JSON.stringify(payload);
+Você é a IA da Fernandes Technology. Responda de forma curta, técnica e em português.<|eot_id|><|start_header_id|>user<|end_header_id|>
+
+${userMessage}<|eot_id|><|start_header_id|>assistant<|end_header_id|>`;
+
+        const payload = JSON.stringify({
+            inputs: prompt,
+            parameters: {
+                max_new_tokens: 512,
+                temperature: 0.5,
+                return_full_text: false
+            }
+        });
 
         const options = {
-            hostname: 'api.groq.com',
-            path: '/openai/v1/chat/completions',
+            hostname: 'api-inference.huggingface.co',
+            path: '/models/meta-llama/Meta-Llama-3-8B-Instruct',
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${apiKey}`,
-                'Content-Length': Buffer.byteLength(data)
+                'Content-Length': Buffer.byteLength(payload)
             }
         };
 
-        const groqResponse = await new Promise((resolve, reject) => {
+        const hfResponse = await new Promise((resolve, reject) => {
             const apiReq = https.request(options, (apiRes) => {
                 let body = '';
                 apiRes.on('data', chunk => body += chunk);
@@ -73,21 +62,25 @@ module.exports = async function (context, req) {
                         try {
                             resolve(JSON.parse(body));
                         } catch (e) {
-                            reject(new Error(`Resposta Groq inválida (não-JSON): ${body.substring(0, 200)}`));
+                            reject(new Error(`Resposta inválida: ${body}`));
                         }
                     } else {
-                        reject(new Error(`Groq erro ${apiRes.statusCode}: ${body.substring(0, 300)}`));
+                        // Se o modelo estiver carregando (erro 503), avisa
+                        if (apiRes.statusCode === 503) {
+                            reject(new Error("O modelo está carregando (cold start). Tente novamente em 30 segundos."));
+                        } else {
+                            reject(new Error(`Erro HF ${apiRes.statusCode}: ${body}`));
+                        }
                     }
                 });
             });
-
             apiReq.on('error', reject);
-            apiReq.write(data);
+            apiReq.write(payload);
             apiReq.end();
         });
 
-        const reply = groqResponse.choices?.[0]?.message?.content?.trim() 
-            || "Sem resposta válida da IA.";
+        // A resposta da HF vem como array: [{ generated_text: "..." }]
+        const reply = hfResponse[0]?.generated_text?.trim() || "Sem resposta da IA.";
 
         context.res = {
             status: 200,
@@ -97,21 +90,13 @@ module.exports = async function (context, req) {
 
     } catch (err) {
         context.log.error("ERRO NO CHAT:", err);
-
-        let errorMsg = "Erro interno no servidor.";
-        let status = 500;
-
-        if (err.message.includes("GROQ_API_KEY")) {
-            errorMsg = "Configuração incompleta no servidor (chave da API ausente).";
-            status = 503; // Service Unavailable
-        } else if (err.message.includes("Groq erro")) {
-            errorMsg = "Erro na comunicação com a IA. Tente novamente mais tarde.";
-        }
-
         context.res = {
-            status,
+            status: 500,
             headers,
-            body: { reply: errorMsg, details: err.message }
+            body: { 
+                reply: "Erro ao processar sua mensagem.", 
+                details: err.message 
+            }
         };
     }
 };
