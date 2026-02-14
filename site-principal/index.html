@@ -240,7 +240,9 @@
             const messages = {
                 pt: {
                     error_empty: 'Por favor, digite seu e-mail.',
-                    error_invalid: 'Por favor, insira um e-mail válido.', // Nova mensagem
+                    error_invalid_title: 'E-mail inválido', // Adicionado para corrigir a imagem
+                    error_invalid: 'Por favor, insira um e-mail válido.',
+                    already_registered: 'Este e-mail já está na nossa lista!', // Novo
                     error_server: 'Erro ao conectar. Tente novamente.',
                     loading: 'Salvando...',
                     success_title: 'Sucesso!',
@@ -248,7 +250,9 @@
                 },
                 en: {
                     error_empty: 'Please enter your email.',
-                    error_invalid: 'Please enter a valid email address.', // Nova mensagem
+                    error_invalid_title: 'Invalid Email', // Adicionado para tradução
+                    error_invalid: 'Please enter a valid email address.',
+                    already_registered: 'This email is already subscribed!', // Novo
                     error_server: 'Connection error. Try again.',
                     loading: 'Saving...',
                     success_title: 'Success!',
@@ -265,7 +269,7 @@
 
             // Validação de formato (Regex)
             if (!emailRegex.test(email)) {
-                Swal.fire({ title: 'E-mail inválido', text: text.error_invalid, icon: 'error', confirmButtonColor: '#0d6efd' });
+                Swal.fire({ title: text.error_invalid_title, text: text.error_invalid, icon: 'error', confirmButtonColor: '#0d6efd' });
                 return;
             }
 
@@ -275,29 +279,23 @@
             btn.disabled = true;
 
             try {
-                // 2. Envia E-mail E Idioma para a API
                 const response = await fetch('/api/newsletter', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        email: email,
-                        lang: currentLang // <--- O SEGREDO ESTÁ AQUI
-                    })
+                    body: JSON.stringify({ email: email, lang: currentLang })
                 });
 
-                // Tenta ler o JSON. Se falhar, captura o erro.
                 const data = await response.json();
 
                 if (response.ok) {
-                    Swal.fire({
-                        title: text.success_title,
-                        text: text.success_text,
-                        icon: 'success',
-                        confirmButtonColor: '#0d6efd'
-                    });
+                    Swal.fire({ title: text.success_title, text: text.success_text, icon: 'success' });
                     emailInput.value = '';
+                    emailInput.classList.remove('is-valid'); // Limpa o feedback visual
+                } else if (response.status === 409) {
+                    // Trata o caso de e-mail já existente vindo do backend
+                    Swal.fire({ title: 'Info', text: text.already_registered, icon: 'info' });
                 } else {
-                    throw new Error(data.error || 'Erro desconhecido');
+                    throw new Error(data.error);
                 }
 
             } catch (error) {
