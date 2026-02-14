@@ -4,7 +4,7 @@ module.exports = async function (context, req) {
     // Cabeçalhos básicos + CORS
     const headers = {
         "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": "*",           // ← ajuste para seu domínio em produção (ex: https://seusite.com)
+        "Access-Control-Allow-Origin": "https://fernandesit.com",           // ← ajuste para seu domínio em produção (ex: https://seusite.com)
         "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type, Authorization"
     };

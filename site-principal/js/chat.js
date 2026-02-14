@@ -1,92 +1,62 @@
-document.addEventListener('DOMContentLoaded', () => {
-    // ────────────────────────────────────────────────
-    //   CONFIGURAÇÃO – NUNCA MAIS COLOQUE CHAVE AQUI!
-    // ────────────────────────────────────────────────
-    const BACKEND_URL = "https://cors-anywhere.herokuapp.com/https://fernandesTech.azurestaticapps.net/api/chat"; // ← AJUSTE AQUI
-
-    const toggleBtn    = document.getElementById('chatToggleBtn');
+document.addEventListener("DOMContentLoaded", function () {
+    const chatInput = document.getElementById('chatInput');
+    const chatSendBtn = document.getElementById('sendBtn');
+    const chatMessages = document.getElementById('chatMessages');
     const chatContainer = document.getElementById('chatContainer');
-    const closeBtn     = document.getElementById('closeChatBtn');
-    const sendBtn      = document.getElementById('chatSendBtn');
-    const input        = document.getElementById('chatInput');
-    const messagesBody = document.getElementById('chatMessages');
+    const chatToggleBtn = document.getElementById('chatToggleBtn');
+    const closeChatBtn = document.getElementById('closeChatBtn');
 
-    let isOpen = false;
+    // --- ABRIR/FECHAR ---
+    chatToggleBtn.addEventListener('click', () => {
+        chatContainer.style.display = 'flex';
+    });
 
-    function toggleChat() {
-        isOpen = !isOpen;
-        chatContainer.classList.toggle('active', isOpen);
-        toggleBtn.style.display = isOpen ? 'none' : 'flex';
-        if (isOpen) input.focus();
-    }
+    closeChatBtn.addEventListener('click', () => {
+        chatContainer.style.display = 'none';
+    });
 
-    toggleBtn.addEventListener('click', toggleChat);
-    closeBtn.addEventListener('click', toggleChat);
-
+    // --- ENVIO PARA PRODUÇÃO ---
     async function sendMessage() {
-        const text = input.value.trim();
+        const text = chatInput.value.trim();
         if (!text) return;
 
-        addMessage(text, 'user');
-        input.value = '';
-        input.focus();
-
-        const typingId = showTyping();
+        appendMessage('user', text);
+        chatInput.value = '';
+        const typingId = appendMessage('bot', '...');
 
         try {
-            const response = await fetch(BACKEND_URL, {
+            // AQUI ESTÁ O SEGREDO: Chamamos a sua Azure Function!
+            // Substitua pela sua URL final da Azure
+            const AZURE_FUNCTION_URL = "https://fernandesit.com/api/chat";
+
+            const response = await fetch(AZURE_FUNCTION_URL, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ message: text })
+                body: JSON.stringify({ message: text }) 
             });
 
             const data = await response.json();
+            
+            // A Azure Function retorna { reply: "texto" }
+            document.getElementById(typingId).innerText = data.reply || "Desculpe, estou offline no momento.";
 
-            removeTyping(typingId);
-
-            if (response.ok) {
-                addMessage(data.reply || "Sem resposta.", 'bot');
-            } else {
-                addMessage(`Erro ${response.status}: ${data.reply || "Falha na conexão"}`, 'bot');
-                console.error(data);
-            }
-
-        } catch (err) {
-            removeTyping(typingId);
-            addMessage("Erro de rede. Verifique sua conexão.", 'bot');
-            console.error(err);
+        } catch (error) {
+            console.error("Erro de produção:", error);
+            document.getElementById(typingId).innerText = "Erro ao conectar com o servidor.";
         }
     }
 
-    // Funções de UI (mantidas iguais)
-    function addMessage(text, sender) {
+    function appendMessage(sender, text) {
+        const id = 'msg-' + Math.random().toString(36).substr(2, 9);
         const div = document.createElement('div');
-        div.classList.add('message', sender);
-        div.textContent = text;
-        messagesBody.appendChild(div);
-        messagesBody.scrollTop = messagesBody.scrollHeight;
-    }
-
-    function showTyping() {
-        const id = 'typing-' + Date.now();
-        const div = document.createElement('div');
-        div.classList.add('message', 'bot');
+        div.className = `message ${sender}`;
         div.id = id;
-        div.innerHTML = '<i class="fas fa-ellipsis-h fa-fade"></i> Digitando...';
-        messagesBody.appendChild(div);
-        messagesBody.scrollTop = messagesBody.scrollHeight;
+        div.innerText = text;
+        chatMessages.appendChild(div);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
         return id;
     }
 
-    function removeTyping(id) {
-        document.getElementById(id)?.remove();
-    }
-
-    sendBtn.addEventListener('click', sendMessage);
-    input.addEventListener('keypress', e => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            sendMessage();
-        }
-    });
+    chatSendBtn.addEventListener('click', sendMessage);
+    chatInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
 });
