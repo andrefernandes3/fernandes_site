@@ -23,58 +23,64 @@ module.exports = async function (context, req) {
     }
 
     try {
-        // 1. SALVA NO BANCO
-        const client = new MongoClient(uri);
-        await client.connect();
-        const database = client.db("fernandes_db");
-        const collection = database.collection("newsletter_leads");
+        const uri = process.env.MONGO_CONNECTION_STRING;
 
-        const existing = await collection.findOne({ email: email });
+        if (!uri) {
+            console.error("ERRO: MONGO_CONNECTION_STRING não definida nas variáveis de ambiente.");
+            // Se não houver banco, podemos decidir se continuamos apenas com o e-mail ou barramos
+        } else {
+            const client = new MongoClient(uri);
+            try {
+                await client.connect();
+                const database = client.db("fernandes_db");
+                const collection = database.collection("newsletter_leads");
 
-        if (existing) {
-            await client.close();
-            // Retorna 409 Conflict para indicar que o e-mail já existe
-            context.res = {
-                status: 409,
-                headers: headers,
-                body: { error: userLang === 'en' ? "Email already registered" : "E-mail já cadastrado" }
-            };
-            return;
+                const existing = await collection.findOne({ email: email });
+
+                if (existing) {
+                    await client.close();
+                    context.res = {
+                        status: 409,
+                        headers: headers,
+                        body: { error: userLang === 'en' ? "Email already registered" : "E-mail já cadastrado" }
+                    };
+                    return; // Para a execução aqui se já existir
+                }
+
+                await collection.insertOne({
+                    email: email,
+                    language: userLang,
+                    subscribedAt: new Date(),
+                    source: "website_footer"
+                });
+            } finally {
+                await client.close(); // Garante que a conexão fecha sempre
+            }
         }
-
-        // Se não existir, insere normalmente
-        await collection.insertOne({
-            email: email,
-            language: userLang,
-            subscribedAt: new Date(),
-            source: "website_footer"
-        });
-        await client.close();
-    
 
         // 2. CONFIGURA O ENVIO (Zoho/Gmail/etc)
         const transporter = nodemailer.createTransport({
-        host: "smtp.zoho.com", port: 465, secure: true,
-        auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS }
-    });
+            host: "smtp.zoho.com", port: 465, secure: true,
+            auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS }
+        });
 
-    // Prepara textos do cliente
-    const content = userLang === 'en' ? {
-        subject: "Welcome to Fernandes Technology!",
-        title: "Thanks for subscribing!",
-        message: "It's a pleasure to have you here. Soon I will share news about technology, development, and my new projects.",
-        btnText: "Visit Website",
-        footer: "© 2026 Fernandes Technology. No spam, just tech."
-    } : {
-        subject: "Bem-vindo à Fernandes Technology!",
-        title: "Obrigado por se inscrever!",
-        message: "É um prazer ter você por aqui. Em breve compartilharei novidades sobre tecnologia, desenvolvimento e meus novos projetos.",
-        btnText: "Visitar Site",
-        footer: "© 2026 Fernandes Technology. Sem spam, apenas tecnologia."
-    };
+        // Prepara textos do cliente
+        const content = userLang === 'en' ? {
+            subject: "Welcome to Fernandes Technology!",
+            title: "Thanks for subscribing!",
+            message: "It's a pleasure to have you here. Soon I will share news about technology, development, and my new projects.",
+            btnText: "Visit Website",
+            footer: "© 2026 Fernandes Technology. No spam, just tech."
+        } : {
+            subject: "Bem-vindo à Fernandes Technology!",
+            title: "Obrigado por se inscrever!",
+            message: "É um prazer ter você por aqui. Em breve compartilharei novidades sobre tecnologia, desenvolvimento e meus novos projetos.",
+            btnText: "Visitar Site",
+            footer: "© 2026 Fernandes Technology. Sem spam, apenas tecnologia."
+        };
 
-    // Template HTML do Cliente
-    const htmlTemplate = `
+        // Template HTML do Cliente
+        const htmlTemplate = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden;">
             <div style="background-color: #0d6efd; padding: 20px; text-align: center;">
                 <h1 style="color: #ffffff; margin: 0; font-size: 24px;">Fernandes Technology</h1>
@@ -98,50 +104,50 @@ module.exports = async function (context, req) {
         </div>
         `;
 
-    // 3. EXECUTA OS ENVIOS
-    if (process.env.EMAIL_USER) {
+        // 3. EXECUTA OS ENVIOS
+        if (process.env.EMAIL_USER) {
 
-        // A) Envio Principal: Para o Cliente (Com HTML Bonito)
-        await transporter.sendMail({
-            from: `"Fernandes Tech" <${process.env.EMAIL_USER}>`,
-            to: email,
-            subject: content.subject,
-            text: content.message,
-            html: htmlTemplate
-        });
-
-        // B) Envio de Notificação: Para VOCÊ (Texto Simples)
-        try {
+            // A) Envio Principal: Para o Cliente (Com HTML Bonito)
             await transporter.sendMail({
-                from: `"Bot Newsletter" <${process.env.EMAIL_USER}>`,
-                to: "contato@fernandesit.com", // Seu e-mail
-                subject: `🔔 Novo Lead (${userLang.toUpperCase()}): ${email}`,
-                text: `Novo inscrito na newsletter!\n\nE-mail: ${email}\nIdioma: ${userLang}\nData: ${new Date().toLocaleString('pt-BR')}`
+                from: `"Fernandes Tech" <${process.env.EMAIL_USER}>`,
+                to: email,
+                subject: content.subject,
+                text: content.message,
+                html: htmlTemplate
             });
-        } catch (adminError) {
-            // Se der erro só na sua notificação, logamos mas não travamos o site para o usuário
-            context.log.error("Erro ao notificar admin:", adminError);
+
+            // B) Envio de Notificação: Para VOCÊ (Texto Simples)
+            try {
+                await transporter.sendMail({
+                    from: `"Bot Newsletter" <${process.env.EMAIL_USER}>`,
+                    to: "contato@fernandesit.com", // Seu e-mail
+                    subject: `🔔 Novo Lead (${userLang.toUpperCase()}): ${email}`,
+                    text: `Novo inscrito na newsletter!\n\nE-mail: ${email}\nIdioma: ${userLang}\nData: ${new Date().toLocaleString('pt-BR')}`
+                });
+            } catch (adminError) {
+                // Se der erro só na sua notificação, logamos mas não travamos o site para o usuário
+                context.log.error("Erro ao notificar admin:", adminError);
+            }
         }
+
+        // 4. RESPOSTA DE SUCESSO
+        context.res = {
+            status: 200,
+            headers: headers,
+            body: {
+                message: userLang === 'en' ? "Success!" : "Sucesso!",
+                details: "Cadastrado com sucesso."
+            }
+        };
+
+    } catch (error) {
+        context.log.error("Erro Newsletter:", error);
+        context.res = {
+            status: 500,
+            headers: headers,
+            body: {
+                error: userLang === 'en' ? "Server error." : "Erro no servidor."
+            }
+        };
     }
-
-    // 4. RESPOSTA DE SUCESSO
-    context.res = {
-        status: 200,
-        headers: headers,
-        body: {
-            message: userLang === 'en' ? "Success!" : "Sucesso!",
-            details: "Cadastrado com sucesso."
-        }
-    };
-
-} catch (error) {
-    context.log.error("Erro Newsletter:", error);
-    context.res = {
-        status: 500,
-        headers: headers,
-        body: {
-            error: userLang === 'en' ? "Server error." : "Erro no servidor."
-        }
-    };
-}
 };
