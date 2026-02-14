@@ -1,25 +1,23 @@
-/* css/chat.css - Estilos para mensagens */
-.message {
-    margin-bottom: 10px;
+/* css/chat.css - Adicione ao final */
+.typing-indicator {
+    background: #e9ecef;
     padding: 8px 12px;
-    border-radius: 8px;
-    max-width: 80%;
-    word-wrap: break-word;
+    border-radius: 15px;
+    display: inline-block;
+    font-size: 14px;
+    color: #6c757d;
+    animation: pulse 1.5s infinite;
 }
 
-.user-message {
-    background-color: #dcf8c6;
-    align-self: flex-end;
-    margin-left: auto;
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
 }
 
-.ai-message {
-    background-color: #e5e5ea;
-    align-self: flex-start;
-    margin-right: auto;
-}
-
-.chat-messages {
-    display: flex;
-    flex-direction: column;
+@media (max-width: 768px) {
+    .chat-window {
+        width: 300px !important;
+        right: 10px !important;
+        bottom: 80px !important;
+    }
 }

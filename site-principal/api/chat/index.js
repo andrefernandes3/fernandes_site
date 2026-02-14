@@ -1,52 +1,37 @@
-const https = require('https');
-
+// api/chat-ia/index.js (versão Gemini)
 module.exports = async function (context, req) {
-    const headers = { 
-        "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": "*" // Permite testes em qualquer domínio
-    };
-
     try {
-        const apiKey = process.env.HF_API_KEY;
-        const userMsg = req.body?.message;
-
-        if (!apiKey || !userMsg) {
-            context.res = { status: 400, headers, body: { reply: "Erro: Chave ou mensagem ausente." } };
-            return;
-        }
-
-        const payload = JSON.stringify({ inputs: userMsg });
-
-        const response = await new Promise((resolve, reject) => {
-            const apiReq = https.request({
-                hostname: 'api-inference.huggingface.co',
-                path: '/models/microsoft/DialoGPT-medium',
+        const { message } = req.body;
+        
+        const response = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${process.env.GEMINI_API_KEY}`,
+            {
                 method: 'POST',
-                headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' }
-            }, res => {
-                let data = '';
-                res.on('data', chunk => data += chunk);
-                res.on('end', () => resolve({ status: res.statusCode, body: JSON.parse(data) }));
-            });
-            apiReq.on('error', reject);
-            apiReq.write(payload);
-            apiReq.end();
-        });
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    contents: [{
+                        parts: [{
+                            text: `Contexto: Você é assistente da Fernandes Technology, especialista em Node.js, React, AWS e Azure. Responda: ${message}`
+                        }]
+                    }]
+                })
+            }
+        );
 
-        // TRATAMENTO DE RESPOSTA ROBUSTO
-        let botReply = "";
-        if (response.status === 503) {
-            botReply = "Estou ligando meus motores... envie a mensagem novamente em 20 segundos!";
-        } else if (response.body.error) {
-            botReply = "Tive um soluço técnico. Pode repetir?";
-        } else {
-            // O DialoGPT pode retornar string ou array
-            botReply = response.body.generated_text || response.body[0]?.generated_text || "Não entendi, pode falar de outro jeito?";
-        }
-
-        context.res = { status: 200, headers, body: { reply: botReply } };
-
-    } catch (err) {
-        context.res = { status: 500, headers, body: { reply: "Erro crítico no servidor." } };
+        const data = await response.json();
+        
+        context.res = {
+            status: 200,
+            body: {
+                reply: data.candidates[0].content.parts[0].text
+            }
+        };
+    } catch (error) {
+        context.res = {
+            status: 500,
+            body: { error: "Erro ao processar" }
+        };
     }
 };
