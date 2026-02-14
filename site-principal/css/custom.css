@@ -57,3 +57,30 @@ html {
 .navbar {
     min-height: 72px
 }
+
+.tech-strip {
+    background-color: #f8f9fa;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+.tech-icon {
+    font-size: 2.5rem;
+    color: #adb5bd;
+    margin: 0 30px;
+    transition: color 0.3s;
+}
+
+.tech-icon:hover {
+    color: #0d6efd;
+}
+
+.feature-img {
+    border-radius: 1rem;
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease;
+}
+
+.feature-img:hover {
+    transform: scale(1.02);
+}
