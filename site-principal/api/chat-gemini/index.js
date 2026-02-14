@@ -1,68 +1,82 @@
 const fetch = require('node-fetch');
 
 module.exports = async function (context, req) {
-    context.log('🚀 Processando requisição no chat-gemini');
+    context.log('========== INÍCIO ==========');
     
-    // 1. Responder ao GET (Teste de Status)
-    if (req.method === 'GET') {
-        context.res = {
-            status: 200,
-            body: { status: 'online', message: 'API do chat com Gemini está pronta!' }
-        };
-        return;
-    }
-
-    // 2. Processar o POST (Chat Real)
     try {
-        const { message } = req.body || {};
-        
-        if (!message) {
-            context.res = { status: 400, body: { error: 'Mensagem vazia' } };
+        if (req.method === 'GET') {
+            context.res = {
+                status: 200,
+                body: { status: 'online' }
+            };
             return;
         }
 
-        const apiKey = process.env.GEMINI_API_KEY;
-        if (!apiKey) {
-            context.log.error('❌ ERRO: GEMINI_API_KEY não configurada no Azure');
-            context.res = { status: 500, body: { error: 'Chave de API não configurada no servidor' } };
-            return;
-        }
+        if (req.method === 'POST') {
+            const { message } = req.body || {};
+            context.log('Mensagem:', message);
 
-        // Usando o modelo 1.5-flash (mais rápido e estável)
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+            const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+            
+            if (!GEMINI_API_KEY) {
+                context.res = {
+                    status: 500,
+                    body: { error: 'API Key não configurada' }
+                };
+                return;
+            }
 
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                contents: [{
-                    parts: [{
-                        text: `Tu és o assistente da Fernandes Technology. Seja direto e profissional. André Fernandes é o fundador. Responda em português: ${message}`
+            // ✅ CORREÇÃO: usar gemini-pro em vez de gemini-1.5-flash
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`;
+            
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{
+                        parts: [{
+                            text: `Você é o assistente da Fernandes Technology, especialista em Node.js, React, AWS, Azure e DevOps. Responda em português de forma profissional e amigável.
+
+Pergunta: ${message}`
+                        }]
                     }]
-                }]
-            })
-        });
+                })
+            });
 
-        const data = await response.json();
+            const data = await response.json();
 
-        if (!response.ok) {
-            context.log.error('❌ Erro da Google:', data);
-            throw new Error(data.error?.message || 'Erro na comunicação com a IA');
+            if (!response.ok) {
+                context.log.error('Erro Gemini:', data);
+                context.res = {
+                    status: 500,
+                    body: { 
+                        error: 'Erro na API do Gemini',
+                        details: data.error?.message 
+                    }
+                };
+                return;
+            }
+
+            const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || 
+                         'Desculpe, não consegui processar.';
+            
+            context.res = {
+                status: 200,
+                body: { reply }
+            };
+            return;
         }
-
-        const reply = data.candidates[0]?.content?.parts[0]?.text || 'Não consegui processar a resposta.';
 
         context.res = {
-            status: 200,
-            headers: { 'Content-Type': 'application/json' },
-            body: { reply }
+            status: 405,
+            body: { error: 'Método não permitido' }
         };
 
     } catch (error) {
-        context.log.error('💥 Erro Crítico:', error.message);
+        context.log.error('Erro:', error);
         context.res = {
             status: 500,
-            body: { error: 'Erro interno no servidor', details: error.message }
+            body: { error: error.message }
         };
     }
 };
