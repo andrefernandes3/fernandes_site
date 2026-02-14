@@ -4,15 +4,20 @@ const nodemailer = require("nodemailer");
 module.exports = async function (context, req) {
     // Cabeçalho para garantir JSON sempre
     const headers = { "Content-Type": "application/json" };
-    
+
     const { email, lang } = req.body;
     const userLang = lang || 'pt';
 
-    if (!email) {
-        context.res = { 
-            status: 400, 
+    // Regex para validação no servidor
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!email || !emailRegex.test(email)) {
+        context.res = {
+            status: 400,
             headers: headers,
-            body: { error: userLang === 'en' ? "Email is required" : "E-mail é obrigatório" } 
+            body: {
+                error: userLang === 'en' ? "A valid email is required" : "É necessário um e-mail válido"
+            }
         };
         return;
     }
@@ -86,7 +91,7 @@ module.exports = async function (context, req) {
 
         // 3. EXECUTA OS ENVIOS
         if (process.env.EMAIL_USER) {
-            
+
             // A) Envio Principal: Para o Cliente (Com HTML Bonito)
             await transporter.sendMail({
                 from: `"Fernandes Tech" <${process.env.EMAIL_USER}>`,
@@ -114,7 +119,7 @@ module.exports = async function (context, req) {
         context.res = {
             status: 200,
             headers: headers,
-            body: { 
+            body: {
                 message: userLang === 'en' ? "Success!" : "Sucesso!",
                 details: "Cadastrado com sucesso."
             }
@@ -125,7 +130,7 @@ module.exports = async function (context, req) {
         context.res = {
             status: 500,
             headers: headers,
-            body: { 
+            body: {
                 error: userLang === 'en' ? "Server error." : "Erro no servidor."
             }
         };
