@@ -20,47 +20,33 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // --- ENVIO PARA PRODUÇÃO ---
     async function sendMessage() {
-        const text = chatInput.value.trim();
-        if (!text) return;
+    const text = chatInput.value.trim();
+    if (!text) return;
 
-        appendMessage('user', text);
-        chatInput.value = '';
-        const typingId = appendMessage('bot', '...');
+    appendMessage('user', text);
+    chatInput.value = '';
+    const typingId = appendMessage('bot', '...');
 
-        try {
-            // CORREÇÃO: Use caminho relativo para funcionar em local, dev e prod
-            const AZURE_FUNCTION_URL = "/api/chat"; // Ajuste conforme necessário para o caminho correto da função
+    try {
+        const response = await fetch("/api/chat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ message: text })
+        });
 
-            const response = await fetch(AZURE_FUNCTION_URL, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ message: text })
-            });
+        const data = await response.json(); // Lê o corpo uma única vez
 
-            let data;
-            const contentType = response.headers.get("content-type");
-
-            // Verifica se a resposta é JSON antes de tentar ler
-            if (contentType && contentType.includes("application/json")) {
-                data = await response.json();
-            } else {
-                const textError = await response.text();
-                throw new Error(`Erro no servidor: ${textError}`);
-            }
-
-            if (!response.ok) {
-                const errorText = await response.text(); // Lê como texto se não for 200 OK
-                throw new Error(`Erro ${response.status}: ${errorText}`);
-            }
-
-            document.getElementById(typingId).innerText = data.reply;
-
-        } catch (error) {
-            console.error("Erro no Chat:", error);
-            // Mensagem amigável para o usuário
-            document.getElementById(typingId).innerText = "Desculpe, tive um problema técnico. Tente novamente mais tarde.";
+        if (!response.ok) {
+            throw new Error(data.reply || "Erro no servidor");
         }
+
+        document.getElementById(typingId).innerText = data.reply;
+
+    } catch (error) {
+        console.error("Erro:", error);
+        document.getElementById(typingId).innerText = "Tive um problema. Tente em instantes.";
     }
+}
 
     // ... (restante do arquivo mantido)
 

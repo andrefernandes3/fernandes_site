@@ -3,9 +3,8 @@ const https = require('https');
 module.exports = async function (context, req) {
     const headers = {
         "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": "*", 
-        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type, Authorization"
+        "Access-Control-Allow-Origin": "*", // Aberto para facilitar testes iniciais
+        "Access-Control-Allow-Methods": "POST, OPTIONS"
     };
 
     if (req.method === "OPTIONS") {
@@ -14,89 +13,49 @@ module.exports = async function (context, req) {
     }
 
     try {
-        let userMessage = "Olá";
-        if (req.body && req.body.message) {
-            userMessage = req.body.message;
-        }
+        const userMessage = req.body?.message || "Olá";
+        const apiKey = process.env.HF_API_KEY;
 
-        context.log.info(`Mensagem recebida: "${userMessage}"`);
-
-        const apiKey = process.env.HF_API_KEY; // Crie essa variável no Azure
         if (!apiKey) {
-            throw new Error("Variável de ambiente HF_API_KEY não configurada.");
+            context.res = { status: 500, headers, body: { reply: "Erro: HF_API_KEY não configurada no Azure." } };
+            return;
         }
-
-        // Prompt formatado para Llama 3 (System + User)
-        const prompt = `<|begin_of_text|><|start_header_id|>system<|end_header_id|>
-
-Você é a IA da Fernandes Technology. Responda de forma curta, técnica e em português.<|eot_id|><|start_header_id|>user<|end_header_id|>
-
-${userMessage}<|eot_id|><|start_header_id|>assistant<|end_header_id|>`;
 
         const payload = JSON.stringify({
-            inputs: prompt,
-            parameters: {
-                max_new_tokens: 512,
-                temperature: 0.5,
-                return_full_text: false
-            }
+            inputs: `Contexto: Você é o assistente técnico da Fernandes Technology. Responda de forma curta em português.\nPergunta: ${userMessage}\nResposta:`,
+            parameters: { max_new_tokens: 250, temperature: 0.7 }
         });
 
         const options = {
             hostname: 'api-inference.huggingface.co',
-            path: '/models/meta-llama/Meta-Llama-3-8B-Instruct',
+            path: '/models/facebook/blenderbot-400M-distill', // Modelo gratuito e leve (rápido)
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
                 'Authorization': `Bearer ${apiKey}`,
+                'Content-Type': 'application/json',
                 'Content-Length': Buffer.byteLength(payload)
             }
         };
 
-        const hfResponse = await new Promise((resolve, reject) => {
-            const apiReq = https.request(options, (apiRes) => {
-                let body = '';
-                apiRes.on('data', chunk => body += chunk);
-                apiRes.on('end', () => {
-                    if (apiRes.statusCode >= 200 && apiRes.statusCode < 300) {
-                        try {
-                            resolve(JSON.parse(body));
-                        } catch (e) {
-                            reject(new Error(`Resposta inválida: ${body}`));
-                        }
-                    } else {
-                        // Se o modelo estiver carregando (erro 503), avisa
-                        if (apiRes.statusCode === 503) {
-                            reject(new Error("O modelo está carregando (cold start). Tente novamente em 30 segundos."));
-                        } else {
-                            reject(new Error(`Erro HF ${apiRes.statusCode}: ${body}`));
-                        }
-                    }
-                });
+        const result = await new Promise((resolve, reject) => {
+            const apiReq = https.request(options, (res) => {
+                let data = '';
+                res.on('data', (chunk) => data += chunk);
+                res.on('end', () => resolve({ status: res.statusCode, body: data }));
             });
             apiReq.on('error', reject);
             apiReq.write(payload);
             apiReq.end();
         });
 
-        // A resposta da HF vem como array: [{ generated_text: "..." }]
-        const reply = hfResponse[0]?.generated_text?.trim() || "Sem resposta da IA.";
+        const parsed = JSON.parse(result.body);
+        // O Blenderbot retorna um objeto diferente do Llama
+        const reply = parsed.generated_text || parsed[0]?.generated_text || "Estou processando sua dúvida...";
 
-        context.res = {
-            status: 200,
-            headers,
-            body: { reply }
-        };
+        context.res = { status: 200, headers, body: { reply } };
 
     } catch (err) {
-        context.log.error("ERRO NO CHAT:", err);
-        context.res = {
-            status: 500,
-            headers,
-            body: { 
-                reply: "Erro ao processar sua mensagem.", 
-                details: err.message 
-            }
-        };
+        context.log.error("Erro interno:", err);
+        context.res = { status: 500, headers, body: { reply: "Erro ao conectar com a IA." } };
     }
 };
