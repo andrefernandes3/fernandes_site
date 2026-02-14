@@ -3,7 +3,7 @@ const https = require('https');
 module.exports = async function (context, req) {
     const headers = {
         "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": "https://fernandesit.com", 
+        "Access-Control-Allow-Origin": "*", 
         "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type, Authorization"
     };
