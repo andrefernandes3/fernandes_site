@@ -37,8 +37,16 @@ document.addEventListener("DOMContentLoaded", function () {
                 body: JSON.stringify({ message: text })
             });
 
-            // Se o servidor devolver erro (500, 400), tentamos ler o JSON de erro
-            const data = await response.json();
+            let data;
+            const contentType = response.headers.get("content-type");
+
+            // Verifica se a resposta é JSON antes de tentar ler
+            if (contentType && contentType.includes("application/json")) {
+                data = await response.json();
+            } else {
+                const textError = await response.text();
+                throw new Error(`Erro no servidor: ${textError}`);
+            }
 
             if (!response.ok) {
                 const errorText = await response.text(); // Lê como texto se não for 200 OK
