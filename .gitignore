@@ -1,8 +1,8 @@
 # Azure Functions local settings
-local.settings.json
+#local.settings.json
 .vscode/
 bin/
 obj/
-site-principal/api/local.settings.json
-site-principal/api/node_modules/
+# site-principal/api/local.settings.json  ← COMENTE ou APAGUE esta linha
+# site-principal/api/node_modules/        ← COMENTE ou APAGUE esta linha
 node_modules/
