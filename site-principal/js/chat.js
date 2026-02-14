@@ -185,7 +185,7 @@ class ChatGemini {
 
         try {
             // Chamar a API do Azure Function
-            const response = await fetch('/api/chat-gemini', {
+            const response = await fetch('/api/chat', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
