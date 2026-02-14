@@ -1,109 +1,25 @@
-/* BOTÃO FLUTUANTE */
-
-.chat-toggle-btn {
-    position: fixed;
-    bottom: 30px;
-    right: 30px;
-    width: 60px;
-    height: 60px;
-    background-color: #0d6efd;
-    color: #fff;
-    border-radius: 50%;
-    border: none;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-    cursor: pointer;
-    z-index: 9999;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+/* css/chat.css - Estilos para mensagens */
+.message {
+    margin-bottom: 10px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    max-width: 80%;
+    word-wrap: break-word;
 }
 
-
-/* CONTAINER DO CHAT */
-
-.chat-widget-container {
-    position: fixed;
-    bottom: 110px;
-    right: 30px;
-    width: 350px;
-    height: 500px;
-    background: #ffffff;
-    border-radius: 15px;
-    box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-    display: none;
-    flex-direction: column;
-    overflow: hidden;
-    z-index: 9999;
+.user-message {
+    background-color: #dcf8c6;
+    align-self: flex-end;
+    margin-left: auto;
 }
 
-
-/* HEADER */
-
-.chat-header {
-    background-color: #0d6efd;
-    color: #fff;
-    padding: 15px;
-    font-weight: 600;
-    font-size: 1rem;
+.ai-message {
+    background-color: #e5e5ea;
+    align-self: flex-start;
+    margin-right: auto;
 }
-
-
-/* ÁREA DE MENSAGENS */
 
 .chat-messages {
-    flex: 1;
-    padding: 15px;
-    overflow-y: auto;
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    background: #f8f9fa;
-}
-
-
-/* MENSAGENS */
-
-.message {
-    padding: 8px 12px;
-    border-radius: 15px;
-    max-width: 80%;
-    font-size: 0.9rem;
-    line-height: 1.4;
-}
-
-.message.bot {
-    background-color: #e9ecef;
-    align-self: flex-start;
-    border-bottom-left-radius: 5px;
-}
-
-.message.user {
-    background-color: #0d6efd;
-    color: white;
-    align-self: flex-end;
-    border-bottom-right-radius: 5px;
-}
-
-
-/* INPUT */
-
-.chat-input-container {
-    display: flex;
-    border-top: 1px solid #dee2e6;
-}
-
-.chat-input-container input {
-    flex: 1;
-    border: none;
-    padding: 12px;
-    font-size: 0.9rem;
-    outline: none;
-}
-
-.chat-input-container button {
-    background-color: #0d6efd;
-    border: none;
-    color: white;
-    padding: 0 15px;
-    cursor: pointer;
 }
