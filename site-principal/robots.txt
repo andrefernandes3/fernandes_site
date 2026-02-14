@@ -3,4 +3,5 @@ Disallow: /admin/
 Disallow: /login/
 Allow: /
 
-Sitemap: https://fernandestechnology.tech/sitemap.xml
+
+Sitemap: https://fernandesit.com/sitemap.xml
