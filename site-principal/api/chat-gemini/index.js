@@ -26,8 +26,10 @@ module.exports = async function (context, req) {
                 return;
             }
 
-            // ✅ CORREÇÃO: usar gemini-pro em vez de gemini-1.5-flash
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`;
+            // ✅ USANDO MODELO CORRETO DA LISTA: gemini-2.5-flash
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+            
+            context.log('URL:', url.replace(GEMINI_API_KEY, '***'));
             
             const response = await fetch(url, {
                 method: 'POST',
@@ -44,6 +46,7 @@ Pergunta: ${message}`
             });
 
             const data = await response.json();
+            context.log('Resposta Gemini:', JSON.stringify(data));
 
             if (!response.ok) {
                 context.log.error('Erro Gemini:', data);
