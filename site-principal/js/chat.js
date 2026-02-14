@@ -29,7 +29,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         try {
             // CORREÇÃO: Use caminho relativo para funcionar em local, dev e prod
-            const AZURE_FUNCTION_URL = "/api/chat";
+            const AZURE_FUNCTION_URL = "/api";
 
             const response = await fetch(AZURE_FUNCTION_URL, {
                 method: "POST",

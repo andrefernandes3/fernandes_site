@@ -1,4 +1,8 @@
-node_modules/
-.env
+# Azure Functions local settings
+local.settings.json
 .vscode/
-*.log
+bin/
+obj/
+site-principal/api/local.settings.json
+site-principal/api/node_modules/
+node_modules/
