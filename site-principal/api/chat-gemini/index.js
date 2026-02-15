@@ -2,7 +2,7 @@ const fetch = require('node-fetch');
 
 module.exports = async function (context, req) {
     context.log('🚀 Função executada');
-    
+
     try {
         if (req.method === 'GET') {
             context.res = { status: 200, body: { status: 'online' } };
@@ -19,11 +19,46 @@ module.exports = async function (context, req) {
             }
 
             const apiKey = process.env.GROQ_API_KEY;
-            
+
             if (!apiKey) {
                 context.res = { status: 200, body: { reply: "Estou com dificuldades técnicas." } };
                 return;
             }
+
+            // ==========================================
+            // TABELA DE FUSOS HORÁRIOS (CORRETA!)
+            // ==========================================
+            const fusos = {
+                // Brasil
+                "brasília": { utc: -3, nome: "Brasília" },
+                "são paulo": { utc: -3, nome: "São Paulo" },
+                "rio": { utc: -3, nome: "Rio de Janeiro" },
+
+                // EUA
+                "nova york": { utc: -5, nome: "Nova York", verao: -4 },
+                "new york": { utc: -5, nome: "New York", verao: -4 },
+                "miami": { utc: -5, nome: "Miami", verao: -4 },
+                "chicago": { utc: -6, nome: "Chicago", verao: -5 },
+                "denver": { utc: -7, nome: "Denver", verao: -6 },
+                "phoenix": { utc: -7, nome: "Phoenix", verao: -7 }, // Arizona NÃO muda!
+                "arizona": { utc: -7, nome: "Arizona", verao: -7 }, // Não muda
+                "los angeles": { utc: -8, nome: "Los Angeles", verao: -7 },
+                "california": { utc: -8, nome: "Califórnia", verao: -7 },
+                "san francisco": { utc: -8, nome: "San Francisco", verao: -7 },
+                "seattle": { utc: -8, nome: "Seattle", verao: -7 },
+                "alaska": { utc: -9, nome: "Alaska", verao: -8 },
+                "anchorage": { utc: -9, nome: "Anchorage", verao: -8 },
+                "honolulu": { utc: -10, nome: "Honolulu", verao: -10 }, // Havaí não muda
+                "havaí": { utc: -10, nome: "Havaí", verao: -10 },
+
+                // Outros
+                "londres": { utc: 0, nome: "Londres", verao: 1 },
+                "portugal": { utc: 0, nome: "Portugal", verao: 1 },
+                "lisboa": { utc: 0, nome: "Lisboa", verao: 1 },
+                "tokyo": { utc: 9, nome: "Tóquio", verao: 9 },
+                "japão": { utc: 9, nome: "Japão", verao: 9 },
+                "australia": { utc: 11, nome: "Austrália (Sydney)", verao: 11 }
+            };
 
             // ==========================================
             // PROMPT DE SISTEMA COM FOCO ABSOLUTO
@@ -60,6 +95,15 @@ module.exports = async function (context, req) {
             Se o cliente disser "das 15h às 18h no horário do Alaska", isso corresponde a:
             - 15h no Alaska = 19h em Brasília (fora do horário comercial)
             - 18h no Alaska = 22h em Brasília (fora do horário comercial)
+
+            TABELA DE FUSOS (use como referência):
+${Object.entries(fusos).map(([key, value]) => `- ${value.nome}: UTC${value.utc >= 0 ? '+' : ''}${value.utc}`).join('\n')}
+
+            IMPORTANTE SOBRE HORÁRIO DE VERÃO:
+             Arizona (Phoenix) NÃO adota horário de verão
+            - Havaí NÃO adota horário de verão
+            - Demais estados dos EUA: verão de março a novembro (UTC-4, -5, -6, -7)
+            - Brasil: verão de outubro a fevereiro (UTC-2)
 
             🚫 PERGUNTAS PROIBIDAS (você NÃO responde):
             - Traduções ("como diz boa noite em inglês")
@@ -100,7 +144,7 @@ module.exports = async function (context, req) {
 
             // Formata as mensagens
             const mensagensFormatadas = [];
-            
+
             // Adiciona sistema
             mensagensFormatadas.push({
                 role: "system",
