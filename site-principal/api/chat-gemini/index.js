@@ -8,7 +8,7 @@ module.exports = async function (context, req) {
 
     try {
         const { message } = req.body || {};
-        const GEMINI_API_KEnv.GEMINI_API_KEY;
+        const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
         if (!GEMINI_API_KEY) {
             context.res = { status: 500, body: { error: 'API Key não configurada' } };
