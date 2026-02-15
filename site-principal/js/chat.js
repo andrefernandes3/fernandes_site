@@ -1,10 +1,19 @@
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('🎯 Inicializando chat com histórico...');
+    console.log('🎯 Inicializando chat com histórico entre páginas...');
     
-    // Carrega o histórico salvo ao iniciar
-    carregarHistorico();
+    // Verifica se é um reload da página
+    const isReload = performance.navigation.type === 1;
     
-    // Inicia o chat
+    if (isReload) {
+        // Se for reload, limpa o histórico
+        localStorage.removeItem('fernandes_chat_history');
+        historicoConversa = [];
+        console.log('🔄 Reload detectado - histórico limpo');
+    } else {
+        // Se for navegação normal, carrega o histórico
+        carregarHistorico();
+    }
+    
     iniciarChat();
 });
 
@@ -22,7 +31,7 @@ function carregarHistorico() {
 
 // Salva histórico no localStorage
 function salvarHistorico() {
-    // Mantém apenas as últimas 20 mensagens para não sobrecarregar
+    // Mantém apenas as últimas 20 mensagens
     const historicoSalvar = historicoConversa.slice(-20);
     localStorage.setItem('fernandes_chat_history', JSON.stringify(historicoSalvar));
 }
@@ -114,9 +123,9 @@ function iniciarChat() {
 
     // MOSTRA O HISTÓRICO SALVO ao abrir o chat
     if (historicoConversa.length > 0) {
-        messages.innerHTML = ''; // Limpa a mensagem de boas-vindas padrão
+        messages.innerHTML = ''; // Limpa a mensagem de boas-vindas
         historicoConversa.forEach(msg => {
-            adicionarMensagem(msg.text, msg.isUser, false); // false = não salvar novamente
+            adicionarMensagem(msg.text, msg.isUser, false);
         });
     } else {
         // Se não tem histórico, mostra mensagem de boas-vindas
@@ -140,6 +149,18 @@ function iniciarChat() {
         if (e.key === 'Enter') enviarMensagem();
     };
 
+    // Limpa histórico quando clica no botão de fechar? (opcional)
+    // Se quiser apagar ao fechar o chat, descomente:
+    /*
+    close.ondblclick = function() {
+        historicoConversa = [];
+        localStorage.removeItem('fernandes_chat_history');
+        messages.innerHTML = '';
+        adicionarMensagem(t.welcome, false, false);
+        console.log('🧹 Histórico limpo manualmente');
+    };
+    */
+
     async function enviarMensagem() {
         const texto = input.value.trim();
         if (!texto) return;
@@ -152,7 +173,7 @@ function iniciarChat() {
         mostrarDigitacao();
 
         try {
-            // Envia TODO o histórico para a API (últimas 10 mensagens)
+            // Envia histórico para a API
             const historicoParaAPI = historicoConversa.slice(-10);
             
             const res = await fetch('/api/chat-gemini', {
@@ -160,17 +181,14 @@ function iniciarChat() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
                     message: texto,
-                    history: historicoParaAPI,  // 👈 Envia o histórico!
+                    history: historicoParaAPI,
                     lang: localStorage.getItem('selectedLanguage') || 'pt'
                 })
             });
 
             const data = await res.json();
             
-            // Remove indicador de digitação
             removerDigitacao();
-            
-            // Mostra resposta e SALVA
             adicionarMensagem(data.reply, false, true);
 
         } catch (error) {
@@ -202,7 +220,7 @@ function iniciarChat() {
         messages.appendChild(div);
         messages.scrollTop = messages.scrollHeight;
 
-        // Salva no histórico se necessário
+        // Salva no histórico apenas se não for reload
         if (salvar) {
             historicoConversa.push({ text: texto, isUser });
             salvarHistorico();
