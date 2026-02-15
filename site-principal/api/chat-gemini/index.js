@@ -26,8 +26,9 @@ module.exports = async function (context, req) {
         // POST - Processar mensagem
         // ==========================================
         if (req.method === 'POST') {
-            const { message, history, lang } = req.body || {};
+            const { message, history, lang, pagina } = req.body || {};
             context.log(`📝 [${requestId}] Mensagem: "${message}"`);
+            context.log(`📄 [${requestId}] Página: "${pagina || '/'}"`);
 
             if (!message) {
                 context.res = {
@@ -47,6 +48,15 @@ module.exports = async function (context, req) {
                 };
                 return;
             }
+
+            // ==========================================
+            // CAPTURA DO IP DO USUÁRIO (NOVO!)
+            // ==========================================
+            const forwardedFor = req.headers['x-forwarded-for'];
+            const userIP = forwardedFor 
+                ? forwardedFor.split(',')[0].trim() 
+                : (req.headers['remote-addr'] || "IP não disponível");
+            context.log(`🌐 [${requestId}] IP do usuário: ${userIP}`);
 
             // ==========================================
             // TABELA DE FUSOS HORÁRIOS (CORRETA!)
@@ -214,42 +224,21 @@ IMPORTANTE SOBRE HORÁRIO DE VERÃO:
                     await client.connect();
                     const db = client.db('fernandes_db');
 
-                    // ✅ FORMA CORRETA: Salvar sempre em UTC e tratar na exibição
-                    // O MongoDB já salva em UTC por padrão, não precisa ajustar!
-                    const dataUTC = new Date(); // Isso já é UTC
-
-                    // Se você quiser SALVAR o horário de Brasília (UTC-3) no banco:
-                    // 🔴 ATENÇÃO: Isso NÃO é recomendado! Melhor salvar UTC e converter na hora de exibir.
-
-                    // Opção 1: Salvar UTC (RECOMENDADO)
+                    // Salva em UTC (recomendado)
                     await db.collection('chat_logs').insertOne({
                         requestId,
-                        timestamp: dataUTC, // ✅ UTC (recomendado)
+                        timestamp: new Date(), // UTC
+                        ip: userIP, // IP do usuário (NOVO!)
+                        pagina: pagina || "/", // Página de origem (NOVO!)
                         prompt: message,
                         resposta: reply,
                         modelo: modeloUsado || 'fallback',
                         idioma: lang || 'pt-BR',
                         historico: history?.length || 0
                     });
-
-                    // Opção 2: Se você REALMENTE quer salvar no horário de Brasília:
-                    // (NÃO RECOMENDADO - pode causar problemas com fusos)
-                    /*
-                    const dataBrasil = new Date(dataUTC.getTime() - (3 * 60 * 60 * 1000));
-                    await db.collection('chat_logs').insertOne({
-                        requestId,
-                        timestamp_brasil: dataBrasil, // Horário de Brasília
-                        timestamp_utc: dataUTC,        // UTC também para referência
-                        prompt: message,
-                        resposta: reply,
-                        modelo: modeloUsado || 'fallback',
-                        idioma: lang || 'pt-BR',
-                        historico: history?.length || 0
-                    });
-                    */
 
                     await client.close();
-                    context.log(`✅ [${requestId}] Conversa salva no MongoDB (UTC)`);
+                    context.log(`✅ [${requestId}] Conversa salva no MongoDB (UTC) com IP ${userIP}`);
                 } catch (dbError) {
                     context.log.error(`❌ [${requestId}] Erro ao salvar no MongoDB:`, dbError.message);
                 }
