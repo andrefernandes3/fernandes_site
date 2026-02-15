@@ -10,14 +10,14 @@ module.exports = async function (context, req) {
         // GET - Health check
         // ==========================================
         if (req.method === 'GET') {
-            context.res = { 
-                status: 200, 
+            context.res = {
+                status: 200,
                 headers: { 'Content-Type': 'application/json' },
-                body: { 
+                body: {
                     status: 'online',
                     version: '2.0',
-                    requestId 
-                } 
+                    requestId
+                }
             };
             return;
         }
@@ -30,20 +30,20 @@ module.exports = async function (context, req) {
             context.log(`📝 [${requestId}] Mensagem: "${message}"`);
 
             if (!message) {
-                context.res = { 
-                    status: 200, 
-                    body: { reply: "Olá! Como posso ajudar?" } 
+                context.res = {
+                    status: 200,
+                    body: { reply: "Olá! Como posso ajudar?" }
                 };
                 return;
             }
 
             const apiKey = process.env.GROQ_API_KEY;
-            
+
             if (!apiKey) {
                 context.log.error(`❌ [${requestId}] GROQ_API_KEY não configurada`);
-                context.res = { 
-                    status: 200, 
-                    body: { reply: "Estou com dificuldades técnicas no momento. Tente novamente mais tarde." } 
+                context.res = {
+                    status: 200,
+                    body: { reply: "Estou com dificuldades técnicas no momento. Tente novamente mais tarde." }
                 };
                 return;
             }
@@ -56,7 +56,7 @@ module.exports = async function (context, req) {
                 "brasília": { utc: -3, nome: "Brasília" },
                 "são paulo": { utc: -3, nome: "São Paulo" },
                 "rio": { utc: -3, nome: "Rio de Janeiro" },
-                
+
                 // EUA
                 "nova york": { utc: -5, nome: "Nova York", verao: -4 },
                 "new york": { utc: -5, nome: "New York", verao: -4 },
@@ -73,7 +73,7 @@ module.exports = async function (context, req) {
                 "anchorage": { utc: -9, nome: "Anchorage", verao: -8 },
                 "honolulu": { utc: -10, nome: "Honolulu", verao: -10 }, // Havaí não muda
                 "havaí": { utc: -10, nome: "Havaí", verao: -10 },
-                
+
                 // Outros
                 "londres": { utc: 0, nome: "Londres", verao: 1 },
                 "portugal": { utc: 0, nome: "Portugal", verao: 1 },
@@ -167,7 +167,7 @@ IMPORTANTE SOBRE HORÁRIO DE VERÃO:
             for (const modelo of modelos) {
                 try {
                     context.log(`🔄 [${requestId}] Tentando modelo: ${modelo}`);
-                    
+
                     const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
                         method: 'POST',
                         headers: {
@@ -213,6 +213,10 @@ IMPORTANTE SOBRE HORÁRIO DE VERÃO:
                     const client = new MongoClient(process.env.MONGO_CONNECTION_STRING);
                     await client.connect();
                     const db = client.db('fernandes_db');
+                    // CALCULA O UTCCCC-3 (Horário de Brasília)
+                    const dataAtual = new Date();
+                    const offsetBrasil = -3; // UTC-3
+                    const timestampBR = new Date(dataAtual.getTime() + (offsetBrasil * 3600 * 1000));
                     await db.collection('chat_logs').insertOne({
                         requestId,
                         timestamp: new Date(),
@@ -239,17 +243,17 @@ IMPORTANTE SOBRE HORÁRIO DE VERÃO:
         }
 
         // Método não permitido
-        context.res = { 
-            status: 405, 
-            body: { error: 'Método não permitido' } 
+        context.res = {
+            status: 405,
+            body: { error: 'Método não permitido' }
         };
 
     } catch (error) {
         context.log.error('💥 [${requestId}] Erro fatal:', error);
-        context.res = { 
-            status: 200, 
+        context.res = {
+            status: 200,
             headers: { 'Content-Type': 'application/json' },
-            body: { reply: "Erro de conexão. Tente novamente!" } 
+            body: { reply: "Erro de conexão. Tente novamente!" }
         };
     }
 };
