@@ -8,15 +8,15 @@ module.exports = async function (context, req) {
 
     try {
         const { message } = req.body || {};
-        const apiKey = process.env.GEMINI_API_KEY;
+        const GEMINI_API_KEnv.GEMINI_API_KEY;
 
-        if (!apiKey) {
+        if (!GEMINI_API_KEY) {
             context.res = { status: 500, body: { error: 'API Key não configurada' } };
             return;
         }
 
         // URL estável v1 com o modelo 1.5-flash
-        const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+        const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
 
         // "Treino" via System Instruction
         const systemPrompt = `Você é o assistente virtual oficial da Fernandes Technology.
