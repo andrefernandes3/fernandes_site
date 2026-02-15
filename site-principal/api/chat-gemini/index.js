@@ -1,112 +1,63 @@
 const fetch = require('node-fetch');
 
 module.exports = async function (context, req) {
-    context.log('========== INÍCIO ==========');
-    
+    if (req.method === 'GET') {
+        context.res = { status: 200, body: { status: 'online' } };
+        return;
+    }
+
     try {
-        if (req.method === 'GET') {
-            context.res = {
-                status: 200,
-                body: { status: 'online' }
-            };
+        const { message } = req.body || {};
+        const apiKey = process.env.GEMINI_API_KEY;
+
+        if (!apiKey) {
+            context.res = { status: 500, body: { error: 'API Key não configurada' } };
             return;
         }
 
-        if (req.method === 'POST') {
-            const { message } = req.body || {};
-            context.log('Mensagem:', message);
+        // URL estável v1 com o modelo 1.5-flash
+        const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
 
-            const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-            
-            if (!GEMINI_API_KEY) {
-                context.res = {
-                    status: 500,
-                    body: { error: 'API Key não configurada' }
-                };
-                return;
-            }
+        // "Treino" via System Instruction
+        const systemPrompt = `Tu és o Assistente IA da Fernandes Technology.
+        Contexto da Empresa:
+        - Fundada por André Fernandes.
+        - Missão: Simplificar a tecnologia para empresas no Brasil e EUA.
+        - Serviços: Desenvolvimento Web (Node.js), Cloud (Azure/AWS), Dados (MongoDB/SQL), e IA.
+        - Diferenciais: Agilidade, presença global e experiência enterprise.
+        Regras de Resposta:
+        - Sê profissional, direto e prestativo.
+        - Responde sempre no idioma em que o utilizador falar (Português ou Inglês).
+        - Se perguntarem sobre serviços, usa os detalhes do site (SaaS, CI/CD, LLMs).
+        - Se não souberes algo, sugere contactar o André pelo formulário do site.`;
 
-            // Usando modelo disponível na sua lista
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
-            
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    contents: [{
-                        parts: [{
-                            text: `Você é o assistente virtual oficial da Fernandes Technology, uma empresa especializada em desenvolvimento de software e infraestrutura cloud.
-
-INFORMAÇÕES OFICIAIS DA EMPRESA:
-- Nome: Fernandes Technology
-- Especialidades: Node.js, React, AWS, Azure, MongoDB, DevOps, Docker, ITMS
-- Website: https://fernandesit.com
-- E-mail: contato@fernandesit.com
-- LinkedIn: https://linkedin.com/company/fernandes-technology
-- Telefone: +55 (11) 93203-6967 (horário comercial)
-
-HORÁRIO DE FUNCIONAMENTO:
-- Segunda a Sexta: 9h às 18h
-- Suporte emergencial: 24/7 para clientes com contrato
-
-SERVIÇOS OFERECIDOS:
-1. Desenvolvimento Web (Node.js, React)
-2. Infraestrutura Cloud (AWS, Azure)
-3. Consultoria DevOps
-4. Bancos de Dados (MongoDB, SQL)
-5. Migração para nuvem
-
-REGRAS DE ATENDIMENTO:
-1. Sempre se apresente como assistente da Fernandes Technology
-2. Use linguagem profissional mas amigável, em português do Brasil
-3. Para informações de contato, forneça os dados oficiais acima
-4. Se perguntarem sobre preços, diga que é melhor conversar com nosso time comercial via e-mail
-5. Se não souber algo, seja honesto e ofereça ajudar com o que está ao seu alcance
-6. Mantenha respostas concisas mas completas
-7. Destaque nossas especialidades quando relevante
-
-CONTEXTO DA PERGUNTA: ${message}
-
-Responda como assistente da Fernandes Technology:`
-                        }]
-                    }]
-                })
-            });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                context.log.error('Erro Gemini:', data);
-                context.res = {
-                    status: 500,
-                    body: { 
-                        error: 'Erro na API do Gemini',
-                        details: data.error?.message 
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                contents: [
+                    {
+                        role: "user",
+                        parts: [{ text: `Instrução de Sistema: ${systemPrompt}\n\nPergunta do Utilizador: ${message}` }]
                     }
-                };
-                return;
-            }
+                ]
+            })
+        });
 
-            const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || 
-                         'Desculpe, não consegui processar.';
-            
-            context.res = {
-                status: 200,
-                body: { reply }
-            };
-            return;
-        }
+        const data = await response.json();
+        
+        if (!response.ok) throw new Error(data.error?.message || 'Erro na IA');
+
+        const reply = data.candidates[0]?.content?.parts[0]?.text || 'Desculpe, tente novamente.';
 
         context.res = {
-            status: 405,
-            body: { error: 'Método não permitido' }
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+            body: { reply }
         };
 
     } catch (error) {
-        context.log.error('Erro:', error);
-        context.res = {
-            status: 500,
-            body: { error: error.message }
-        };
+        context.log.error('Erro:', error.message);
+        context.res = { status: 500, body: { error: 'Erro interno' } };
     }
 };
