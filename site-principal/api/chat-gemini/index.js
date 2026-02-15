@@ -10,11 +10,7 @@ module.exports = async function (context, req) {
             context.res = {
                 status: 200,
                 headers: { 'Content-Type': 'application/json' },
-                body: { 
-                    status: 'online',
-                    version: '2.0',
-                    requestId
-                }
+                body: { status: 'online', requestId }
             };
             return;
         }
@@ -38,72 +34,96 @@ module.exports = async function (context, req) {
                 context.log.error(`❌ [${requestId}] API Key não configurada`);
                 context.res = {
                     status: 500,
-                    body: { error: 'Erro de configuração do servidor' }
+                    body: { error: 'Erro de configuração' }
                 };
                 return;
             }
 
-            // MODELO CORRETO da sua lista
+            // ==========================================
+            // SISTEMA DE RETRY AUTOMÁTICO
+            // ==========================================
+            
             const MODELOS = [
-                'gemini-2.5-flash',  // ✅ Este está na sua lista
-                'gemini-2.0-flash',   // Fallback
-                'gemini-pro-latest'    // Último fallback
+                'gemini-2.5-flash',
+                'gemini-2.0-flash',
+                'gemini-pro-latest'
             ];
             
-            let lastError = null;
+            let tentativas = 0;
+            const MAX_TENTATIVAS = 3;
             let reply = null;
-
-            // Tenta cada modelo até um funcionar
-            for (const modelo of MODELOS) {
-                try {
-                    context.log(`🔄 [${requestId}] Tentando modelo: ${modelo}`);
-                    
-                    const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent?key=${GEMINI_API_KEY}`;
-                    
-                    // Timeout de 10 segundos apenas
-                    const controller = new AbortController();
-                    const timeoutId = setTimeout(() => controller.abort(), 10000);
-
-                    const response = await fetch(url, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            contents: [{
-                                parts: [{
-                                    text: `Você é assistente da Fernandes Technology. Responda em português de forma natural: ${message}`
-                                }]
-                            }],
-                            generationConfig: {
-                                maxOutputTokens: 150,
-                                temperature: 0.7
-                            }
-                        }),
-                        signal: controller.signal
-                    });
-
-                    clearTimeout(timeoutId);
-
-                    if (response.ok) {
-                        const data = await response.json();
-                        reply = data.candidates?.[0]?.content?.parts?.[0]?.text;
+            
+            // Tenta até 3 vezes com diferentes modelos
+            while (tentativas < MAX_TENTATIVAS && !reply) {
+                tentativas++;
+                
+                for (const modelo of MODELOS) {
+                    try {
+                        context.log(`🔄 [${requestId}] Tentativa ${tentativas} - Modelo: ${modelo}`);
                         
-                        if (reply) {
-                            context.log(`✅ [${requestId}] Modelo ${modelo} funcionou!`);
-                            break;
+                        // Delay entre tentativas (exponencial)
+                        if (tentativas > 1) {
+                            const delay = 1000 * Math.pow(2, tentativas - 1);
+                            context.log(`⏳ [${requestId}] Aguardando ${delay}ms...`);
+                            await new Promise(resolve => setTimeout(resolve, delay));
                         }
-                    } else {
-                        const errorText = await response.text();
-                        context.log(`⚠️ [${requestId}] Modelo ${modelo} falhou: ${response.status}`);
-                        lastError = { status: response.status, body: errorText };
-                    }
+                        
+                        const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent?key=${GEMINI_API_KEY}`;
+                        
+                        // Timeout de 15 segundos
+                        const controller = new AbortController();
+                        const timeoutId = setTimeout(() => controller.abort(), 15000);
 
-                } catch (modelError) {
-                    context.log(`⚠️ [${requestId}] Erro com modelo ${modelo}:`, modelError.message);
-                    lastError = modelError;
+                        const response = await fetch(url, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                contents: [{
+                                    parts: [{
+                                        text: `Você é assistente da Fernandes Technology. Responda em português de forma natural: ${message}`
+                                    }]
+                                }],
+                                generationConfig: {
+                                    maxOutputTokens: 150,
+                                    temperature: 0.7
+                                }
+                            }),
+                            signal: controller.signal
+                        });
+
+                        clearTimeout(timeoutId);
+
+                        if (response.ok) {
+                            const data = await response.json();
+                            reply = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                            
+                            if (reply) {
+                                context.log(`✅ [${requestId}] Sucesso na tentativa ${tentativas} com ${modelo}!`);
+                                break;
+                            }
+                        } else {
+                            const errorText = await response.text();
+                            context.log(`⚠️ [${requestId}] Modelo ${modelo} falhou: ${response.status}`);
+                            
+                            // Se for erro 429 (rate limit), tenta próximo modelo imediatamente
+                            if (response.status === 429) {
+                                context.log(`⏰ [${requestId}] Rate limit detectado, tentando outro modelo...`);
+                                continue;
+                            }
+                        }
+
+                    } catch (modelError) {
+                        context.log(`⚠️ [${requestId}] Erro com modelo ${modelo}:`, modelError.message);
+                        
+                        // Se for erro de timeout, tenta próximo
+                        if (modelError.name === 'AbortError') {
+                            context.log(`⏰ [${requestId}] Timeout, tentando outro modelo...`);
+                        }
+                    }
                 }
             }
 
-            // Se algum modelo funcionou
+            // Se conseguiu resposta
             if (reply) {
                 context.res = {
                     status: 200,
@@ -113,43 +133,46 @@ module.exports = async function (context, req) {
                 return;
             }
 
-            // Nenhum modelo funcionou - retorna resposta amigável
-            context.log.error(`❌ [${requestId}] Todos os modelos falharam`);
+            // ==========================================
+            // RESPOSTAS DE FALLBACK VARIADAS
+            // ==========================================
             
-            // RESPOSTA DE FALLBACK amigável
-            const fallbackReplies = [
-                "Olá! No momento estou com dificuldades técnicas. Por favor, tente novamente em alguns instantes ou entre em contato pelo e-mail contato@fernandesit.com.",
-                "Desculpe, estou enfrentando uma instabilidade. Você pode me perguntar novamente ou enviar um e-mail para contato@fernandesit.com.",
-                "Ops! Algo deu errado. Tente novamente ou fale conosco pelo e-mail contato@fernandesit.com."
+            context.log.error(`❌ [${requestId}] Todas tentativas falharam`);
+            
+            const fallbacks = [
+                "Olá! Estou com um pouco de movimento agora. Pode repetir a pergunta?",
+                "Desculpe, estou processando muitas solicitações. Pode tentar novamente?",
+                "Ops! A conexão deu uma instabilidade. Me pergunte de novo?",
+                "Estou aqui! Só um momento de sobrecarga. Pode repetir?",
+                "Peço desculpas, tive uma pequena falha. O que você disse mesmo?"
             ];
             
             context.res = {
-                status: 200, // 200 mesmo em erro para não quebrar o front
+                status: 200,
                 headers: { 'Content-Type': 'application/json' },
                 body: { 
-                    reply: fallbackReplies[Math.floor(Math.random() * fallbackReplies.length)],
+                    reply: fallbacks[Math.floor(Math.random() * fallbacks.length)],
                     fallback: true
                 }
             };
             return;
         }
 
-        // Método não permitido
         context.res = {
             status: 405,
             body: { error: 'Método não permitido' }
         };
 
     } catch (error) {
-        context.log.error('💥 [${requestId}] Erro fatal:', error);
+        context.log.error('💥 Erro fatal:', error);
         
-        // SEMPRE retornar algo para o front
+        // ÚLTIMO RECURSO - sempre retorna algo
         context.res = {
-            status: 200, // 200 para não quebrar o front
+            status: 200,
             headers: { 'Content-Type': 'application/json' },
             body: { 
-                reply: "Estou com dificuldades técnicas no momento. Por favor, tente novamente mais tarde ou envie um e-mail para contato@fernandesit.com.",
-                error: true
+                reply: "Estou com dificuldades técnicas. Por favor, tente novamente em alguns instantes.",
+                fallback: true
             }
         };
     }
