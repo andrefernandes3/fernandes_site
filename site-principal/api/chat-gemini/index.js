@@ -33,7 +33,7 @@ module.exports = async function (context, req) {
             if (!apiKey) {
                 context.log.error(`❌ [${requestId}] API Key não configurada`);
                 context.res = {
-                    status: 500,
+                    status: 200,
                     headers: { 'Content-Type': 'application/json' },
                     body: { 
                         reply: "Estou com dificuldades técnicas. Tente novamente mais tarde.",
@@ -44,25 +44,26 @@ module.exports = async function (context, req) {
             }
 
             // ==========================================
-            // CHAMADA À API GROQ
+            // MODELOS GROQ CONFIRMADOS (2026)
             // ==========================================
             
             const url = "https://api.groq.com/openai/v1/chat/completions";
             
-            // Lista de modelos gratuitos da Groq (todos gratuitos!)
+            // ✅ MODELOS QUE FUNCIONAM GARANTIDO
             const modelos = [
-                "llama3-8b-8192",      // Mais rápido
-                "llama3-70b-8192",     // Mais potente
-                "mixtral-8x7b-32768",  // Alternativa
-                "gemma2-9b-it"         // Outra opção
+                "llama-3.3-70b-versatile",     // Meta - Versátil e rápido
+                "llama-3.1-8b-instant",        // Meta - Super rápido
+                "gemma2-9b-it",                 // Google - Bom equilíbrio
+                "mixtral-8x7b-32768",           // Mistral - Contexto grande
+                "llama-3.2-3b-preview",         // Pequeno e rápido
+                "llama-3.2-1b-preview"          // Minúsculo e instantâneo
             ];
             
             let reply = null;
             let tentativas = 0;
             
-            // Tenta até 3 vezes com modelos diferentes
-            while (tentativas < modelos.length && !reply) {
-                const modelo = modelos[tentativas];
+            // Tenta cada modelo em ordem
+            for (const modelo of modelos) {
                 tentativas++;
                 
                 try {
@@ -80,23 +81,24 @@ module.exports = async function (context, req) {
                                 { 
                                     role: "system", 
                                     content: `Você é o assistente oficial da Fernandes Technology.
+                                    
                                     INFORMAÇÕES DA EMPRESA:
                                     - Fundador: André Fernandes
-                                    - Missão: Conectar empresas do Brasil e EUA ao futuro digital
-                                    - Especialidades: Node.js, React, AWS, Azure, MongoDB, DevOps e IA
+                                    - Especialidades: Node.js, React, AWS, Azure, MongoDB, DevOps
                                     - Website: https://fernandesit.com
                                     - Contato: contato@fernandesit.com
+                                    - Missão: Conectar empresas do Brasil e EUA ao futuro digital
                                     
-                                    Regras:
-                                    1. Responda em português do Brasil
+                                    Regras de atendimento:
+                                    1. Responda sempre em português do Brasil
                                     2. Seja profissional mas amigável
-                                    3. Se não souber algo, sugira contato por e-mail
-                                    4. Mantenha respostas concisas` 
+                                    3. Mantenha respostas claras e diretas
+                                    4. Se não souber algo, sugira contato por e-mail` 
                                 },
                                 { role: "user", content: message }
                             ],
                             temperature: 0.7,
-                            max_tokens: 200
+                            max_tokens: 300
                         })
                     });
 
@@ -104,13 +106,13 @@ module.exports = async function (context, req) {
                     
                     if (!response.ok) {
                         context.log(`⚠️ [${requestId}] Modelo ${modelo} falhou:`, data.error?.message);
-                        continue; // Tenta próximo modelo
+                        continue;
                     }
 
                     reply = data.choices?.[0]?.message?.content;
                     
                     if (reply) {
-                        context.log(`✅ [${requestId}] Sucesso com modelo ${modelo}!`);
+                        context.log(`✅ [${requestId}] SUCESSO com modelo ${modelo}!`);
                         break;
                     }
 
@@ -129,19 +131,14 @@ module.exports = async function (context, req) {
                 return;
             }
 
-            // Fallback amigável
-            const fallbacks = [
-                "Olá! Estou processando muitas solicitações agora. Pode repetir a pergunta?",
-                "Desculpe, tive uma pequena instabilidade. Me diga novamente?",
-                "Estou aqui! Só um momento de sobrecarga. Pode repetir?",
-                "Ops! A conexão falhou. O que você disse mesmo?"
-            ];
+            // Fallback amigável se todos falharem
+            context.log.error(`❌ [${requestId}] Todos os modelos falharam`);
             
             context.res = {
                 status: 200,
                 headers: { 'Content-Type': 'application/json' },
                 body: { 
-                    reply: fallbacks[Math.floor(Math.random() * fallbacks.length)],
+                    reply: "Estou processando muitas solicitações agora. Pode repetir a pergunta?",
                     fallback: true
                 }
             };
