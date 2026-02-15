@@ -110,8 +110,8 @@ module.exports = async function (context, req) {
             from: `"${name}" <${process.env.EMAIL_USER}>`,
             replyTo: email,
             to: "contato@fernandesit.com",
-            subject: `[Lead ${lang.toUpperCase()}] ${subject} - ${name}`,
-            text: `Novo Lead (${lang})!\n\nNome: ${name}\nEmail: ${email}\nTel: ${phone}\nMensagem:\n${message}`
+            subject: `[Contato ${lang.toUpperCase()}] ${subject} - ${name}`,
+            text: `Novo Contato (${lang})!\n\nNome: ${name}\nEmail: ${email}\nTel: ${phone}\nMensagem:\n${message}`
         });
 
         // 2. Resposta para o CLIENTE (Traduzida e Bonita)
