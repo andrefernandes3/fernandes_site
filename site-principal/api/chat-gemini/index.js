@@ -19,7 +19,7 @@ module.exports = async function (context, req) {
         const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
 
         // "Treino" via System Instruction
-        const systemPrompt = `Tu és o Assistente IA da Fernandes Technology.
+        const systemPrompt = `Você é o assistente virtual oficial da Fernandes Technology.
         Contexto da Empresa:
         - Fundada por André Fernandes.
         - Missão: Simplificar a tecnologia para empresas no Brasil e EUA.
