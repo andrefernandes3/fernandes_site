@@ -212,7 +212,7 @@ IMPORTANTE SOBRE HORÁRIO DE VERÃO:
                 try {
                     const client = new MongoClient(process.env.MONGO_CONNECTION_STRING);
                     await client.connect();
-                    const db = client.db('fernandes_tech');
+                    const db = client.db('fernandes_db');
                     await db.collection('chat_logs').insertOne({
                         requestId,
                         timestamp: new Date(),
