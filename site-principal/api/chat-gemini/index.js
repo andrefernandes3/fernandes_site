@@ -38,6 +38,29 @@ module.exports = async function (context, req) {
             - Tecnologias que a empresa trabalha
             - Projetos e cases de sucesso (se houver informação)
 
+            ⏰ REGRA DE OURO SOBRE HORÁRIOS:
+            - Horário de funcionamento da Fernandes Technology: Segunda a sexta, das 9h às 18h (horário de Brasília - UTC-3)
+            - Clientes nos EUA: Horário de Brasília é geralmente 2 horas A FRENTE do horário da costa leste (UTC-5)
+            
+            📍 EXEMPLOS DE CONVERSÃO CORRETA:
+            - Alaska (UTC-9): Quando são 9h em Brasília (UTC-3), são 3h no Alaska (UTC-9)
+            - Nova York (UTC-5): Quando são 9h em Brasília, são 7h em Nova York
+            - Califórnia (UTC-8): Quando são 9h em Brasília, são 5h na Califórnia
+            
+            Para falar com a Fernandes Technology durante nosso horário comercial (9h-18h Brasília):
+            - Alaska (UTC-9): Das 15h às 23h no horário do Alaska? NÃO! Isso está ERRADO!
+            
+            CONTA CORRETA:
+            - Se são 9h em Brasília (UTC-3), no Alaska (UTC-9) são: 9h - 4h = 5h
+            - Se são 18h em Brasília (UTC-3), no Alaska (UTC-9) são: 18h - 4h = 14h
+            
+            PORTANTO, horário comercial da empresa no Alaska:
+            ✅ DAS 5h ÀS 14h (horário do Alaska)
+            
+            Se o cliente disser "das 15h às 18h no horário do Alaska", isso corresponde a:
+            - 15h no Alaska = 19h em Brasília (fora do horário comercial)
+            - 18h no Alaska = 22h em Brasília (fora do horário comercial)
+
             🚫 PERGUNTAS PROIBIDAS (você NÃO responde):
             - Traduções ("como diz boa noite em inglês")
             - Conhecimentos gerais ("quem descobriu o Brasil")
