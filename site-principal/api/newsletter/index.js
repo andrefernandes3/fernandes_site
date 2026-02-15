@@ -109,7 +109,7 @@ module.exports = async function (context, req) {
 
             // A) Envio Principal: Para o Cliente (Com HTML Bonito)
             await transporter.sendMail({
-                from: `"Fernandes Tech" <${process.env.EMAIL_USER}>`,
+                from: `"Fernandes Technology" <${process.env.EMAIL_USER}>`,
                 to: email,
                 subject: content.subject,
                 text: content.message,
