@@ -3,45 +3,53 @@ const fetch = require('node-fetch');
 module.exports = async function (context, req) {
     try {
         if (req.method === 'GET') {
-            context.res = { status: 200, body: { status: 'online' } };
+            context.res = { status: 200, body: { status: 'online', engine: 'Groq' } };
             return;
         }
 
         const { message } = req.body || {};
-        const apiKey = process.env.GEMINI_API_KEY;
+        const apiKey = process.env.GROQ_API_KEY;
 
-        // 1. URL Estável (v1) e Modelo Correto (1.5-flash)
-        const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+        if (!apiKey || !message) {
+            context.res = { status: 400, body: { error: 'Dados insuficientes' } };
+            return;
+        }
+
+        // Endpoint da Groq (compatível com OpenAI)
+        const url = "https://api.groq.com/openai/v1/chat/completions";
 
         const response = await fetch(url, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Authorization': `Bearer ${apiKey}`,
+                'Content-Type': 'application/json'
+            },
             body: JSON.stringify({
-                contents: [{
-                    parts: [{
-                        // Injetando o conhecimento do seu site diretamente no prompt
-                        text: `Tu és o assistente da Fernandes Technology. 
-                        André Fernandes é o fundador, especialista em software e infraestrutura.
-                        A empresa atua no Brasil e EUA com Cloud (Azure/AWS) e IA.
-                        Responda em português de forma profissional: ${message}`
-                    }]
-                }]
+                model: "llama3-8b-8192", // Modelo gratuito e ultra rápido
+                messages: [
+                    { 
+                        role: "system", 
+                        content: `Você é o assistente oficial da Fernandes Technology. 
+                        Fundador: André Fernandes. 
+                        Missão: Conectar empresas do Brasil e EUA ao futuro digital.
+                        Especialidades: Node.js, Azure Cloud, MongoDB, DevOps e IA.
+                        Responda de forma profissional e direta em português.` 
+                    },
+                    { role: "user", content: message }
+                ],
+                temperature: 0.7
             })
         });
 
         const data = await response.json();
 
         if (!response.ok) {
-            // Se der erro, mostramos o erro real nos logs do Azure para diagnóstico
-            context.log.error('Erro detalhado da Google:', JSON.stringify(data));
-            context.res = { 
-                status: 200, 
-                body: { reply: "Não consegui contactar a minha base de dados agora. Pode tentar novamente?" } 
-            };
-            return;
+            context.log.error('Erro Groq:', data);
+            throw new Error(data.error?.message || 'Erro na comunicação com Groq');
         }
 
-        const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || "Pode repetir a pergunta?";
+        // A Groq retorna a resposta em choices[0].message.content
+        const reply = data.choices[0]?.message?.content || "Pode repetir a pergunta?";
 
         context.res = {
             status: 200,
@@ -50,7 +58,10 @@ module.exports = async function (context, req) {
         };
 
     } catch (error) {
-        context.log.error('Erro Fatal:', error);
-        context.res = { status: 200, body: { reply: "Estou a processar muitas solicitações. Tente de novo!" } };
+        context.log.error('Erro Fatal:', error.message);
+        context.res = { 
+            status: 200, 
+            body: { reply: "Estou com uma instabilidade técnica momentânea. Tente novamente!" } 
+        };
     }
 };
