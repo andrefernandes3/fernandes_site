@@ -49,14 +49,16 @@ module.exports = async function (context, req) {
             
             const url = "https://api.groq.com/openai/v1/chat/completions";
             
-            // ✅ MODELOS QUE FUNCIONAM GARANTIDO
+            // ✅ MODELOS DA SUA LISTA - PRIORIZADOS
             const modelos = [
-                "llama-3.3-70b-versatile",     // Meta - Versátil e rápido
-                "llama-3.1-8b-instant",        // Meta - Super rápido
-                "gemma2-9b-it",                 // Google - Bom equilíbrio
-                "mixtral-8x7b-32768",           // Mistral - Contexto grande
-                "llama-3.2-3b-preview",         // Pequeno e rápido
-                "llama-3.2-1b-preview"          // Minúsculo e instantâneo
+                "llama-3.3-70b-versatile",
+                "meta-llama/llama-4-maverick-17b-128e-instruct",
+                "qwen/qwen3-32b",
+                "llama-3.1-8b-instant",
+                "openai/gpt-oss-120b",
+                "meta-llama/llama-4-scout-17b-16e-instruct",
+                "moonshotai/kimi-k2-instruct",
+                "groq/compound"
             ];
             
             let reply = null;
@@ -82,18 +84,19 @@ module.exports = async function (context, req) {
                                     role: "system", 
                                     content: `Você é o assistente oficial da Fernandes Technology.
                                     
-                                    INFORMAÇÕES DA EMPRESA:
+                                    INFORMAÇÕES OFICIAIS:
                                     - Fundador: André Fernandes
                                     - Especialidades: Node.js, React, AWS, Azure, MongoDB, DevOps
                                     - Website: https://fernandesit.com
                                     - Contato: contato@fernandesit.com
                                     - Missão: Conectar empresas do Brasil e EUA ao futuro digital
                                     
-                                    Regras de atendimento:
-                                    1. Responda sempre em português do Brasil
+                                    REGRAS:
+                                    1. Responda SEMPRE em português do Brasil
                                     2. Seja profissional mas amigável
-                                    3. Mantenha respostas claras e diretas
-                                    4. Se não souber algo, sugira contato por e-mail` 
+                                    3. Respostas claras e diretas
+                                    4. Se perguntarem sobre preços, sugira contato por e-mail
+                                    5. Destaque nossas especialidades quando relevante` 
                                 },
                                 { role: "user", content: message }
                             ],
@@ -131,7 +134,7 @@ module.exports = async function (context, req) {
                 return;
             }
 
-            // Fallback amigável se todos falharem
+            // Fallback amigável
             context.log.error(`❌ [${requestId}] Todos os modelos falharam`);
             
             context.res = {
