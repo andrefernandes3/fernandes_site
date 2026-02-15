@@ -125,3 +125,31 @@ html {
     }
 }
 
+/* Estilo Moderno Fernandes AI */
+.chat-widget-container {
+    position: fixed; bottom: 90px; right: 20px;
+    width: 350px; height: 500px;
+    background: #fff; border-radius: 15px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    display: flex; flex-direction: column;
+    z-index: 10000; overflow: hidden;
+    border: 1px solid #e0e0e0; font-family: 'Segoe UI', sans-serif;
+}
+.chat-header {
+    background: #212529; color: #fff; padding: 15px;
+    display: flex; justify-content: space-between; align-items: center;
+}
+.chat-messages {
+    flex: 1; overflow-y: auto; padding: 15px; background: #f8f9fa;
+}
+.message { margin-bottom: 12px; padding: 10px 15px; border-radius: 15px; max-width: 85%; font-size: 0.95rem; }
+.message.bot { background: #fff; color: #333; align-self: flex-start; border: 1px solid #dee2e6; }
+.message.user { background: #0d6efd; color: #fff; align-self: flex-end; margin-left: auto; }
+.chat-input-area { padding: 15px; background: #fff; border-top: 1px solid #dee2e6; display: flex; gap: 8px; }
+.chat-toggle-btn {
+    position: fixed; bottom: 20px; right: 20px;
+    width: 60px; height: 60px; border-radius: 50%;
+    background: #0d6efd; color: white; border: none;
+    box-shadow: 0 4px 15px rgba(13, 110, 253, 0.4);
+    cursor: pointer; z-index: 10000; font-size: 24px;
+}
