@@ -60,7 +60,7 @@ module.exports = async function (context, req) {
             - Missão: Conectar empresas do Brasil e EUA ao futuro digital
             - Especialidades: Node.js, React, AWS, Azure, MongoDB, DevOps, Docker
             - Website: https://fernandesit.com
-            - E-mail: contato@fernandesit.com
+            - E-mail: contato@fernandesit.com , https://fernandesit.com/contact.html
             - LinkedIn: /company/fernandes-technology
             - Horário comercial: Segunda a sexta, 9h às 18h
             - Atendimento: Brasil e Estados Unidos
