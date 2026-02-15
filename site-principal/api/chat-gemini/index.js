@@ -213,21 +213,43 @@ IMPORTANTE SOBRE HORÁRIO DE VERÃO:
                     const client = new MongoClient(process.env.MONGO_CONNECTION_STRING);
                     await client.connect();
                     const db = client.db('fernandes_db');
-                    // CALCULA O UTCCCC-3 (Horário de Brasília)
-                    const dataAtual = new Date();
-                    const offsetBrasil = -3; // UTC-3
-                    const timestampBR = new Date(dataAtual.getTime() + (offsetBrasil * 3600 * 1000));
+
+                    // ✅ FORMA CORRETA: Salvar sempre em UTC e tratar na exibição
+                    // O MongoDB já salva em UTC por padrão, não precisa ajustar!
+                    const dataUTC = new Date(); // Isso já é UTC
+
+                    // Se você quiser SALVAR o horário de Brasília (UTC-3) no banco:
+                    // 🔴 ATENÇÃO: Isso NÃO é recomendado! Melhor salvar UTC e converter na hora de exibir.
+
+                    // Opção 1: Salvar UTC (RECOMENDADO)
                     await db.collection('chat_logs').insertOne({
                         requestId,
-                        timestamp: new Date(),
+                        timestamp: dataUTC, // ✅ UTC (recomendado)
                         prompt: message,
                         resposta: reply,
                         modelo: modeloUsado || 'fallback',
                         idioma: lang || 'pt-BR',
                         historico: history?.length || 0
                     });
+
+                    // Opção 2: Se você REALMENTE quer salvar no horário de Brasília:
+                    // (NÃO RECOMENDADO - pode causar problemas com fusos)
+                    /*
+                    const dataBrasil = new Date(dataUTC.getTime() - (3 * 60 * 60 * 1000));
+                    await db.collection('chat_logs').insertOne({
+                        requestId,
+                        timestamp_brasil: dataBrasil, // Horário de Brasília
+                        timestamp_utc: dataUTC,        // UTC também para referência
+                        prompt: message,
+                        resposta: reply,
+                        modelo: modeloUsado || 'fallback',
+                        idioma: lang || 'pt-BR',
+                        historico: history?.length || 0
+                    });
+                    */
+
                     await client.close();
-                    context.log(`✅ [${requestId}] Conversa salva no MongoDB`);
+                    context.log(`✅ [${requestId}] Conversa salva no MongoDB (UTC)`);
                 } catch (dbError) {
                     context.log.error(`❌ [${requestId}] Erro ao salvar no MongoDB:`, dbError.message);
                 }
