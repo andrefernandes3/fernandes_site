@@ -1,9 +1,9 @@
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     console.log('🎯 Inicializando chat com histórico entre páginas...');
-    
+
     // Verifica se é um reload da página
     const isReload = performance.navigation.type === 1;
-    
+
     if (isReload) {
         // Se for reload, limpa o histórico
         localStorage.removeItem('fernandes_chat_history');
@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Se for navegação normal, carrega o histórico
         carregarHistorico();
     }
-    
+
     iniciarChat();
 });
 
@@ -43,7 +43,7 @@ function iniciarChat() {
     }
 
     const lang = localStorage.getItem('selectedLanguage') || 'pt';
-    
+
     const textos = {
         pt: {
             welcome: "Olá! Sou assistente da Fernandes Technology. Como posso ajudar?",
@@ -133,19 +133,19 @@ function iniciarChat() {
     }
 
     // Eventos
-    toggle.onclick = function() {
+    toggle.onclick = function () {
         container.style.display = 'flex';
         toggle.style.display = 'none';
         input.focus();
     };
 
-    close.onclick = function() {
+    close.onclick = function () {
         container.style.display = 'none';
         toggle.style.display = 'flex';
     };
 
     send.onclick = enviarMensagem;
-    input.onkeypress = function(e) {
+    input.onkeypress = function (e) {
         if (e.key === 'Enter') enviarMensagem();
     };
 
@@ -175,11 +175,11 @@ function iniciarChat() {
         try {
             // Envia histórico para a API
             const historicoParaAPI = historicoConversa.slice(-10);
-            
+
             const res = await fetch('/api/chat-gemini', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
+                body: JSON.stringify({
                     message: texto,
                     history: historicoParaAPI,
                     lang: localStorage.getItem('selectedLanguage') || 'pt'
@@ -187,7 +187,7 @@ function iniciarChat() {
             });
 
             const data = await res.json();
-            
+
             removerDigitacao();
             adicionarMensagem(data.reply, false, true);
 
@@ -203,24 +203,27 @@ function iniciarChat() {
         div.style.display = 'flex';
         div.style.marginBottom = '10px';
         div.style.justifyContent = isUser ? 'flex-end' : 'flex-start';
-        
+
         const bgColor = isUser ? '#2563eb' : 'white';
         const textColor = isUser ? 'white' : '#1f2937';
         const borderRadius = isUser ? '18px 18px 4px 18px' : '18px 18px 18px 4px';
-        
+
+        // --- NOVO: Processa Markdown apenas para o Bot ---
+        // Usamos marked.parse() para converter o texto em HTML formatado
+        const conteudoProcessado = (!isUser && typeof marked !== 'undefined') ? marked.parse(texto) : texto;
+
         div.innerHTML = `
-            <div style="background: ${bgColor}; color: ${textColor}; 
-                        padding: 10px 14px; border-radius: ${borderRadius}; 
-                        max-width: 80%; box-shadow: 0 1px 2px rgba(0,0,0,0.1);
-                        word-wrap: break-word;">
-                ${texto}
-            </div>
-        `;
-        
+        <div style="background: ${bgColor}; color: ${textColor}; 
+                    padding: 10px 14px; border-radius: ${borderRadius}; 
+                    max-width: 80%; box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+                    word-wrap: break-word;">
+            ${conteudoProcessado}
+        </div>
+    `;
+
         messages.appendChild(div);
         messages.scrollTop = messages.scrollHeight;
 
-        // Salva no histórico apenas se não for reload
         if (salvar) {
             historicoConversa.push({ text: texto, isUser });
             salvarHistorico();
@@ -233,7 +236,7 @@ function iniciarChat() {
         div.style.display = 'flex';
         div.style.marginBottom = '10px';
         div.style.justifyContent = 'flex-start';
-        
+
         div.innerHTML = `
             <div style="background: white; padding: 12px 16px; 
                         border-radius: 18px 18px 18px 4px; 
@@ -248,7 +251,7 @@ function iniciarChat() {
                 </div>
             </div>
         `;
-        
+
         messages.appendChild(div);
         messages.scrollTop = messages.scrollHeight;
     }
