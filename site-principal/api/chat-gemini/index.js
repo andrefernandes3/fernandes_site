@@ -1,6 +1,47 @@
 const fetch = require('node-fetch');
 const { MongoClient } = require('mongodb');
 
+// ==========================================
+// CONNECTION POOLING - Conexão global reutilizável
+// ==========================================
+let cachedClient = null;
+let cachedDb = null;
+
+async function connectToDatabase() {
+    if (cachedClient && cachedDb) {
+        console.log('✅ Usando conexão em cache');
+        return { client: cachedClient, db: cachedDb };
+    }
+
+    console.log('🆕 Criando nova conexão com MongoDB');
+    
+    const client = new MongoClient(process.env.MONGO_CONNECTION_STRING, {
+        maxPoolSize: 10,           // Máximo de conexões simultâneas
+        minPoolSize: 2,             // Mantém pelo menos 2 conexões
+        maxIdleTimeMS: 30000,       // Fecha conexões ociosas após 30s
+        connectTimeoutMS: 5000,      // Timeout de conexão
+        socketTimeoutMS: 30000,      // Timeout de operações
+    });
+
+    await client.connect();
+    const db = client.db('fernandes_db');
+    
+    // Cache das conexões
+    cachedClient = client;
+    cachedDb = db;
+    
+    // Configura graceful shutdown
+    process.on('SIGINT', async () => {
+        if (cachedClient) {
+            await cachedClient.close();
+            console.log('🔌 Conexão MongoDB fechada');
+        }
+        process.exit(0);
+    });
+
+    return { client, db };
+}
+
 module.exports = async function (context, req) {
     const requestId = Math.random().toString(36).substring(7);
     context.log(`🚀 [${requestId}] Função executada`);
@@ -28,7 +69,6 @@ module.exports = async function (context, req) {
         if (req.method === 'POST') {
             const { message, history, lang, pagina } = req.body || {};
             context.log(`📝 [${requestId}] Mensagem: "${message}"`);
-            context.log(`📄 [${requestId}] Página: "${pagina || '/'}"`);
 
             if (!message) {
                 context.res = {
@@ -50,13 +90,12 @@ module.exports = async function (context, req) {
             }
 
             // ==========================================
-            // CAPTURA DO IP DO USUÁRIO (NOVO!)
+            // CAPTURA DO IP DO USUÁRIO
             // ==========================================
             const forwardedFor = req.headers['x-forwarded-for'];
             const userIP = forwardedFor 
                 ? forwardedFor.split(',')[0].trim() 
                 : (req.headers['remote-addr'] || "IP não disponível");
-            context.log(`🌐 [${requestId}] IP do usuário: ${userIP}`);
 
             // ==========================================
             // TABELA DE FUSOS HORÁRIOS (CORRETA!)
@@ -216,20 +255,18 @@ IMPORTANTE SOBRE HORÁRIO DE VERÃO:
             }
 
             // ==========================================
-            // SALVAR NO MONGODB (se configurado)
+            // SALVAR NO MONGODB - COM CONNECTION POOLING
             // ==========================================
             if (process.env.MONGO_CONNECTION_STRING) {
                 try {
-                    const client = new MongoClient(process.env.MONGO_CONNECTION_STRING);
-                    await client.connect();
-                    const db = client.db('fernandes_db');
+                    // Usa a conexão em pool (NÃO FECHA O CLIENT!)
+                    const { db } = await connectToDatabase();
 
-                    // Salva em UTC (recomendado)
                     await db.collection('chat_logs').insertOne({
                         requestId,
-                        timestamp: new Date(), // UTC
-                        ip: userIP, // IP do usuário (NOVO!)
-                        pagina: pagina || "/", // Página de origem (NOVO!)
+                        timestamp: new Date(),
+                        ip: userIP,
+                        pagina: pagina || "/",
                         prompt: message,
                         resposta: reply,
                         modelo: modeloUsado || 'fallback',
@@ -237,8 +274,7 @@ IMPORTANTE SOBRE HORÁRIO DE VERÃO:
                         historico: history?.length || 0
                     });
 
-                    await client.close();
-                    context.log(`✅ [${requestId}] Conversa salva no MongoDB (UTC) com IP ${userIP}`);
+                    context.log(`✅ [${requestId}] Conversa salva no MongoDB (pooling)`);
                 } catch (dbError) {
                     context.log.error(`❌ [${requestId}] Erro ao salvar no MongoDB:`, dbError.message);
                 }
@@ -260,7 +296,7 @@ IMPORTANTE SOBRE HORÁRIO DE VERÃO:
         };
 
     } catch (error) {
-        context.log.error('💥 [${requestId}] Erro fatal:', error);
+        context.log.error(`💥 [${requestId}] Erro fatal:`, error);
         context.res = {
             status: 200,
             headers: { 'Content-Type': 'application/json' },
