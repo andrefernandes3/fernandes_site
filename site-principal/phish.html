@@ -1,10 +1,23 @@
 <!DOCTYPE html>
 <html lang="pt-br">
+
 <head>
+
+    <script>
+        if (window.location.hostname === 'phishing.fernandesit.com') {
+            if (window.location.pathname === '/' || window.location.pathname === '/index.html') {
+                window.location.href = '/phish.html';
+            }
+        }
+    </script>
+    
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Phish-Detect | Fernandes Technology Security</title>
-    <link rel="stylesheet" href="css/style.css"> <link rel="stylesheet" href="css/phish.css">  </head>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/phish.css">
+</head>
+
 <body>
     <div class="phish-container">
         <header>
@@ -16,10 +29,11 @@
             <section class="input-area">
                 <label for="emailBody">Cole o conteúdo do e-mail abaixo:</label>
                 <textarea id="emailBody" placeholder="Ex: Prezado cliente, sua conta foi bloqueada..."></textarea>
-                
+
                 <div class="advanced-toggle">
                     <button onclick="toggleHeaders()" id="btnHeaders">+ Adicionar cabeçalhos (opcional)</button>
-                    <textarea id="emailHeaders" class="hidden" placeholder="Cole os headers (SPF, DKIM...) aqui para uma análise técnica."></textarea>
+                    <textarea id="emailHeaders" class="hidden"
+                        placeholder="Cole os headers (SPF, DKIM...) aqui para uma análise técnica."></textarea>
                 </div>
 
                 <button id="btnAnalisar" onclick="processarAnalise()">Analisar Ameaça Agora</button>
@@ -29,8 +43,10 @@
                 <div class="result-header">
                     <div class="risk-meter">
                         <svg viewBox="0 0 36 36" class="circular-chart">
-                            <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                            <path id="riskCircle" class="circle" stroke-dasharray="0, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                            <path class="circle-bg"
+                                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                            <path id="riskCircle" class="circle" stroke-dasharray="0, 100"
+                                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
                         </svg>
                         <div class="percentage" id="riskValue">0%</div>
                     </div>
@@ -46,7 +62,8 @@
                 </div>
 
                 <div class="cta-security">
-                    <p>Dúvidas sobre a segurança da sua empresa? <a href="contact.html">Fale com nossos especialistas.</a></p>
+                    <p>Dúvidas sobre a segurança da sua empresa? <a href="contact.html">Fale com nossos
+                            especialistas.</a></p>
                 </div>
             </section>
         </main>
@@ -54,4 +71,5 @@
 
     <script src="js/phish-logic.js"></script>
 </body>
+
 </html>
