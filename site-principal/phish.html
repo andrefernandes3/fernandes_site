@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phish-Detect | Fernandes Technology Security</title>
+    <link rel="stylesheet" href="css/style.css"> <link rel="stylesheet" href="css/phish.css">  </head>
+<body>
+    <div class="phish-container">
+        <header>
+            <h1>Phish-Detect <span>v1.0</span></h1>
+            <p>Análise de e-mails suspeitos baseada em Inteligência Artificial.</p>
+        </header>
+
+        <main>
+            <section class="input-area">
+                <label for="emailBody">Cole o conteúdo do e-mail abaixo:</label>
+                <textarea id="emailBody" placeholder="Ex: Prezado cliente, sua conta foi bloqueada..."></textarea>
+                
+                <div class="advanced-toggle">
+                    <button onclick="toggleHeaders()" id="btnHeaders">+ Adicionar cabeçalhos (opcional)</button>
+                    <textarea id="emailHeaders" class="hidden" placeholder="Cole os headers (SPF, DKIM...) aqui para uma análise técnica."></textarea>
+                </div>
+
+                <button id="btnAnalisar" onclick="processarAnalise()">Analisar Ameaça Agora</button>
+            </section>
+
+            <section id="resultPanel" class="result-panel hidden">
+                <div class="result-header">
+                    <div class="risk-meter">
+                        <svg viewBox="0 0 36 36" class="circular-chart">
+                            <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                            <path id="riskCircle" class="circle" stroke-dasharray="0, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                        </svg>
+                        <div class="percentage" id="riskValue">0%</div>
+                    </div>
+                    <div class="veredito-text">
+                        <h3>Veredito: <span id="statusLabel">Analisando...</span></h3>
+                        <p id="recomendacao"></p>
+                    </div>
+                </div>
+
+                <div class="details">
+                    <h4>Pontos de Atenção Identificados:</h4>
+                    <ul id="listaMotivos"></ul>
+                </div>
+
+                <div class="cta-security">
+                    <p>Dúvidas sobre a segurança da sua empresa? <a href="contact.html">Fale com nossos especialistas.</a></p>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="js/phish-logic.js"></script>
+</body>
+</html>
