@@ -23,6 +23,14 @@
     <meta name="robots" content="index, follow">
     <link rel="canonical" href="https://fernandesit.com/">
 
+    <script>
+        if (window.location.hostname === 'phishing.fernandesit.com') {
+            if (window.location.pathname === '/' || window.location.pathname === '/index.html') {
+                window.location.href = '/phish.html';
+            }
+        }
+    </script>
+
     <title>Fernandes Technology | Início</title>
     <link rel="icon" type="image/x-icon" href="assets/favicon.ico" />
 
