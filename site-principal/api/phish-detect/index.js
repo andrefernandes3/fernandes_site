@@ -17,6 +17,18 @@ module.exports = async function (context, req) {
         const { emailContent, headers } = req.body;
         const apiKey = process.env.GROQ_API_KEY;
 
+        // --- NOVO CÓDIGO DE LIMPEZA AQUI ---
+        let cleanHeaders = headers || 'Não fornecidos';
+        if (cleanHeaders !== 'Não fornecidos') {
+            // Se encontrar a tag que indica o início de um conteúdo base64/gigante
+            const base64Index = cleanHeaders.indexOf('Content-Transfer-Encoding: base64');
+            if (base64Index !== -1) {
+                // Corta o cabeçalho nesse ponto, ignorando o lixo ilegível
+                cleanHeaders = cleanHeaders.substring(0, base64Index) + '\n[Aviso: O restante do código base64 foi removido para análise técnica]';
+            }
+        }
+        // --- FIM DO CÓDIGO DE LIMPEZA ---
+
         const systemPrompt = `Você é um Analista de Segurança da Fernandes Technology.
         Sua tarefa é analisar o conteúdo de e-mails para detectar PHISHING.
         Analise: senso de urgência, erros gramaticais, links suspeitos e tom da mensagem.
