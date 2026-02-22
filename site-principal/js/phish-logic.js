@@ -219,7 +219,7 @@ async function processarAnalise() {
 
     try {
         // Enviar para o backend (ajuste o URL para sua Azure Function)
-        const response = await fetch('https://your-azure-function-url.azurewebsites.net/api/analyze', { // Substitua pelo URL real da function
+        const response = await fetch('/api/phish-detect', { // Substitua pelo URL real da function
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
