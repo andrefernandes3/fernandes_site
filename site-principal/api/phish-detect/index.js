@@ -233,33 +233,20 @@ module.exports = async function (context, req) {
         localScore += 40;
     }
 
-    const systemPrompt = `Você é um Analista de Segurança Sênior (Nível 3). Sua missão é detectar PHISHING com precisão cirúrgica, evitando FALSOS POSITIVOS em e-mails reais.
+    const systemPrompt = `Você é um Analista de Segurança Sênior (Nível 3). Sua missão é detectar PHISHING com precisão cirúrgica, evitando FALSOS POSITIVOS em e-mails reais de grandes empresas.
 
-REGRAS DE CLASSIFICAÇÃO (SIGA ESTRITAMENTE):
+REGRAS DE CLASSIFICAÇÃO (SIGA ESTRITAMENTE NESTA ORDEM):
+1. A REGRA DE OURO DA AUTENTICAÇÃO: Verifique a seção 'AUTENTICAÇÃO DO SERVIDOR'. Se SPF e DKIM estiverem 'pass' (ou verificados), o e-mail é CRIPTOGRAFICAMENTE LEGÍTIMO. Nestes casos, o 'Nivel_Risco' DEVE OBRIGATORIAMENTE ser entre 0 e 10, e o Veredito DEVE ser 'SEGURO'. Jamais classifique como suspeito.
+2. DOMÍNIOS DE MARKETING E TERCEIROS: Grandes empresas (Enel, Bancos, etc.) usam variações do seu nome (ex: info-enel.com, faturaporemailsp@brasil.enel.com) e plataformas de disparo (ex: exct.net, Salesforce, SendGrid). Se a Regra 1 passou, ignore o fato dos links serem de terceiros ou estranhos.
+3. SITES DESCONHECIDOS/OCULTOS: Se a investigação do domínio (WHOIS) retornar 'Idade oculta' ou 'Privado', isso é NORMAL devido a leis de privacidade. Não aumente o risco por isso.
+4. CÓDIGO ESTRANHO: Ignore códigos como "=3D", tags soltas ou CSS quebrado. Isso é apenas formatação 'Quoted-Printable' dos servidores de e-mail e não é um ataque.
+5. GOLPES COMUNS (BRASIL): Apenas considere PERIGOSO e-mails ameaçadores (ex: bloqueio de conta, Receita Federal, faturas urgentes) SE falharem na Regra 1 (SPF/DKIM ausentes ou falhos).
 
-AUTENTICAÇÃO É A BASE: Analise "AUTENTICAÇÃO DO SERVIDOR". Se SPF e DKIM = "pass", o envio é autorizado. No entanto, verifique a reputação do domínio: é um domínio conhecido ou um domínio recém-criado/obscuro que conseguiu autenticação?
-
-DOMÍNIOS DE MARKETING (PROCEDER COM CAUTELA): Grandes empresas usam ESPs (ex: exct.net, Salesforce, SendGrid). Se o e-mail passou no SPF/DKIM e veio de um ESP, verifique se o link principal realmente leva ao site oficial da empresa (via redirecionamento). Desconfie de links encurtados ou que levam a páginas de login dentro do próprio ESP, a menos que seja uma página institucional.
-
-SITES DESCONHECIDOS: Se a idade do domínio estiver "oculta" ou "indisponível", isso é NORMAL devido a leis de privacidade. Porém, se o domínio do link foi criado há menos de 30 dias, isso é um FORTE indicador de risco.
-
-CÓDIGO ESTRANHO: Ignore fragmentos de codificação MIME como "=3D" ou tags HTML quebradas.
-
-GOLPES COMUNS NO BRASIL: Considere alertas de "CPF bloqueado", "Receita Federal", "Fatura com problema" ou "Boleto não pago" como gatilhos para investigação profunda, mesmo que os links pareçam legítimos.
-
-E-MAILS BANCÁRIOS LEGÍTIMOS: Bancos NUNCA pedem credenciais completas ou instalação de aplicativos por link de e-mail. Foquem em comunicação de benefícios.
-
-ANEXOS PERIGOSOS: Arquivos .html, .htm ou .zip anexados devem elevar o nível de risco imediatamente, pois são vetores comuns de roubo de credenciais e malware.
-
-Retorne APENAS JSON válido com:
-
-"Nivel_Risco" (0-100)
-
-"Veredito" ("SEGURO", "SUSPEITO", "PERIGOSO")
-
-"Motivos" (array máx 5 itens)
-
-"Recomendacao" (texto direto, sem acento na chave)`;
+Retorne APENAS JSON válido com as chaves exatas:
+- "Nivel_Risco" (Número inteiro de 0 a 100. Máximo de 10 se a Autenticação estiver OK).
+- "Veredito" (SEGURO, SUSPEITO, PERIGOSO)
+- "Motivos" (Array com no máximo 5 itens curtos. Se for seguro, justifique elogiando a validação criptográfica do SPF/DKIM).
+- "Recomendacao" (Texto direto, chave sem acento)`;
 
     try {
         const controller = new AbortController();
