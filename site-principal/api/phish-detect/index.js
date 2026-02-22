@@ -61,7 +61,14 @@ module.exports = async function (context, req) {
 
             context.res = { status: 200, body: analise };
         } catch (error) {
-            context.res = { status: 500, body: { error: "Falha na análise técnica." } };
-        }
+        context.log('Erro na análise detalhado:', error);
+        context.res = {
+            status: 500,
+            body: { 
+                error: 'Falha na análise técnica.',
+                detalhe_tecnico: error.message // Isto vai revelar o verdadeiro culpado!
+            }
+        };
+    }
     }
 };
