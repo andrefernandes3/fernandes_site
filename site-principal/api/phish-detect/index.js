@@ -70,6 +70,70 @@ function extractUrls(text) {
     return Array.from(urls).slice(0, 20);
 }
 
+// NOVA FUNÇÃO: Extrair detalhes de autenticação
+function extractAuthDetails(headers) {
+    const authDetails = {
+        spf: null,
+        dkim: null,
+        dmarc: null,
+        raw: null
+    };
+    
+    if (!headers) return authDetails;
+    
+    // Procurar por Authentication-Results
+    const authMatch = headers.match(/Authentication-Results:(.*?)(?:\n[A-Z]|\n\n|$)/is);
+    if (authMatch) {
+        authDetails.raw = authMatch[1].trim();
+        
+        // Extrair SPF
+        const spfMatch = authDetails.raw.match(/spf=([^\s;]+)/i);
+        if (spfMatch) authDetails.spf = spfMatch[1];
+        
+        // Extrair DKIM
+        const dkimMatch = authDetails.raw.match(/dkim=([^\s;]+)/i);
+        if (dkimMatch) authDetails.dkim = dkimMatch[1];
+        
+        // Extrair DMARC
+        const dmarcMatch = authDetails.raw.match(/dmarc=([^\s;]+)/i);
+        if (dmarcMatch) authDetails.dmarc = dmarcMatch[1];
+    }
+    
+    return authDetails;
+}
+
+// NOVA FUNÇÃO: Extrair remetente
+function extractSender(headers) {
+    if (!headers) return 'Não identificado';
+    
+    // Procurar por From:
+    const fromMatch = headers.match(/From:?\s*(.*?)(?:\n[A-Z]|\n\n|$)/i);
+    if (fromMatch) {
+        return fromMatch[1].trim();
+    }
+    
+    return 'Não identificado';
+}
+
+// NOVA FUNÇÃO: Extrair IP do remetente
+function extractSenderIP(headers) {
+    if (!headers) return null;
+    
+    // Procurar por Received: ou IP do remetente
+    const ipMatch = headers.match(/\[(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\]/);
+    if (ipMatch) {
+        return ipMatch[1];
+    }
+    
+    // Tentar encontrar no Authentication-Results
+    const authResults = headers.match(/Authentication-Results:.*?smtp\.mailfrom=.*?ip=([^\s\];]+)/i);
+    if (authResults) {
+        return authResults[1];
+    }
+    
+    return null;
+}
+
 async function checkDomainAge(domain) {
     try {
         const controller = new AbortController();
@@ -160,6 +224,11 @@ module.exports = async function (context, req) {
     // Processamento
     const foundUrls = extractUrls(emailContent || '');
     
+    // Extrair informações detalhadas
+    const authDetails = extractAuthDetails(headers);
+    const sender = extractSender(headers);
+    const senderIP = extractSenderIP(headers);
+    
     let cleanBody = emailContent || 'Não fornecido';
     if (cleanBody.length > 6000) {
         cleanBody = cleanBody.substring(0, 6000) + '... [CORTADO]';
@@ -170,7 +239,10 @@ module.exports = async function (context, req) {
         cleanHeaders = cleanHeaders.substring(0, 2000) + '... [CORTADO]';
     }
 
+    // Investigação de domínios (limitada)
     let domainIntel = "Nenhum link detectado.";
+    const domainDetails = [];
+    
     if (foundUrls.length > 0) {
         const uniqueDomains = [...new Set(foundUrls.map(u => {
             try { 
@@ -186,6 +258,7 @@ module.exports = async function (context, req) {
         for (const domain of domainsToCheck) {
             const ageInfo = await checkDomainAge(domain);
             domainIntel += `- ${domain} (${ageInfo})\n`;
+            domainDetails.push({ domain, age: ageInfo });
         }
     }
 
@@ -246,6 +319,21 @@ Retorne JSON com:
             };
         }
 
+        // Adicionar informações detalhadas à resposta
+        const respostaCompleta = {
+            ...analise,
+            detalhes_autenticacao: {
+                spf: authDetails.spf || 'não verificado',
+                dkim: authDetails.dkim || 'não verificado',
+                dmarc: authDetails.dmarc || 'não verificado',
+                raw: authDetails.raw || 'não disponível'
+            },
+            remetente: sender,
+            ip_remetente: senderIP || 'não identificado',
+            urls_encontradas: foundUrls.slice(0, 10),
+            dominios_analisados: domainDetails
+        };
+
         // Salvar no banco (não crítico)
         try {
             const db = await connectDb();
@@ -256,6 +344,8 @@ Retorne JSON com:
                     Veredito: analise.Veredito
                 },
                 ip: clientIp,
+                remetente: sender,
+                urls: foundUrls.length,
                 duration: Date.now() - startTime
             });
         } catch (dbError) {
@@ -264,7 +354,7 @@ Retorne JSON com:
 
         // Salvar no cache
         memoryCache.set(cacheKey, {
-            data: analise,
+            data: respostaCompleta,
             timestamp: Date.now()
         });
 
@@ -272,23 +362,34 @@ Retorne JSON com:
             duration: Date.now() - startTime,
             urls: foundUrls.length,
             veredito: analise.Veredito,
-            risco: analise.Nivel_Risco
+            risco: analise.Nivel_Risco,
+            remetente: sender
         });
 
         context.res.status = 200;
-        context.res.body = analise;
+        context.res.body = respostaCompleta;
 
     } catch (error) {
         context.log.error('Erro na análise:', error);
         
-        context.res.status = 200; // 200 para não quebrar o frontend
+        context.res.status = 200;
         context.res.body = {
             Nivel_Risco: 50,
             Veredito: 'SUSPEITO',
             Motivos: ['Erro na análise automática'],
             Recomendacao: error.name === 'AbortError' 
                 ? 'Tempo limite excedido. Tente novamente.'
-                : 'Falha técnica. Encaminhe para análise manual.'
+                : 'Falha técnica. Encaminhe para análise manual.',
+            detalhes_autenticacao: {
+                spf: authDetails.spf || 'não verificado',
+                dkim: authDetails.dkim || 'não verificado',
+                dmarc: authDetails.dmarc || 'não verificado',
+                raw: authDetails.raw || 'não disponível'
+            },
+            remetente: sender || 'não identificado',
+            ip_remetente: senderIP || 'não identificado',
+            urls_encontradas: foundUrls.slice(0, 10),
+            dominios_analisados: domainDetails
         };
     }
 };

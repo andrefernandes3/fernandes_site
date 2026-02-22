@@ -468,3 +468,206 @@ header p {
     background: #10b981;
     color: white;
 }
+
+/* Adicione isso ao final do arquivo phish.css */
+
+/* Detalhes de Autenticação */
+.detalhes-adicionais {
+    margin-top: 30px;
+    padding: 20px;
+    background: #2d2d2d;
+    border-radius: 8px;
+    border-left: 4px solid #00bcd4;
+}
+
+.auth-details, .sender-details, .urls-details, .dominios-details {
+    margin-bottom: 25px;
+}
+
+.auth-details h4, .sender-details h4, .urls-details h4, .dominios-details h4 {
+    color: #00bcd4;
+    margin-bottom: 15px;
+    font-size: 1.1em;
+    border-bottom: 1px solid #444;
+    padding-bottom: 8px;
+}
+
+.auth-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.auth-item {
+    background: #1e1e1e;
+    padding: 10px;
+    border-radius: 6px;
+    text-align: center;
+}
+
+.auth-label {
+    display: block;
+    color: #999;
+    font-size: 0.9em;
+    margin-bottom: 5px;
+}
+
+.auth-value {
+    font-weight: bold;
+    font-size: 1.1em;
+}
+
+.badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.85em;
+    font-weight: bold;
+}
+
+.badge-success {
+    background: #10b981;
+    color: #000;
+}
+
+.badge-danger {
+    background: #dc2626;
+    color: #fff;
+}
+
+.badge-warning {
+    background: #f59e0b;
+    color: #000;
+}
+
+.badge-neutral {
+    background: #6b7280;
+    color: #fff;
+}
+
+.badge-secondary {
+    background: #4b5563;
+    color: #fff;
+}
+
+.auth-raw {
+    margin-top: 10px;
+}
+
+.auth-raw summary {
+    color: #00bcd4;
+    cursor: pointer;
+    font-size: 0.9em;
+}
+
+.auth-raw pre {
+    background: #1a1a1a;
+    padding: 10px;
+    border-radius: 4px;
+    color: #ccc;
+    font-size: 0.85em;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    margin-top: 10px;
+}
+
+/* Informações do Remetente */
+.sender-info {
+    background: #1e1e1e;
+    padding: 15px;
+    border-radius: 6px;
+}
+
+.info-item {
+    margin-bottom: 8px;
+    color: #fff;
+}
+
+.info-item strong {
+    color: #00bcd4;
+    margin-right: 10px;
+}
+
+/* URLs e Domínios */
+.urls-list, .dominios-list {
+    list-style: none;
+    padding: 0;
+}
+
+.urls-list li, .dominios-list li {
+    background: #1e1e1e;
+    padding: 10px 15px;
+    margin-bottom: 8px;
+    border-radius: 6px;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.url-domain {
+    color: #00bcd4;
+    font-weight: bold;
+    font-size: 0.95em;
+}
+
+.url-full {
+    color: #999;
+    font-size: 0.85em;
+    word-break: break-all;
+    flex: 1;
+}
+
+.url-suspeita {
+    border-left: 4px solid #f59e0b;
+}
+
+.domain-name {
+    color: #00bcd4;
+    font-weight: bold;
+    min-width: 150px;
+}
+
+.domain-age {
+    color: #999;
+    font-size: 0.9em;
+}
+
+.domain-age.recente {
+    color: #f59e0b;
+    font-weight: bold;
+}
+
+.dominio-recente {
+    border-left: 4px solid #f59e0b;
+}
+
+/* Tooltips e badges extras */
+.badge.danger {
+    background: #dc2626;
+    color: white;
+}
+
+.badge.warning {
+    background: #f59e0b;
+    color: black;
+}
+
+/* Responsividade para os novos elementos */
+@media (max-width: 600px) {
+    .auth-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .urls-list li, .dominios-list li {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .domain-name {
+        min-width: auto;
+    }
+}

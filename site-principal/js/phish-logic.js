@@ -220,6 +220,8 @@ function exibirResultados(res) {
     const recomendacao = document.getElementById('recomendacao');
     const lista = document.getElementById('listaMotivos');
 
+    const detalhesContainer = document.getElementById('detalhesContainer') || criarContainerDetalhes();
+
     panel.classList.remove('hidden');
     
     // Atualiza o Círculo de Risco
@@ -243,7 +245,173 @@ function exibirResultados(res) {
         lista.appendChild(li);
     });
 
+   // NOVO: Preencher detalhes de autenticação
+    if (res.detalhes_autenticacao) {
+        document.getElementById('spfDetail').innerHTML = `
+            <span class="badge ${getStatusClass(res.detalhes_autenticacao.spf)}">
+                ${res.detalhes_autenticacao.spf}
+            </span>
+        `;
+        document.getElementById('dkimDetail').innerHTML = `
+            <span class="badge ${getStatusClass(res.detalhes_autenticacao.dkim)}">
+                ${res.detalhes_autenticacao.dkim}
+            </span>
+        `;
+        document.getElementById('dmarcDetail').innerHTML = `
+            <span class="badge ${getStatusClass(res.detalhes_autenticacao.dmarc)}">
+                ${res.detalhes_autenticacao.dmarc}
+            </span>
+        `;
+        
+        if (res.detalhes_autenticacao.raw) {
+            document.getElementById('authRaw').innerText = res.detalhes_autenticacao.raw;
+        }
+    }
+
+    // NOVO: Preencher informações do remetente
+    if (res.remetente) {
+        document.getElementById('remetenteInfo').innerHTML = `
+            <div class="info-item">
+                <strong>De:</strong> ${escapeHtml(res.remetente)}
+            </div>
+            ${res.ip_remetente ? `
+            <div class="info-item">
+                <strong>IP:</strong> ${escapeHtml(res.ip_remetente)}
+            </div>
+            ` : ''}
+        `;
+    }
+
+    // NOVO: Preencher URLs encontradas
+    if (res.urls_encontradas && res.urls_encontradas.length > 0) {
+        const urlsList = document.getElementById('urlsList');
+        urlsList.innerHTML = '';
+        res.urls_encontradas.forEach(url => {
+            const li = document.createElement('li');
+            try {
+                const urlObj = new URL(url);
+                const isSuspicious = verificarUrlSuspeita(urlObj);
+                li.className = isSuspicious ? 'url-suspeita' : '';
+                li.innerHTML = `
+                    <span class="url-domain">${escapeHtml(urlObj.hostname)}</span>
+                    <span class="url-full">${escapeHtml(url)}</span>
+                    ${isSuspicious ? '<span class="badge warning">⚠️ Suspeita</span>' : ''}
+                `;
+            } catch {
+                li.innerHTML = escapeHtml(url);
+            }
+            urlsList.appendChild(li);
+        });
+        document.getElementById('urlsContainer').classList.remove('hidden');
+    }
+
+    // NOVO: Preencher domínios analisados
+    if (res.dominios_analisados && res.dominios_analisados.length > 0) {
+        const dominiosList = document.getElementById('dominiosList');
+        dominiosList.innerHTML = '';
+        res.dominios_analisados.forEach(dom => {
+            const li = document.createElement('li');
+            const idade = parseInt(dom.age);
+            const isRecente = idade < 30; // Menos de 30 dias
+            li.className = isRecente ? 'dominio-recente' : '';
+            li.innerHTML = `
+                <span class="domain-name">${escapeHtml(dom.domain)}</span>
+                <span class="domain-age ${isRecente ? 'recente' : ''}">${escapeHtml(dom.age)}</span>
+                ${isRecente ? '<span class="badge danger">🆕 Domínio recente</span>' : ''}
+            `;
+            dominiosList.appendChild(li);
+        });
+        document.getElementById('dominiosContainer').classList.remove('hidden');
+    }
+
     panel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+// Função auxiliar para criar container de detalhes
+function criarContainerDetalhes() {
+    const panel = document.getElementById('resultPanel');
+    const details = document.querySelector('.details');
+    
+    const container = document.createElement('div');
+    container.id = 'detalhesContainer';
+    container.className = 'detalhes-adicionais';
+    container.innerHTML = `
+        <div class="auth-details">
+            <h4>🔐 Autenticação do E-mail</h4>
+            <div class="auth-grid">
+                <div class="auth-item">
+                    <span class="auth-label">SPF:</span>
+                    <span id="spfDetail" class="auth-value">-</span>
+                </div>
+                <div class="auth-item">
+                    <span class="auth-label">DKIM:</span>
+                    <span id="dkimDetail" class="auth-value">-</span>
+                </div>
+                <div class="auth-item">
+                    <span class="auth-label">DMARC:</span>
+                    <span id="dmarcDetail" class="auth-value">-</span>
+                </div>
+            </div>
+            <details class="auth-raw">
+                <summary>Ver detalhes completos</summary>
+                <pre id="authRaw"></pre>
+            </details>
+        </div>
+
+        <div class="sender-details">
+            <h4>📧 Informações do Remetente</h4>
+            <div id="remetenteInfo" class="sender-info"></div>
+        </div>
+
+        <div id="urlsContainer" class="urls-details hidden">
+            <h4>🔗 URLs Encontradas</h4>
+            <ul id="urlsList" class="urls-list"></ul>
+        </div>
+
+        <div id="dominiosContainer" class="dominios-details hidden">
+            <h4>🌐 Domínios Analisados</h4>
+            <ul id="dominiosList" class="dominios-list"></ul>
+        </div>
+    `;
+    
+    panel.insertBefore(container, details.nextSibling);
+    return container;
+}
+
+function getStatusClass(value) {
+    if (!value) return 'badge-secondary';
+    value = value.toLowerCase();
+    if (value.includes('pass') || value.includes('success')) return 'badge-success';
+    if (value.includes('fail') || value.includes('hardfail')) return 'badge-danger';
+    if (value.includes('softfail')) return 'badge-warning';
+    if (value.includes('neutral') || value.includes('none')) return 'badge-neutral';
+    return 'badge-secondary';
+}
+
+function verificarUrlSuspeita(urlObj) {
+    const dominiosEncurtadores = ['bit.ly', 'tinyurl.com', 'goo.gl', 'ow.ly', 'is.gd', 'buff.ly'];
+    const tldsSuspeitos = ['.tk', '.ml', '.ga', '.cf', '.xyz', '.top', '.work'];
+    
+    const hostname = urlObj.hostname;
+    
+    // Verificar encurtadores
+    if (dominiosEncurtadores.some(d => hostname.includes(d))) return true;
+    
+    // Verificar TLDs suspeitos
+    if (tldsSuspeitos.some(tld => hostname.endsWith(tld))) return true;
+    
+    // Verificar subdomínios excessivos
+    const parts = hostname.split('.');
+    if (parts.length > 4) return true;
+    
+    return false;
+}
+
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
 }
 
 function toggleHeaders() {
