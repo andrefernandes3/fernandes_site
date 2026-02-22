@@ -75,7 +75,7 @@ function exibirResultados(res) {
     // Veredito e Recomendação
     const statusLabel = document.getElementById('statusLabel');
     statusLabel.textContent = res.Veredito;
-    statusLabel.className = circleClass; // usa a mesma cor do círculo
+    statusLabel.className = circleClass;
     document.getElementById('recomendacao').innerHTML = escapeHtml(res.Recomendacao);
 
     // Lista de Motivos
@@ -95,7 +95,7 @@ function exibirResultados(res) {
         panel.appendChild(alertSection);
     }
 
-    // Tabela de Detalhes de Autenticação
+    // Tabela de Detalhes de Autenticação e Domínios
     if (res.detalhes_autenticacao) {
         const detalhesContainer = criarDetalhesAdicionais(res);
         panel.appendChild(detalhesContainer);
@@ -147,7 +147,7 @@ function criarDetalhesAdicionais(res) {
         res.dominios_analisados.forEach(dom => {
             const li = document.createElement('li');
             
-            // NOVO: Adiciona a etiqueta do VirusTotal se ela existir
+            // Etiqueta do VirusTotal
             const vtInfo = dom.vt ? ` | <span style="color: ${dom.vt.includes('ALERTA') ? '#ff4444' : '#00C851'}"><strong>VT:</strong> ${escapeHtml(dom.vt)}</span>` : '';
             
             li.innerHTML = `<span class="domain-name"><strong>${escapeHtml(dom.dominio)}</strong></span> | Idade: ${escapeHtml(dom.age || dom.idade)}${vtInfo}`;
@@ -205,16 +205,15 @@ function gerarPDF() {
 
     const btn = document.querySelector('button[onclick="gerarPDF()"]');
     if(btn) {
+        const originalText = btn.innerHTML;
         btn.innerHTML = 'A gerar PDF...';
         btn.disabled = true;
-    }
 
-    html2pdf().set(opt).from(element).save().then(() => {
-        if(btn) {
-            btn.innerHTML = '<i class="bi bi-file-pdf"></i> Descarregar Relatório Forense (PDF)';
+        html2pdf().set(opt).from(element).save().then(() => {
+            btn.innerHTML = originalText;
             btn.disabled = false;
-        }
-    });
+        });
+    }
 }
 
 // ==========================================
@@ -248,10 +247,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const file = e.target.files[0];
             if (!file) return;
 
-            // 1. Limpa caixas e painéis de análises anteriores
+            // Limpa caixas e painéis de análises anteriores
             emailBody.value = '';
             emailHeaders.value = '';
-            document.getElementById('resultPanel').classList.add('hidden');
+            const panel = document.getElementById('resultPanel');
+            if(panel) panel.classList.add('hidden');
             
             const reader = new FileReader();
             reader.onload = function(event) {
@@ -260,9 +260,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const parts = text.split(separador);
                 
                 if (parts.length > 1) {
-                    // Preenche Cabeçalhos Brutos (para o backend ler perfeitamente)
                     emailHeaders.value = parts[0]; 
-                    // Preenche o Corpo
                     emailBody.value = parts.slice(1).join(separador); 
                     emailHeaders.classList.remove('hidden');
 
@@ -275,7 +273,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }
                 
-                // Limpa o input file para permitir carregar o mesmo ficheiro de novo
                 emlInput.value = '';
             };
             reader.readAsText(file);
