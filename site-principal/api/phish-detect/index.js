@@ -4,56 +4,19 @@ const { MongoClient } = require('mongodb');
 
 // CACHE NATIVO
 const memoryCache = new Map();
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutos
+const CACHE_TTL = 5 * 60 * 1000;
 
 let cachedDb = null;
 const rateLimit = new Map();
 
-// Domínios esperados para órgãos oficiais (expandir conforme necessário)
-const DOMINIOS_OFICIAIS = [
-    'receita.fazenda.gov.br',
-    'gov.br',
-    'fazenda.gov.br',
-    'economia.gov.br'
-];
+const DOMINIOS_OFICIAIS = ['receita.fazenda.gov.br', 'gov.br', 'fazenda.gov.br', 'economia.gov.br'];
+const CLOUD_PLATFORMS = ['run.app', 'cloudfunctions.net', 'azurewebsites.net', 'amazonaws.com', 'herokuapp.com', 'vercel.app', 'netlify.app', 'firebaseapp.com', 'web.app', 'pages.dev'];
+const ESP_PLATFORMS = ['exct.net', 'sendgrid.net', 'salesforce.com', 'mailchimp.com', 'hubspot.com', 'emkt.com.br', 'marketingcloud.com'];
 
-// Plataformas de nuvem pública (NÃO confiáveis para conteúdo sensível)
-const CLOUD_PLATFORMS = [
-    'run.app',
-    'cloudfunctions.net',
-    'azurewebsites.net',
-    'amazonaws.com',
-    'herokuapp.com',
-    'vercel.app',
-    'netlify.app',
-    'firebaseapp.com',
-    'web.app',
-    'pages.dev'
-];
-
-// Plataformas de email marketing (podem ser legítimas)
-const ESP_PLATFORMS = [
-    'exct.net',
-    'sendgrid.net',
-    'salesforce.com',
-    'mailchimp.com',
-    'hubspot.com',
-    'emkt.com.br',
-    'marketingcloud.com'
-];
-
-// Limpeza automática do cache a cada 10 minutos
 setInterval(() => {
     const now = Date.now();
-    let deleted = 0;
     for (const [key, value] of memoryCache.entries()) {
-        if (now - value.timestamp > CACHE_TTL) {
-            memoryCache.delete(key);
-            deleted++;
-        }
-    }
-    if (deleted > 0) {
-        console.log(`Cache limpo: ${deleted} itens removidos. Restam: ${memoryCache.size}`);
+        if (now - value.timestamp > CACHE_TTL) memoryCache.delete(key);
     }
 }, 10 * 60 * 1000);
 
@@ -69,15 +32,10 @@ function checkRateLimit(ip) {
     const now = Date.now();
     const windowMs = 60000;
     const maxRequests = 10;
-
-    // Anonimização do IP
     const hashedIp = crypto.createHash('sha256').update(ip + (process.env.IP_SALT || 'default_salt')).digest('hex');
-
     const userRequests = rateLimit.get(hashedIp) || [];
     const recentRequests = userRequests.filter(time => now - time < windowMs);
-
     if (recentRequests.length >= maxRequests) return false;
-
     recentRequests.push(now);
     rateLimit.set(hashedIp, recentRequests);
     return true;
@@ -85,14 +43,8 @@ function checkRateLimit(ip) {
 
 function extractUrls(text) {
     if (!text) return [];
-
     const urls = new Set();
-    const regexes = [
-        /(https?:\/\/[^\s"'\>\]\)]+)/g,
-        /href=["'](https?:\/\/[^"']+)["']/gi,
-        /src=["'](https?:\/\/[^"']+)["']/gi
-    ];
-
+    const regexes = [ /(https?:\/\/[^\s"'\>\]\)]+)/g, /href=["'](https?:\/\/[^"']+)["']/gi, /src=["'](https?:\/\/[^"']+)["']/gi ];
     regexes.forEach(regex => {
         const matches = text.match(regex) || [];
         matches.forEach(m => {
@@ -103,61 +55,29 @@ function extractUrls(text) {
             } catch { }
         });
     });
-
     return Array.from(urls).slice(0, 20);
 }
 
-// ==================== FUNÇÕES MELHORADAS ====================
-
 function extractAuthDetails(headers) {
-    const authDetails = {
-        spf: null,
-        dkim: null,
-        dmarc: null,
-        raw: null,
-        autenticado: false,
-        dominioAutenticado: null,
-        dominioConfiavel: false,
-        motivo: null
-    };
-
+    const authDetails = { spf: null, dkim: null, dmarc: null, raw: null, autenticado: false, dominioAutenticado: null, dominioConfiavel: false, motivo: null };
     if (!headers) return authDetails;
-
     const authMatch = headers.match(/Authentication-Results:(.*?)(?:\n[A-Z]|\n\n|$)/is);
     if (authMatch) {
         authDetails.raw = authMatch[1].trim();
-
         const spfMatch = authDetails.raw.match(/spf=([^\s;]+)/i);
         if (spfMatch) authDetails.spf = spfMatch[1];
-
         const dkimMatch = authDetails.raw.match(/dkim=([^\s;]+)/i);
         if (dkimMatch) authDetails.dkim = dkimMatch[1];
-
         const dmarcMatch = authDetails.raw.match(/dmarc=([^\s;]+)/i);
         if (dmarcMatch) authDetails.dmarc = dmarcMatch[1];
-
         const spfDomainMatch = authDetails.raw.match(/spf=pass\s+smtp\.mailfrom=([^\s;]+)/i);
         const dkimDomainMatch = authDetails.raw.match(/dkim=pass\s+header\.d=([^\s;]+)/i);
         const fromDomainMatch = headers.match(/From:.*?<.*?@([^\s>]+)>/i);
-
-        authDetails.dominioAutenticado =
-            spfDomainMatch?.[1] ||
-            dkimDomainMatch?.[1] ||
-            fromDomainMatch?.[1] ||
-            null;
-
+        authDetails.dominioAutenticado = spfDomainMatch?.[1] || dkimDomainMatch?.[1] || fromDomainMatch?.[1] || null;
         if (authDetails.dominioAutenticado) {
-            authDetails.dominioConfiavel = DOMINIOS_OFICIAIS.some(dom =>
-                authDetails.dominioAutenticado.includes(dom)
-            );
+            authDetails.dominioConfiavel = DOMINIOS_OFICIAIS.some(dom => authDetails.dominioAutenticado.includes(dom));
         }
-
-        authDetails.autenticado = (
-            authDetails.spf?.toLowerCase() === 'pass' &&
-            authDetails.dkim?.toLowerCase() === 'pass' &&
-            authDetails.dominioConfiavel
-        );
-
+        authDetails.autenticado = (authDetails.spf?.toLowerCase() === 'pass' && authDetails.dkim?.toLowerCase() === 'pass' && authDetails.dominioConfiavel);
         if (authDetails.spf === 'pass' && authDetails.dkim === 'pass' && !authDetails.dominioConfiavel) {
             authDetails.motivo = 'Autenticação passou, mas domínio não é oficial';
         }
@@ -165,38 +85,21 @@ function extractAuthDetails(headers) {
     return authDetails;
 }
 
-// MUDANÇA FORENSE: Separar Nome de Exibição do E-mail Real
 function extractSender(headers) {
-    const senderInfo = {
-        nome_exibicao: 'Não identificado',
-        email_real: 'Não identificado'
-    };
-
+    const senderInfo = { nome_exibicao: 'Não identificado', email_real: 'Não identificado' };
     if (!headers) return senderInfo;
-
-    // 1. O Verdadeiro Remetente (Return-Path do SMTP)
     const returnPathMatch = headers.match(/Return-Path:\s*<?([^>\s]+)>?/i);
-    if (returnPathMatch) {
-        senderInfo.email_real = returnPathMatch[1].trim();
-    }
-
-    // 2. O campo From (Para ver o que o golpista tentou mostrar)
+    if (returnPathMatch) senderInfo.email_real = returnPathMatch[1].trim();
     const fromMatch = headers.match(/From:?\s*(.*?)(?:\n[A-Z]|\n\n|$)/i);
     if (fromMatch) {
         const fromRaw = fromMatch[1].trim();
         senderInfo.nome_exibicao = fromRaw;
-
-        // Se não houver Return-Path, extrai o e-mail real de dentro dos < > do From
         if (senderInfo.email_real === 'Não identificado') {
             const emailMatch = fromRaw.match(/<([^>]+)>/);
-            if (emailMatch) {
-                senderInfo.email_real = emailMatch[1].trim();
-            } else {
-                senderInfo.email_real = fromRaw; // Fallback
-            }
+            if (emailMatch) senderInfo.email_real = emailMatch[1].trim();
+            else senderInfo.email_real = fromRaw;
         }
     }
-
     return senderInfo;
 }
 
@@ -211,26 +114,16 @@ function extractSenderIP(headers) {
 
 function detectarAnexoHTML(emailContent) {
     if (!emailContent) return false;
-
-    const temAnexoHTML = (
-        emailContent.includes('Content-Type: text/html') ||
-        emailContent.includes('filename=".htm') ||
-        emailContent.includes('filename=".html') ||
-        (emailContent.includes('<html') && emailContent.includes('</html>') && emailContent.length < 500000)
-    );
-
-    return temAnexoHTML;
+    return (emailContent.includes('Content-Type: text/html') || emailContent.includes('filename=".htm') || emailContent.includes('filename=".html') || (emailContent.includes('<html') && emailContent.includes('</html>') && emailContent.length < 500000));
 }
 
 function analisarUrlsSuspeitas(urls) {
     const evidencias = [];
     const urlsDetalhadas = [];
-
     for (const url of urls) {
         try {
             const parsed = new URL(url);
             const hostname = parsed.hostname.toLowerCase();
-
             const detalhe = {
                 url: url.substring(0, 100),
                 dominio: hostname,
@@ -239,134 +132,79 @@ function analisarUrlsSuspeitas(urls) {
                 temDisfarceGov: url.includes('gov.br') && !hostname.includes('gov.br'),
                 path: parsed.pathname
             };
-
             urlsDetalhadas.push(detalhe);
-
-            if (detalhe.isCloud && detalhe.temDisfarceGov) {
-                evidencias.push(`URL em nuvem pública (${hostname}) com tentativa de disfarce gov.br - ALTA SUSPEITA`);
-            } else if (detalhe.isCloud) {
-                evidencias.push(`URL hospedada em nuvem pública (${hostname}) - requer verificação cuidadosa`);
-            } else if (detalhe.temDisfarceGov) {
-                evidencias.push(`URL tenta disfarçar destino incluindo gov.br no caminho: ${url.substring(0, 80)}`);
-            }
-
-        } catch (e) { }
+            if (detalhe.isCloud && detalhe.temDisfarceGov) evidencias.push(`URL em nuvem pública (${hostname}) com tentativa de disfarce gov.br - ALTA SUSPEITA`);
+            else if (detalhe.isCloud) evidencias.push(`URL hospedada em nuvem pública (${hostname}) - requer verificação cuidadosa`);
+            else if (detalhe.temDisfarceGov) evidencias.push(`URL tenta disfarçar destino incluindo gov.br no caminho: ${url.substring(0, 80)}`);
+        } catch (e) {}
     }
-
     return { evidencias, urlsDetalhadas };
 }
 
 async function checkDomainAge(domain) {
-    if (CLOUD_PLATFORMS.some(p => domain.includes(p))) {
-        return "Plataforma de nuvem pública (idade irrelevante)";
-    }
-
+    if (CLOUD_PLATFORMS.some(p => domain.includes(p))) return "Plataforma de nuvem pública (idade irrelevante)";
     try {
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 3000);
-
-        const res = await fetch(`https://rdap.org/domain/${domain}`, {
-            signal: controller.signal
-        });
-
+        const res = await fetch(`https://rdap.org/domain/${domain}`, { signal: controller.signal });
         clearTimeout(timeout);
         if (!res.ok) return "Idade oculta (Proteção de Privacidade Normal)";
-
         const data = await res.json();
         const regEvent = data.events?.find(e => e.eventAction === 'registration');
-
         if (regEvent) {
             const ageDays = Math.floor((new Date() - new Date(regEvent.eventDate)) / (1000 * 60 * 60 * 24));
             return `${ageDays} dias`;
         }
         return "Privado (Normal)";
-    } catch {
-        return "Consulta indisponível (Ignorar, não é um risco)";
-    }
+    } catch { return "Consulta indisponível (Ignorar, não é um risco)"; }
 }
 
-// NOVA FUNÇÃO: Integração com o VirusTotal
 async function checkVirusTotal(domain) {
     const vtKey = process.env.VT_API_KEY;
-    if (!vtKey) return null; // Ignora pacificamente se você ainda não tiver configurado a chave
-
+    if (!vtKey) return null;
     try {
         const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 4000); // 4 segundos de limite
-
+        const timeout = setTimeout(() => controller.abort(), 4000);
         const response = await fetch(`https://www.virustotal.com/api/v3/domains/${domain}`, {
             method: 'GET',
             headers: { 'x-apikey': vtKey },
             signal: controller.signal
         });
-
         clearTimeout(timeout);
         if (!response.ok) return null;
-
         const data = await response.json();
         const stats = data.data.attributes.last_analysis_stats;
-
-        // Quantos antivírus mundiais dizem que isto é crime?
         const totalMalicious = (stats.malicious || 0) + (stats.phishing || 0) + (stats.malware || 0);
-
-        if (totalMalicious > 0) {
-            return `ALERTA VERMELHO: ${totalMalicious} motores de antivírus classificaram este domínio como PERIGOSO/PHISHING!`;
-        }
-
+        if (totalMalicious > 0) return `ALERTA VERMELHO: ${totalMalicious} motores de antivírus classificaram este domínio como PERIGOSO/PHISHING!`;
         return "Limpo nos motores de antivírus";
-    } catch (e) {
-        return null;
-    }
+    } catch (e) { return null; }
 }
 
-// ==================== SYSTEM PROMPT CORRIGIDO (BLINDADO) ====================
-
 const systemPrompt = `Você é um Analista de Segurança Sênior (Nível 3). Sua missão é detectar PHISHING com precisão cirúrgica, evitando FALSOS POSITIVOS em e-mails reais de grandes empresas.
-
 REGRAS DE CLASSIFICAÇÃO (SIGA ESTRITAMENTE NESTA ORDEM):
-
 1. A REGRA DE OURO DA AUTENTICAÇÃO: Verifique a seção 'AUTENTICAÇÃO E ORIGEM'. Se SPF e DKIM estiverem 'pass' (ou verificados), o e-mail é CRIPTOGRAFICAMENTE LEGÍTIMO. Nestes casos, o 'Nivel_Risco' DEVE OBRIGATORIAMENTE ser entre 0 e 10, e o Veredito DEVE ser 'SEGURO'. Jamais classifique como suspeito.
-
 2. DOMÍNIOS DE MARKETING E TERCEIROS: Grandes empresas (Enel, Bancos, etc.) usam variações do seu nome e plataformas de disparo (ex: exct.net, Salesforce, SendGrid). Se a Regra 1 passou, ignore o fato dos links serem de terceiros ou estranhos.
-
 3. SITES DESCONHECIDOS/OCULTOS: Se a investigação do domínio retornar 'Idade oculta' ou 'Privado', isso é NORMAL. Não aumente o risco.
-
 4. CÓDIGO ESTRANHO: Ignore códigos como "=3D" ou tags HTML soltas.
-
 5. GOLPES COMUNS (BRASIL): Apenas considere PERIGOSO e-mails ameaçadores (ex: bloqueio de conta, Receita Federal, faturas urgentes) SE falharem na Regra 1 (Autenticação inválida ou ausente).
-
 6. FALSIDADE IDEOLÓGICA (O GOLPE DO FROM): Compare o 'Nome de Exibição' com o 'Remetente Real'. Se o Nome de Exibição for uma entidade famosa (ex: Receita Federal, Apple, Bancos) mas o 'Remetente Real (Return-Path)' for um domínio genérico (ex: gmail.com, run.app, domínios estranhos), isso é Falsificação Escancarada (Spoofing). O risco é 100% PERIGOSO.
-
 Retorne APENAS JSON válido com as chaves exatas:
 - "Nivel_Risco" (Número inteiro de 0 a 100)
 - "Veredito" ("SEGURO", "SUSPEITO", "PERIGOSO")
 - "Motivos" (Array com no máximo 5 itens curtos e objetivos)
 - "Recomendacao" (Texto direto com orientação ao usuário, chave sem acento)`;
 
-// ==================== FUNÇÃO PRINCIPAL ====================
-
 module.exports = async function (context, req) {
     const startTime = Date.now();
     const clientIp = req.headers['x-forwarded-for']?.split(',')[0] || 'unknown';
 
     context.res = {
-        headers: {
-            'Content-Type': 'application/json',
-            'X-Content-Type-Options': 'nosniff',
-            'X-Frame-Options': 'DENY',
-            'Cache-Control': 'no-store'
-        }
+        headers: { 'Content-Type': 'application/json', 'X-Content-Type-Options': 'nosniff', 'X-Frame-Options': 'DENY', 'Cache-Control': 'no-store' }
     };
 
     if (!checkRateLimit(clientIp)) {
         context.res.status = 429;
-        context.res.body = {
-            error: 'Muitas requisições',
-            Nivel_Risco: 50,
-            Veredito: 'SUSPEITO',
-            Motivos: ['Rate limit excedido'],
-            Recomendacao: 'Aguarde 1 minuto'
-        };
+        context.res.body = { error: 'Muitas requisições', Nivel_Risco: 50, Veredito: 'SUSPEITO', Motivos: ['Rate limit excedido'], Recomendacao: 'Aguarde 1 minuto' };
         return;
     }
 
@@ -381,13 +219,7 @@ module.exports = async function (context, req) {
 
     if (!emailContent || emailContent.trim().length < 10) {
         context.res.status = 400;
-        context.res.body = {
-            error: 'Conteúdo insuficiente',
-            Nivel_Risco: 0,
-            Veredito: 'SEGURO',
-            Motivos: ['Conteúdo muito curto para análise'],
-            Recomendacao: 'Cole mais conteúdo do e-mail'
-        };
+        context.res.body = { error: 'Conteúdo insuficiente', Nivel_Risco: 0, Veredito: 'SEGURO', Motivos: ['Conteúdo muito curto para análise'], Recomendacao: 'Cole mais conteúdo do e-mail' };
         return;
     }
 
@@ -401,31 +233,27 @@ module.exports = async function (context, req) {
         return;
     }
 
-    // Extrair informações básicas
     const foundUrls = extractUrls(emailContent || '');
     const authDetails = extractAuthDetails(headers);
     const senderData = extractSender(headers);
     const senderIP = extractSenderIP(headers);
-
-    // DETECÇÕES AVANÇADAS
     const temAnexoHTML = detectarAnexoHTML(emailContent);
     const analiseUrls = analisarUrlsSuspeitas(foundUrls);
     const temDisfarceGov = analiseUrls.evidencias.some(e => e.includes('disfarce'));
 
-    // Processar corpo do email (limpar HTML)
     let cleanBodyProcessed = emailContent || 'Não fornecido';
     cleanBodyProcessed = cleanBodyProcessed.replace(/<[^>]*>?/gm, '').replace(/\s+/g, ' ').trim();
-    if (cleanBodyProcessed.length > 4000) {
-        cleanBodyProcessed = cleanBodyProcessed.substring(0, 4000) + '... [CORTADO]';
-    }
+    if (cleanBodyProcessed.length > 4000) cleanBodyProcessed = cleanBodyProcessed.substring(0, 4000) + '... [CORTADO]';
 
-    // Processar headers
     let cleanHeadersProcessed = headers || 'Não fornecidos';
-    if (cleanHeadersProcessed !== 'Não fornecidos' && cleanHeadersProcessed.length > 2000) {
-        cleanHeadersProcessed = cleanHeadersProcessed.substring(0, 2000) + '... [CORTADO]';
-    }
+    if (cleanHeadersProcessed !== 'Não fornecidos' && cleanHeadersProcessed.length > 2000) cleanHeadersProcessed = cleanHeadersProcessed.substring(0, 2000) + '... [CORTADO]';
 
-    // Análise de domínios
+    // ==================== CÁLCULO DE RISCO LOCAL (MOVIDO PARA CIMA) ====================
+    let localScore = 0;
+    const evidenciasFortes = [];
+    const evidenciasLeves = [];
+
+    // Análise de domínios (Agora o VirusTotal pode somar pontos ao localScore sem crashar)
     let domainIntel = "Nenhum link detectado.";
     const domainDetails = [];
 
@@ -437,11 +265,10 @@ module.exports = async function (context, req) {
         domainIntel = "DOMÍNIOS:\n";
         const domainsToCheck = uniqueDomains.slice(0, 5);
 
-        // Inicia a investigação paralela dupla (WHOIS + VirusTotal)
         const ageResults = await Promise.all(
             domainsToCheck.map(async domain => {
                 const age = await checkDomainAge(domain);
-                const vtResult = await checkVirusTotal(domain); // Chama o VirusTotal
+                const vtResult = await checkVirusTotal(domain);
                 return { domain, age, vtResult };
             })
         );
@@ -450,8 +277,6 @@ module.exports = async function (context, req) {
             let infoLinha = `- ${info.domain} (Idade: ${info.age})`;
             if (info.vtResult) {
                 infoLinha += ` | VirusTotal: ${info.vtResult}`;
-                
-                // Se o VirusTotal detetar vírus, dispara o alarme local para 100%
                 if (info.vtResult.includes('ALERTA VERMELHO')) {
                     localScore += 100;
                     evidenciasFortes.push(`O domínio ${info.domain} está na BLACKLIST global de cibercrime (VirusTotal)!`);
@@ -462,243 +287,122 @@ module.exports = async function (context, req) {
         });
     }
 
-    // ==================== CÁLCULO DE RISCO LOCAL ====================
-
-    let localScore = 0;
-    const evidenciasFortes = [];
-    const evidenciasLeves = [];
-
-    // Evidência 1: Remetente alega ser órgão público mas domínio não é oficial
     const remetenteLower = senderData.nome_exibicao.toLowerCase();
     if (remetenteLower.includes('receita') || remetenteLower.includes('federal')) {
         if (!authDetails.dominioConfiavel && authDetails.dominioAutenticado) {
             localScore += 40;
-            evidenciasFortes.push(`Remetente alega ser Receita Federal mas domínio autenticado é ${authDetails.dominioAutenticado} (não oficial)`);
+            evidenciasFortes.push(`Remetente alega ser Receita Federal mas domínio autenticado é ${authDetails.dominioAutenticado}`);
         } else if (!authDetails.dominioAutenticado) {
             localScore += 30;
             evidenciasLeves.push('Remetente alega ser órgão público mas autenticação não confirma domínio');
         }
     }
 
-    // Evidência 2: Anexo HTML (CRÍTICO!)
-    if (temAnexoHTML) {
-        localScore += 50;
-        evidenciasFortes.push('E-mail contém anexo HTML - técnica comum de clone de site oficial');
-    }
-
-    // Evidência 3: URLs em nuvem pública com disfarce
-    if (temDisfarceGov) {
-        localScore += 50;
-        evidenciasFortes.push('URL tenta disfarçar destino incluindo gov.br no caminho - TÉCNICA DE PHISHING');
-    }
-
-    // Evidência 4: URLs em nuvem pública sem disfarce, mas com tema sensível
+    if (temAnexoHTML) { localScore += 50; evidenciasFortes.push('E-mail contém anexo HTML - técnica de clone de site oficial'); }
+    if (temDisfarceGov) { localScore += 50; evidenciasFortes.push('URL tenta disfarçar destino com gov.br - TÉCNICA DE PHISHING'); }
+    
     const urlsCloud = analiseUrls.urlsDetalhadas.filter(u => u.isCloud);
     if (urlsCloud.length > 0 && (remetenteLower.includes('receita') || remetenteLower.includes('federal'))) {
-        localScore += 40;
-        evidenciasFortes.push(`URL hospedada em nuvem pública (${urlsCloud[0].dominio}) para assunto de órgão público - ALTAMENTE SUSPEITO`);
+        localScore += 40; evidenciasFortes.push(`URL em nuvem pública (${urlsCloud[0].dominio}) para órgão público`);
     }
 
-    // Evidência 5: Golpes conhecidos (CPF, Receita, etc.)
-    const knownScams = /receita federal|irregularidade cpf|suspens[ãa]o do cpf|bloqueio do cpf|d[íi]vida ativa|regularize imediatamente/i.test(cleanBodyProcessed);
-    if (knownScams) {
-        localScore += 30;
-        evidenciasLeves.push('Conteúdo utiliza temas clássicos de golpe (CPF, dívida ativa, Receita Federal)');
+    if (/receita federal|irregularidade cpf|suspens[ãa]o do cpf|bloqueio|d[íi]vida ativa/i.test(cleanBodyProcessed)) {
+        localScore += 30; evidenciasLeves.push('Conteúdo utiliza temas clássicos de golpe');
     }
 
-    // Evidência 6: Prazo urgente
-    const hasUrgency = /prazo final|última chance|imediata|urgente|11\/02|amanh[ãa]/i.test(cleanBodyProcessed);
-    if (hasUrgency) {
-        localScore += 20;
-        evidenciasLeves.push('E-mail cria senso de urgência (tática de engenharia social)');
+    if (/prazo final|última chance|imediata|urgente/i.test(cleanBodyProcessed)) {
+        localScore += 20; evidenciasLeves.push('E-mail cria senso de urgência');
     }
 
-    // Evidência 7: Falsidade Ideológica (Return-Path vs From)
     if (senderData.email_real !== 'Não identificado' && senderData.nome_exibicao.includes('@')) {
         const fromDomainMatch = senderData.nome_exibicao.match(/<.*?@([^\s>]+)>/i);
         const fromDomain = fromDomainMatch ? fromDomainMatch[1] : senderData.nome_exibicao.split('@')[1];
         const returnPathDomain = senderData.email_real.split('@')[1];
-
         if (fromDomain && returnPathDomain && fromDomain.toLowerCase() !== returnPathDomain.toLowerCase()) {
-            localScore += 30;
-            evidenciasFortes.push(`Remetente Real (${returnPathDomain}) é diferente do domínio de exibição (${fromDomain})`);
+            localScore += 30; evidenciasFortes.push(`Remetente Real (${returnPathDomain}) é diferente do exibição (${fromDomain})`);
         }
     }
 
     localScore = Math.min(100, localScore);
 
-    // Preparar intel mastigada para a IA (A nova arma anti-spoofing)
     const intelMastigada = `
 AUTENTICAÇÃO E ORIGEM:
-- Nome de Exibição (From): ${senderData.nome_exibicao}
-- Remetente Real (Return-Path): ${senderData.email_real}
-- IP de Origem: ${senderIP || 'Desconhecido'}
-- Validação SPF: ${authDetails.spf || 'Não encontrado'}
-- Validação DKIM: ${authDetails.dkim || 'Não encontrado'}
+- Nome de Exibição: ${senderData.nome_exibicao}
+- Remetente Real: ${senderData.email_real}
+- IP Origem: ${senderIP || 'Desconhecido'}
+- SPF: ${authDetails.spf || 'Não encontrado'}
+- DKIM: ${authDetails.dkim || 'Não encontrado'}
 - Domínio Autenticado: ${authDetails.dominioAutenticado || 'Não identificado'}
-- Domínio é oficial (gov.br): ${authDetails.dominioConfiavel ? 'SIM' : 'NÃO'}
-- Autenticação completa válida: ${authDetails.autenticado ? 'SIM' : 'NÃO'}
-- Observação: ${authDetails.motivo || 'Nenhuma'}
+- Oficial (gov.br): ${authDetails.dominioConfiavel ? 'SIM' : 'NÃO'}
 
-ANEXOS DETECTADOS:
-- Anexo HTML: ${temAnexoHTML ? 'SIM (ALTA SUSPEITA)' : 'Não'}
+ANEXOS: ${temAnexoHTML ? 'SIM (ALTA SUSPEITA)' : 'Não'}
 
-EVIDÊNCIAS DE PHISHING DETECTADAS PELO SISTEMA LOCAL:
+EVIDÊNCIAS LOCAIS (INCLUI VIRUSTOTAL):
 ${evidenciasFortes.map(e => '🔴 ' + e).join('\n')}
 ${evidenciasLeves.map(e => '🟡 ' + e).join('\n')}
-${evidenciasFortes.length === 0 && evidenciasLeves.length === 0 ? 'Nenhuma evidência automática detectada' : ''}
 
 ANÁLISE DE URLs:
-${analiseUrls.urlsDetalhadas.map(u =>
-        `- ${u.url.substring(0, 80)}...\n  Domínio: ${u.dominio} | Nuvem: ${u.isCloud} | Disfarce gov: ${u.temDisfarceGov}`
-    ).join('\n')}
-
+${analiseUrls.urlsDetalhadas.map(u => `- ${u.url.substring(0, 80)}... | Nuvem: ${u.isCloud}`).join('\n')}
 ${domainIntel}
 `;
 
     try {
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 15000);
-
         const groqResponse = await fetch("https://api.groq.com/openai/v1/chat/completions", {
             method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${apiKey}`,
-                'Content-Type': 'application/json'
-            },
+            headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 model: "llama-3.3-70b-versatile",
-                messages: [
-                    { role: "system", content: systemPrompt },
-                    { role: "user", content: `EMAIL:\n${cleanBodyProcessed}\n\n${intelMastigada}\n\nHEADERS BRUTOS:\n${cleanHeadersProcessed}` }
-                ],
+                messages: [ { role: "system", content: systemPrompt }, { role: "user", content: `EMAIL:\n${cleanBodyProcessed}\n\n${intelMastigada}\n\nHEADERS:\n${cleanHeadersProcessed}` } ],
                 response_format: { type: "json_object" },
-                max_tokens: 500,
-                temperature: 0.1
+                max_tokens: 500, temperature: 0.1
             }),
             signal: controller.signal
         });
 
         clearTimeout(timeout);
-
-        if (!groqResponse.ok) {
-            throw new Error(`Erro IA: ${groqResponse.status}`);
-        }
+        if (!groqResponse.ok) throw new Error(`Erro IA: ${groqResponse.status}`);
 
         const data = await groqResponse.json();
-        let rawContent = data.choices[0].message.content.replace(/```json|```/g, '').trim();
-
-        let analise;
-        try {
-            analise = JSON.parse(rawContent);
-
-            let riscoIA = Math.min(100, Math.max(0, parseInt(analise.Nivel_Risco) || 50));
-
-            if (evidenciasFortes.length > 0) riscoIA = Math.max(riscoIA, 80);
-            if (temAnexoHTML && temDisfarceGov) {
-                riscoIA = 100;
-                analise.Veredito = 'PERIGOSO';
-            }
-            if (!authDetails.dominioConfiavel && authDetails.dominioAutenticado && riscoIA < 70) {
-                riscoIA = Math.max(riscoIA, 70);
-            }
-
-            const riscoFinal = Math.min(100, Math.max(0, riscoIA));
-
-            const motivosCombinados = [];
-            evidenciasFortes.slice(0, 3).forEach(e => motivosCombinados.push(e));
-
-            if (Array.isArray(analise.Motivos)) {
-                analise.Motivos.slice(0, 3).forEach(m => {
-                    if (!motivosCombinados.includes(m)) motivosCombinados.push(m);
-                });
-            }
-
-            if (motivosCombinados.length < 5) {
-                evidenciasLeves.slice(0, 5 - motivosCombinados.length).forEach(e => {
-                    if (!motivosCombinados.includes(e)) motivosCombinados.push(e);
-                });
-            }
-
-            analise = {
-                Nivel_Risco: riscoFinal,
-                Veredito: riscoFinal >= 80 ? 'PERIGOSO' : (riscoFinal >= 40 ? 'SUSPEITO' : 'SEGURO'),
-                Motivos: motivosCombinados.slice(0, 5),
-                Recomendacao: analise.Recomendacao || 'Consulte um especialista'
-            };
-
-        } catch (e) {
-            analise = {
-                Nivel_Risco: localScore,
-                Veredito: localScore >= 80 ? 'PERIGOSO' : (localScore >= 40 ? 'SUSPEITO' : 'SEGURO'),
-                Motivos: evidenciasFortes.length > 0 ? evidenciasFortes.slice(0, 5) : ['Análise automática baseada em heurísticas'],
-                Recomendacao: 'Erro no formato da resposta da IA. Análise baseada em regras locais.'
-            };
+        let analise = JSON.parse(data.choices[0].message.content.replace(/```json|```/g, '').trim());
+        
+        let riscoIA = Math.min(100, Math.max(0, parseInt(analise.Nivel_Risco) || 50));
+        if (evidenciasFortes.length > 0) riscoIA = Math.max(riscoIA, 80);
+        if (temAnexoHTML && temDisfarceGov) { riscoIA = 100; analise.Veredito = 'PERIGOSO'; }
+        
+        const riscoFinal = Math.min(100, Math.max(0, riscoIA));
+        const motivosCombinados = [...evidenciasFortes.slice(0, 3)];
+        
+        if (Array.isArray(analise.Motivos)) {
+            analise.Motivos.slice(0, 3).forEach(m => { if (!motivosCombinados.includes(m)) motivosCombinados.push(m); });
         }
-
+        
+        analise = { Nivel_Risco: riscoFinal, Veredito: riscoFinal >= 80 ? 'PERIGOSO' : (riscoFinal >= 40 ? 'SUSPEITO' : 'SEGURO'), Motivos: motivosCombinados.slice(0, 5), Recomendacao: analise.Recomendacao || 'Consulte um especialista' };
+        
         const respostaCompleta = {
             ...analise,
-            detalhes_autenticacao: {
-                spf: authDetails.spf || 'não verificado',
-                dkim: authDetails.dkim || 'não verificado',
-                dmarc: authDetails.dmarc || 'não verificado',
-                dominio_autenticado: authDetails.dominioAutenticado || 'não identificado',
-                dominio_confiavel: authDetails.dominioConfiavel,
-                autenticacao_valida: authDetails.autenticado
-            },
-            remetente: senderData.nome_exibicao,
-            return_path: senderData.email_real,
-            ip_remetente: senderIP || 'não identificado',
-            anexo_html: temAnexoHTML,
-            urls_encontradas: foundUrls.slice(0, 10),
-            dominios_analisados: domainDetails,
-            evidencias: {
-                fortes: evidenciasFortes,
-                leves: evidenciasLeves
-            }
+            detalhes_autenticacao: { spf: authDetails.spf || 'não verificado', dkim: authDetails.dkim || 'não verificado', dmarc: authDetails.dmarc || 'não verificado', dominio_autenticado: authDetails.dominioAutenticado || 'não identificado', dominio_confiavel: authDetails.dominioConfiavel, autenticacao_valida: authDetails.autenticado },
+            remetente: senderData.nome_exibicao, return_path: senderData.email_real, ip_remetente: senderIP || 'não identificado', anexo_html: temAnexoHTML, urls_encontradas: foundUrls.slice(0, 10), dominios_analisados: domainDetails, evidencias: { fortes: evidenciasFortes, leves: evidenciasLeves }
         };
 
         try {
             const db = await connectDb();
             await db.collection('phishing_threats').insertOne({
-                timestamp: new Date(),
-                analise: { Nivel_Risco: analise.Nivel_Risco, Veredito: analise.Veredito },
-                ip: clientIp,
-                remetente: senderData.email_real,
-                urls: foundUrls.length,
-                anexo_html: temAnexoHTML
+                timestamp: new Date(), analise: { Nivel_Risco: analise.Nivel_Risco, Veredito: analise.Veredito }, ip: clientIp, remetente: senderData.email_real, urls: foundUrls.length, anexo_html: temAnexoHTML
             });
-        } catch (dbError) { }
+        } catch (dbError) {}
 
         memoryCache.set(cacheKey, { data: respostaCompleta, timestamp: Date.now() });
-
         context.res.status = 200;
         context.res.body = respostaCompleta;
 
     } catch (error) {
         context.res.status = 200;
         context.res.body = {
-            Nivel_Risco: localScore,
-            Veredito: localScore >= 80 ? 'PERIGOSO' : (localScore >= 40 ? 'SUSPEITO' : 'SEGURO'),
-            Motivos: evidenciasFortes.length > 0 ? evidenciasFortes.slice(0, 5) : ['Erro na comunicação com a IA, análise baseada em regras locais'],
-            Recomendacao: 'Falha técnica. ' + error.message,
-            detalhes_autenticacao: {
-                spf: authDetails.spf || 'não verificado',
-                dkim: authDetails.dkim || 'não verificado',
-                dmarc: authDetails.dmarc || 'não verificado',
-                dominio_autenticado: authDetails.dominioAutenticado || 'não identificado',
-                dominio_confiavel: authDetails.dominioConfiavel
-            },
-            remetente: senderData.nome_exibicao || 'não identificado',
-            return_path: senderData.email_real || 'não identificado',
-            ip_remetente: senderIP || 'não identificado',
-            anexo_html: temAnexoHTML,
-            urls_encontradas: foundUrls.slice(0, 10),
-            dominios_analisados: domainDetails,
-            evidencias: {
-                fortes: evidenciasFortes,
-                leves: evidenciasLeves
-            }
+            Nivel_Risco: localScore, Veredito: localScore >= 80 ? 'PERIGOSO' : (localScore >= 40 ? 'SUSPEITO' : 'SEGURO'), Motivos: evidenciasFortes.length > 0 ? evidenciasFortes.slice(0, 5) : ['Erro na IA, análise baseada em regras locais'], Recomendacao: 'Falha técnica. ' + error.message,
+            detalhes_autenticacao: { spf: authDetails.spf || 'não verificado', dkim: authDetails.dkim || 'não verificado', dmarc: authDetails.dmarc || 'não verificado', dominio_autenticado: authDetails.dominioAutenticado || 'não identificado', dominio_confiavel: authDetails.dominioConfiavel },
+            remetente: senderData.nome_exibicao || 'não identificado', return_path: senderData.email_real || 'não identificado', ip_remetente: senderIP || 'não identificado', anexo_html: temAnexoHTML, urls_encontradas: foundUrls.slice(0, 10), dominios_analisados: domainDetails, evidencias: { fortes: evidenciasFortes, leves: evidenciasLeves }
         };
     }
 };
