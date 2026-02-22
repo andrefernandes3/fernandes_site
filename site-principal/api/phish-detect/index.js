@@ -229,9 +229,11 @@ module.exports = async function (context, req) {
     const sender = extractSender(headers);
     const senderIP = extractSenderIP(headers);
     
+    // MELHORIA 1: Limpeza de HTML e Limite reduzido
     let cleanBody = emailContent || 'Não fornecido';
-    if (cleanBody.length > 6000) {
-        cleanBody = cleanBody.substring(0, 6000) + '... [CORTADO]';
+    cleanBody = cleanBody.replace(/<[^>]*>?/gm, '').replace(/\s+/g, ' ').trim();
+    if (cleanBody.length > 4000) {
+        cleanBody = cleanBody.substring(0, 4000) + '... [CORTADO]';
     }
 
     let cleanHeaders = headers || 'Não fornecidos';
@@ -255,19 +257,30 @@ module.exports = async function (context, req) {
         domainIntel = "DOMÍNIOS:\n";
         const domainsToCheck = uniqueDomains.slice(0, 5);
         
-        for (const domain of domainsToCheck) {
-            const ageInfo = await checkDomainAge(domain);
-            domainIntel += `- ${domain} (${ageInfo})\n`;
-            domainDetails.push({ domain, age: ageInfo });
-        }
+        // MELHORIA 3: Consultas WHOIS Paralelas (Velocidade Extrema)
+        const ageResults = await Promise.all(
+            domainsToCheck.map(domain => checkDomainAge(domain).then(age => ({ domain, age })))
+        );
+        
+        ageResults.forEach(info => {
+            domainIntel += `- ${info.domain} (${info.age})\n`;
+            domainDetails.push({ domain: info.domain, age: info.age });
+        });
     }
 
-    const systemPrompt = `Você é um Analista de Segurança. Analise e-mails para detectar PHISHING.
-Retorne JSON com:
-- "Nivel_Risco" (0-100)
+    // MELHORIA 4: Engenharia de Prompt (Chain of Thought)
+    const systemPrompt = `Você é um Analista de Segurança Sênior. Sua missão é detectar PHISHING.
+    
+REGRAS DE ANÁLISE RIGOROSAS:
+1. Compare os domínios informados na seção 'DOMÍNIOS' com o remetente alegado no texto.
+2. Domínios com menos de 30 dias de vida ou nomes confusos representam risco EXTREMO.
+3. Ignore formatação quebrada se os links forem legítimos.
+
+Retorne APENAS JSON válido com:
+- "Nivel_Risco" (0-100. Acima de 70 se houver links recém-criados ou falsos)
 - "Veredito" (SEGURO, SUSPEITO, PERIGOSO)
-- "Motivos" (array máx 5 itens)
-- "Recomendacao" (texto curto)`;
+- "Motivos" (array máx 5 itens explicando o racional técnico)
+- "Recomendacao" (texto curto de ação sem acento na chave)`;
 
     try {
         // Timeout para a API
@@ -287,7 +300,9 @@ Retorne JSON com:
                     { role: "user", content: `EMAIL:\n${cleanBody}\n\nHEADERS:\n${cleanHeaders}\n\n${domainIntel}` }
                 ],
                 response_format: { type: "json_object" },
-                max_tokens: 500
+                max_tokens: 500,
+                // MELHORIA 2: Frieza analítica máxima (Temperatura 0)
+                temperature: 0.0
             }),
             signal: controller.signal
         });
