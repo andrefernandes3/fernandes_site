@@ -7,6 +7,7 @@
     <title>Phish-Detect | Fernandes Technology Security</title>
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/phish.css">
+    <script src="https://cdn.jsdelivr.net/npm/mailparser@latest/lib/mailparser.min.js"></script>
 </head>
 
 <body>
@@ -20,7 +21,7 @@
             <section class="input-area">
                 <label for="emailBody">Cole o conteúdo do e-mail abaixo:</label>
                 <textarea id="emailBody" placeholder="Ex: Prezado cliente, sua conta foi bloqueada..."></textarea>
-
+                <p class="warning">Aviso: Não cole informações confidenciais como senhas ou dados pessoais.</p>
                 <div class="advanced-toggle">
                     <button onclick="toggleHeaders()" id="btnHeaders">+ Adicionar cabeçalhos (opcional)</button>
                     <textarea id="emailHeaders" class="hidden"

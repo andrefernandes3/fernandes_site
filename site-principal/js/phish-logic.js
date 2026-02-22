@@ -175,7 +175,7 @@ class EMLProcessor {
 
     // Nova função: Checar datas suspeitas
     checkSuspiciousDates(emailDate, body) {
-        const now = new Date(); // Data atual
+        const now = new Date();
         if (emailDate) {
             const parsedDate = new Date(emailDate);
             if (parsedDate > now) return 'Data do e-mail no futuro (suspeito)';
@@ -185,7 +185,7 @@ class EMLProcessor {
         const datesInBody = body.match(dateRegex) || [];
         for (let d of datesInBody) {
             const parsedD = new Date(d.split('/').reverse().join('-'));
-            if (parsedD > now || (now - parsedD) < 0) return 'Datas inconsistentes ou expiradas no corpo';
+            if (parsedD > now || (now - parsedD) / (1000 * 60 * 60 * 24) < 0) return 'Datas inconsistentes ou expiradas no corpo';
         }
         return null;
     }
@@ -194,241 +194,180 @@ class EMLProcessor {
 // Instância global do processador
 const emlProcessor = new EMLProcessor();
 
+// Função para processar análise (corrigida e adicionada)
 async function processarAnalise() {
-    const email = document.getElementById('emailBody').value.trim();
-    const headers = document.getElementById('emailHeaders').value;
     const btn = document.getElementById('btnAnalisar');
-    
-    if (!email) {
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Analisando...';
+    btn.disabled = true;
+
+    const emailContent = document.getElementById('emailBody').value.trim();
+    const headers = document.getElementById('emailHeaders').value.trim();
+
+    if (!emailContent) {
         Swal.fire({
             icon: 'warning',
             title: 'Atenção',
-            text: 'Por favor, cole o conteúdo do e-mail.',
+            text: 'Por favor, cole o conteúdo do e-mail ou carregue um arquivo .eml.',
             timer: 3000,
             showConfirmButton: false
         });
+        btn.innerHTML = originalText;
+        btn.disabled = false;
         return;
     }
 
-    // Visual de carregamento
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Analisando...';
-    btn.disabled = true;
-
     try {
-        const response = await fetch('/api/phish-detect', {
+        // Enviar para o backend (ajuste o URL para sua Azure Function)
+        const response = await fetch('https://your-azure-function-url.azurewebsites.net/api/analyze', { // Substitua pelo URL real da function
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                emailContent: email.substring(0, 6000), // Limitar no frontend também
-                headers: headers 
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                emailContent,
+                headers
             })
         });
 
         if (!response.ok) {
-            throw new Error(`HTTP ${response.status}`);
+            throw new Error('Erro na análise do backend');
         }
 
         const data = await response.json();
-        exibirResultados(data);
         
+        // Exibir resultados
+        exibirResultados(data);
+
+        document.getElementById('resultPanel').classList.remove('hidden');
+
     } catch (error) {
         console.error('Erro:', error);
         Swal.fire({
             icon: 'error',
-            title: 'Erro na Análise',
-            text: 'Não foi possível analisar o e-mail. Tente novamente.',
+            title: 'Erro',
+            text: 'Não foi possível realizar a análise.',
             timer: 3000,
             showConfirmButton: false
         });
     } finally {
-        btn.innerHTML = '🔍 Analisar Ameaça Agora';
+        btn.innerHTML = originalText;
         btn.disabled = false;
     }
 }
 
+// Função para exibir resultados (ajustada)
 function exibirResultados(res) {
     const panel = document.getElementById('resultPanel');
-    const riskCircle = document.getElementById('riskCircle');
-    const riskValue = document.getElementById('riskValue');
-    const statusLabel = document.getElementById('statusLabel');
-    const recomendacao = document.getElementById('recomendacao');
-    const lista = document.getElementById('listaMotivos');
-
-    const detalhesContainer = document.getElementById('detalhesContainer') || criarContainerDetalhes();
-
     panel.classList.remove('hidden');
-    
-    // Atualiza o Círculo de Risco
-    const nivel = Math.min(100, Math.max(0, parseInt(res.Nivel_Risco) || 50));
-    const corClass = nivel > 70 ? 'perigoso' : (nivel > 30 ? 'suspeito' : 'seguro');
-    
-    riskCircle.setAttribute('stroke-dasharray', `${nivel}, 100`);
-    riskCircle.className.baseVal = `circle ${corClass}`;
-    
-    riskValue.innerText = `${nivel}%`;
-    statusLabel.innerText = res.Veredito || 'SUSPEITO';
-    statusLabel.className = `status-${corClass}`;
-    recomendacao.innerText = res.Recomendacao || 'Consulte um especialista em segurança';
 
-    // Limpa e preenche motivos
-    lista.innerHTML = "";
-    const motivos = Array.isArray(res.Motivos) ? res.Motivos : ['Análise automática realizada'];
-    motivos.slice(0, 5).forEach(m => {
+    // Atualizar medidor de risco
+    const riskValue = document.getElementById('riskValue');
+    riskValue.textContent = `${res.Nivel_Risco}%`;
+
+    const riskCircle = document.getElementById('riskCircle');
+    riskCircle.setAttribute('stroke-dasharray', `${res.Nivel_Risco}, 100`);
+
+    let circleClass = 'suspeito';
+    if (res.Nivel_Risco < 30) circleClass = 'seguro';
+    else if (res.Nivel_Risco > 70) circleClass = 'perigoso';
+    riskCircle.className = `circle ${circleClass}`;
+
+    // Veredito
+    const statusLabel = document.getElementById('statusLabel');
+    statusLabel.textContent = res.Veredito;
+    statusLabel.className = `status-${res.Veredito.toLowerCase()}`;
+
+    // Recomendação
+    document.getElementById('recomendacao').innerHTML = escapeHtml(res.Recomendacao);
+
+    // Motivos
+    const listaMotivos = document.getElementById('listaMotivos');
+    listaMotivos.innerHTML = '';
+    res.Motivos.forEach(m => {
         const li = document.createElement('li');
-        li.innerText = m;
-        lista.appendChild(li);
+        li.innerHTML = escapeHtml(m);
+        listaMotivos.appendChild(li);
     });
 
-    // Adicionar alertas de data se houver
-    if (res.dateSuspicious) {
-        const li = document.createElement('li');
-        li.innerHTML = escapeHtml(res.dateSuspicious);
-        lista.appendChild(li);
-    }
-
-    // NOVO: Adicionar seção de alertas
-    const alertSection = document.createElement('div');
-    alertSection.className = 'alert-section';
-    alertSection.innerHTML = `<h4>Alertas Relacionados</h4><p>Ex.: Receita Federal não envia e-mails com links para regularizar CPF. Verifique em <a href="https://www.gov.br/receitafederal/pt-br" target="_blank" rel="noopener noreferrer">gov.br</a>.</p>`;
-    
-    // Verificar se já existe para não duplicar
-    if (!document.querySelector('.alert-section')) {
+    // Nova: Adicionar alertas relacionados se suspeito
+    if (res.Veredito !== 'SEGURO') {
+        const alertSection = document.createElement('div');
+        alertSection.innerHTML = `<h4>Alertas Relacionados</h4><p>Ex.: Receita Federal não envia e-mails com links para regularizar CPF. Verifique em <a href="https://www.gov.br/receitafederal/pt-br">gov.br</a>.</p>`;
         panel.appendChild(alertSection);
     }
 
-    // NOVO: Preencher detalhes de autenticação
-    if (res.detalhes_autenticacao) {
-        document.getElementById('spfDetail').innerHTML = `
-            <span class="badge ${getStatusClass(res.detalhes_autenticacao.spf)}">
-                ${escapeHtml(res.detalhes_autenticacao.spf)}
-            </span>
-        `;
-        document.getElementById('dkimDetail').innerHTML = `
-            <span class="badge ${getStatusClass(res.detalhes_autenticacao.dkim)}">
-                ${escapeHtml(res.detalhes_autenticacao.dkim)}
-            </span>
-        `;
-        document.getElementById('dmarcDetail').innerHTML = `
-            <span class="badge ${getStatusClass(res.detalhes_autenticacao.dmarc)}">
-                ${escapeHtml(res.detalhes_autenticacao.dmarc)}
-            </span>
-        `;
-        
-        if (res.detalhes_autenticacao.raw) {
-            document.getElementById('authRaw').innerText = res.detalhes_autenticacao.raw;
-        }
-    }
-
-    // NOVO: Preencher informações do remetente
-    if (res.remetente) {
-        document.getElementById('remetenteInfo').innerHTML = `
-            <div class="info-item">
-                <strong>De:</strong> ${escapeHtml(res.remetente)}
-            </div>
-            ${res.ip_remetente ? `
-            <div class="info-item">
-                <strong>IP:</strong> ${escapeHtml(res.ip_remetente)}
-            </div>
-            ` : ''}
-        `;
-    }
-
-    // NOVO: Preencher URLs encontradas
-    if (res.urls_encontradas && res.urls_encontradas.length > 0) {
-        const urlsList = document.getElementById('urlsList');
-        urlsList.innerHTML = '';
-        res.urls_encontradas.forEach(url => {
-            const li = document.createElement('li');
-            try {
-                const urlObj = new URL(url);
-                const isSuspicious = verificarUrlSuspeita(urlObj);
-                li.className = isSuspicious ? 'url-suspeita' : '';
-                li.innerHTML = `
-                    <span class="url-domain">${escapeHtml(urlObj.hostname)}</span>
-                    <span class="url-full">${escapeHtml(url)}</span>
-                    ${isSuspicious ? '<span class="badge warning">⚠️ Suspeita</span>' : ''}
-                `;
-            } catch {
-                li.innerHTML = escapeHtml(url);
-            }
-            urlsList.appendChild(li);
-        });
-        document.getElementById('urlsContainer').classList.remove('hidden');
-    }
-
-    // NOVO: Preencher domínios analisados
-    if (res.dominios_analisados && res.dominios_analisados.length > 0) {
-        const dominiosList = document.getElementById('dominiosList');
-        dominiosList.innerHTML = '';
-        res.dominios_analisados.forEach(dom => {
-            const li = document.createElement('li');
-            const idade = parseInt(dom.age);
-            const isRecente = idade < 30; // Menos de 30 dias
-            li.className = isRecente ? 'dominio-recente' : '';
-            li.innerHTML = `
-                <span class="domain-name">${escapeHtml(dom.domain)}</span>
-                <span class="domain-age ${isRecente ? 'recente' : ''}">${escapeHtml(dom.age)}</span>
-                ${isRecente ? '<span class="badge danger">🆕 Domínio recente</span>' : ''}
-            `;
-            dominiosList.appendChild(li);
-        });
-        document.getElementById('dominiosContainer').classList.remove('hidden');
-    }
-
-    panel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    // Detalhes adicionais (autenticação, etc.)
+    const detalhesContainer = criarDetalhesAdicionais(res);
+    panel.appendChild(detalhesContainer);
 }
 
-// Função auxiliar para criar container de detalhes
-function criarContainerDetalhes() {
-    const panel = document.getElementById('resultPanel');
-    const details = document.querySelector('.details');
-    
+// Função auxiliar para detalhes adicionais (do código original)
+function criarDetalhesAdicionais(res) {
     const container = document.createElement('div');
-    container.id = 'detalhesContainer';
     container.className = 'detalhes-adicionais';
     container.innerHTML = `
         <div class="auth-details">
-            <h4>🔐 Autenticação do E-mail</h4>
+            <h4>Detalhes de Autenticação</h4>
             <div class="auth-grid">
                 <div class="auth-item">
-                    <span class="auth-label">SPF:</span>
-                    <span id="spfDetail" class="auth-value">-</span>
+                    <span class="auth-label">SPF</span>
+                    <span class="auth-value badge ${getStatusClass(res.detalhes_autenticacao.spf)}">${escapeHtml(res.detalhes_autenticacao.spf)}</span>
                 </div>
                 <div class="auth-item">
-                    <span class="auth-label">DKIM:</span>
-                    <span id="dkimDetail" class="auth-value">-</span>
+                    <span class="auth-label">DKIM</span>
+                    <span class="auth-value badge ${getStatusClass(res.detalhes_autenticacao.dkim)}">${escapeHtml(res.detalhes_autenticacao.dkim)}</span>
                 </div>
                 <div class="auth-item">
-                    <span class="auth-label">DMARC:</span>
-                    <span id="dmarcDetail" class="auth-value">-</span>
+                    <span class="auth-label">DMARC</span>
+                    <span class="auth-value badge ${getStatusClass(res.detalhes_autenticacao.dmarc)}">${escapeHtml(res.detalhes_autenticacao.dmarc)}</span>
                 </div>
             </div>
             <details class="auth-raw">
-                <summary>Ver detalhes completos</summary>
-                <pre id="authRaw"></pre>
+                <summary>Ver detalhes técnicos</summary>
+                <pre>${escapeHtml(res.detalhes_autenticacao.raw)}</pre>
             </details>
         </div>
 
         <div class="sender-details">
-            <h4>📧 Informações do Remetente</h4>
-            <div id="remetenteInfo" class="sender-info"></div>
+            <h4>Informações do Remetente</h4>
+            <div class="sender-info">
+                <div class="info-item"><strong>De:</strong> ${escapeHtml(res.remetente)}</div>
+                <div class="info-item"><strong>IP Origem:</strong> ${escapeHtml(res.ip_remetente)}</div>
+            </div>
         </div>
 
-        <div id="urlsContainer" class="urls-details hidden">
-            <h4>🔗 URLs Encontradas</h4>
+        <div class="urls-details">
+            <h4>URLs Encontradas</h4>
             <ul id="urlsList" class="urls-list"></ul>
         </div>
 
-        <div id="dominiosContainer" class="dominios-details hidden">
-            <h4>🌐 Domínios Analisados</h4>
+        <div class="dominios-details">
+            <h4>Domínios Analisados</h4>
             <ul id="dominiosList" class="dominios-list"></ul>
         </div>
     `;
     
-    panel.insertBefore(container, details.nextSibling);
+    // Preencher URLs
+    const urlsList = container.querySelector('#urlsList');
+    res.urls_encontradas.forEach(url => {
+        const li = document.createElement('li');
+        li.innerHTML = `<span class="url-full">${escapeHtml(url)}</span>`;
+        urlsList.appendChild(li);
+    });
+
+    // Preencher Domínios
+    const dominiosList = container.querySelector('#dominiosList');
+    res.dominios_analisados.forEach(dom => {
+        const li = document.createElement('li');
+        li.innerHTML = `<span class="domain-name">${escapeHtml(dom.dominio)}</span> <span class="domain-age">${escapeHtml(dom.idade)}</span>`;
+        dominiosList.appendChild(li);
+    });
+
     return container;
 }
 
+// Funções auxiliares (do original)
 function getStatusClass(value) {
     if (!value) return 'badge-secondary';
     value = value.toLowerCase();
