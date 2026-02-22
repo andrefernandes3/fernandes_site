@@ -16,7 +16,7 @@ async function checkDomainAge(domain) {
     try {
         const res = await fetch(`https://rdap.org/domain/${domain}`);
         if (!res.ok) return "Desconhecida (Possível domínio falso ou ccTLD oculto)";
-        
+
         const data = await res.json();
         // Procura a data de registo ("registration")
         const regEvent = data.events?.find(e => e.eventAction === 'registration');
@@ -35,34 +35,42 @@ module.exports = async function (context, req) {
         const { emailContent, headers } = req.body;
         const apiKey = process.env.GROQ_API_KEY;
 
+        // 1. EXTRAÇÃO DE LINKS (Fazemos isto ANTES de cortar o texto)
+        const urlRegex = /(https?:\/\/[^\s"'>]+)/g;
+        const foundUrls = (emailContent || '').match(urlRegex) || [];
+
+        // 2. CORTE DE SEGURANÇA PARA O CORPO DO E-MAIL (Máx 8000 caracteres)
+        let cleanBody = emailContent || 'Não fornecido';
+        if (cleanBody.length > 8000) {
+            cleanBody = cleanBody.substring(0, 8000) + '\n\n[AVISO DA API: O e-mail era demasiado longo e o código HTML irrelevante foi cortado para análise.]';
+        }
+
+        // 3. LIMPEZA E CORTE PARA OS CABEÇALHOS (Máx 4000 caracteres)
         let cleanHeaders = headers || 'Não fornecidos';
         if (cleanHeaders !== 'Não fornecidos') {
             const base64Index = cleanHeaders.indexOf('Content-Transfer-Encoding: base64');
             if (base64Index !== -1) {
                 cleanHeaders = cleanHeaders.substring(0, base64Index) + '\n[CORTADO: Restante código base64 removido]';
             }
+            if (cleanHeaders.length > 4000) {
+                cleanHeaders = cleanHeaders.substring(0, 4000) + '\n[CORTADO: Cabeçalho reduzido por segurança]';
+            }
         }
 
-        // NOVO: Extrair URLs do corpo do e-mail usando Expressão Regular
-        const urlRegex = /(https?:\/\/[^\s]+)/g;
-        const foundUrls = emailContent.match(urlRegex) || [];
-        
-        // Limpar os links e descobrir os domínios únicos
+        // 4. INVESTIGAÇÃO DE DOMÍNIOS (Com os links guardados no passo 1)
         let domainIntel = "Nenhum link detetado na mensagem.";
         if (foundUrls.length > 0) {
             const uniqueDomains = [...new Set(foundUrls.map(u => {
-                try { return new URL(u).hostname; } catch(e) { return null; }
+                try { return new URL(u).hostname; } catch (e) { return null; }
             }).filter(Boolean))];
 
             domainIntel = "INVESTIGAÇÃO DE DOMÍNIOS:\n";
-            // Verifica a idade de cada domínio encontrado (limite de 3 para não atrasar a API)
-            for (const domain of uniqueDomains.slice(0, 3)) {
+            for (const domain of uniqueDomains.slice(0, 3)) { // Verifica no máximo 3 domínios para ser rápido
                 const ageInfo = await checkDomainAge(domain);
                 domainIntel += `- Domínio: ${domain} | Info: ${ageInfo}\n`;
             }
         }
 
-        // Atualizamos o prompt para a IA usar a nova investigação de domínios
         const systemPrompt = `Você é um Analista de Segurança Sénior da Fernandes Technology.
         Sua tarefa é analisar e-mails para detectar PHISHING.
         
@@ -85,9 +93,10 @@ module.exports = async function (context, req) {
                     model: "llama-3.3-70b-versatile",
                     messages: [
                         { role: "system", content: systemPrompt },
-                        { role: "user", content: `Analise este e-mail:\n\nCONTEÚDO: ${emailContent}\n\nHEADERS: ${cleanHeaders}\n\n${domainIntel}` }
+                        // Usamos o cleanBody e cleanHeaders aqui!
+                        { role: "user", content: `Analise este e-mail:\n\nCONTEÚDO: ${cleanBody}\n\nHEADERS: ${cleanHeaders}\n\n${domainIntel}` }
                     ],
-                    response_format: { type: "json_object" } 
+                    response_format: { type: "json_object" }
                 })
             });
 
