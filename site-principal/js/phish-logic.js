@@ -43,8 +43,9 @@ function exibirResultados(res) {
     
     riskValue.innerText = `${res.Nivel_Risco}%`;
     statusLabel.innerText = res.Veredito;
+    // (Aviso: Isto fica dentro da sua função exibirResultados)
     statusLabel.className = corClass;
-    recomendacao.innerText = res.Recomendacao;
+    recomendacao.innerText = res.Recomendacao; // <-- ACENTO REMOVIDO AQUI
 
     // Limpa e preenche motivos
     lista.innerHTML = "";
@@ -62,70 +63,70 @@ function toggleHeaders() {
     h.classList.toggle('hidden');
 }
 
-// Intercepta a ação de "Colar" para extrair links ocultos
+// Envolvemos AMBOS os eventos (Colar e Ficheiro .eml) para garantirmos que a página carregou
 document.addEventListener('DOMContentLoaded', () => {
-    const emailBodyInput = document.getElementById('emailBody');
     
+    // --- 1. INTERCETOR DE COLAR LINKS OCULTOS ---
+    const emailBodyInput = document.getElementById('emailBody');
     if (emailBodyInput) {
         emailBodyInput.addEventListener('paste', function(e) {
-            // Tenta capturar a versão HTML (rica) do que foi copiado
             const htmlData = e.clipboardData.getData('text/html');
-            
             if (htmlData) {
-                // Cria um documento virtual para procurar os links
                 const parser = new DOMParser();
                 const doc = parser.parseFromString(htmlData, 'text/html');
-                const links = doc.querySelectorAll('a'); // Encontra todas as tags de link
-                
+                const links = doc.querySelectorAll('a'); 
                 let urls = [];
                 links.forEach(link => {
-                    // Pega apenas links externos válidos (http/https)
-                    if (link.href && link.href.startsWith('http')) {
-                        urls.push(link.href);
-                    }
+                    if (link.href && link.href.startsWith('http')) urls.push(link.href);
                 });
-
-                // Limpa links duplicados
                 const uniqueUrls = [...new Set(urls)];
-
-                // Se encontrou algum link oculto, adiciona no final do texto
                 if (uniqueUrls.length > 0) {
                     setTimeout(() => {
                         this.value += "\n\n[ANÁLISE DO SISTEMA: LINKS OCULTOS DETETADOS NA MENSAGEM]\n";
                         this.value += uniqueUrls.join("\n");
-                    }, 50); // Aguarda o navegador colar o texto normal primeiro
+                    }, 50);
                 }
             }
         });
     }
-});
 
-// Leitor Automático de ficheiros .eml
-document.getElementById('emlFileInput')?.addEventListener('change', function(e) {
-    const file = e.target.files[0];
-    if (!file) return;
+    // --- 2. LEITOR DE FICHEIROS .EML ---
+    const emlInput = document.getElementById('emlFileInput');
+    if (emlInput) {
+        emlInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = function(event) {
-        const text = event.target.result;
-        
-        // Num ficheiro .eml, a primeira linha em branco separa o cabeçalho do corpo
-        const separador = text.indexOf('\r\n\r\n') !== -1 ? '\r\n\r\n' : '\n\n';
-        const parts = text.split(separador);
-        
-        if (parts.length > 1) {
-            document.getElementById('emailHeaders').value = parts[0]; // Põe o cabeçalho
-            document.getElementById('emailBody').value = parts.slice(1).join(separador); // Põe o corpo
-            
-            // Alerta visual amigável
-            Swal.fire({
-                icon: 'success',
-                title: 'Ficheiro Carregado',
-                text: 'Cabeçalhos e corpo extraídos com sucesso. Pronto para analisar!',
-                timer: 2000,
-                showConfirmButton: false
-            });
-        }
-    };
-    reader.readAsText(file);
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const text = event.target.result;
+                const separador = text.indexOf('\r\n\r\n') !== -1 ? '\r\n\r\n' : '\n\n';
+                const parts = text.split(separador);
+                
+                if (parts.length > 1) {
+                    // Preenche automaticamente
+                    document.getElementById('emailHeaders').value = parts[0]; 
+                    document.getElementById('emailBody').value = parts.slice(1).join(separador); 
+                    
+                    // Mostra o botão de headers caso esteja oculto
+                    document.getElementById('emailHeaders').classList.remove('hidden');
+
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Ficheiro Carregado',
+                        text: 'Cabeçalhos e corpo extraídos com sucesso. Clique em Analisar!',
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Formato Inválido',
+                        text: 'Não foi possível ler este ficheiro .eml corretamente.'
+                    });
+                }
+            };
+            reader.readAsText(file);
+        });
+    }
 });
