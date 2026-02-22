@@ -123,12 +123,10 @@ function extractAuthDetails(headers) {
     
     if (!headers) return authDetails;
 
-    // Procura pelo cabeçalho Authentication-Results
     const authMatch = headers.match(/Authentication-Results:(.*?)(?:\n[A-Z]|\n\n|$)/is);
     if (authMatch) {
         authDetails.raw = authMatch[1].trim();
         
-        // Extrair resultados SPF, DKIM, DMARC
         const spfMatch = authDetails.raw.match(/spf=([^\s;]+)/i);
         if (spfMatch) authDetails.spf = spfMatch[1];
         
@@ -138,12 +136,8 @@ function extractAuthDetails(headers) {
         const dmarcMatch = authDetails.raw.match(/dmarc=([^\s;]+)/i);
         if (dmarcMatch) authDetails.dmarc = dmarcMatch[1];
         
-        // EXTRAIR DOMÍNIO AUTENTICADO (CRÍTICO!)
-        // Tenta extrair do SPF primeiro
         const spfDomainMatch = authDetails.raw.match(/spf=pass\s+smtp\.mailfrom=([^\s;]+)/i);
-        // Se não achou, tenta do DKIM
         const dkimDomainMatch = authDetails.raw.match(/dkim=pass\s+header\.d=([^\s;]+)/i);
-        // Última tentativa: extrair do campo from nos cabeçalhos brutos
         const fromDomainMatch = headers.match(/From:.*?<.*?@([^\s>]+)>/i);
         
         authDetails.dominioAutenticado = 
@@ -152,14 +146,12 @@ function extractAuthDetails(headers) {
             fromDomainMatch?.[1] || 
             null;
         
-        // Verificar se o domínio autenticado é confiável (gov.br)
         if (authDetails.dominioAutenticado) {
             authDetails.dominioConfiavel = DOMINIOS_OFICIAIS.some(dom => 
                 authDetails.dominioAutenticado.includes(dom)
             );
         }
         
-        // Se passou na autenticação E o domínio é confiável
         authDetails.autenticado = (
             authDetails.spf?.toLowerCase() === 'pass' && 
             authDetails.dkim?.toLowerCase() === 'pass' &&
@@ -173,11 +165,39 @@ function extractAuthDetails(headers) {
     return authDetails;
 }
 
+// MUDANÇA FORENSE: Separar Nome de Exibição do E-mail Real
 function extractSender(headers) {
-    if (!headers) return 'Não identificado';
+    const senderInfo = { 
+        nome_exibicao: 'Não identificado', 
+        email_real: 'Não identificado' 
+    };
+
+    if (!headers) return senderInfo;
+
+    // 1. O Verdadeiro Remetente (Return-Path do SMTP)
+    const returnPathMatch = headers.match(/Return-Path:\s*<?([^>\s]+)>?/i);
+    if (returnPathMatch) {
+        senderInfo.email_real = returnPathMatch[1].trim();
+    }
+
+    // 2. O campo From (Para ver o que o golpista tentou mostrar)
     const fromMatch = headers.match(/From:?\s*(.*?)(?:\n[A-Z]|\n\n|$)/i);
-    if (fromMatch) return fromMatch[1].trim();
-    return 'Não identificado';
+    if (fromMatch) {
+        const fromRaw = fromMatch[1].trim();
+        senderInfo.nome_exibicao = fromRaw;
+
+        // Se não houver Return-Path, extrai o e-mail real de dentro dos < > do From
+        if (senderInfo.email_real === 'Não identificado') {
+            const emailMatch = fromRaw.match(/<([^>]+)>/);
+            if (emailMatch) {
+                senderInfo.email_real = emailMatch[1].trim();
+            } else {
+                senderInfo.email_real = fromRaw; // Fallback
+            }
+        }
+    }
+
+    return senderInfo;
 }
 
 function extractSenderIP(headers) {
@@ -189,17 +209,9 @@ function extractSenderIP(headers) {
     return null;
 }
 
-function extractReturnPath(headers) {
-    if (!headers) return null;
-    const returnPathMatch = headers.match(/Return-Path:?\s*<([^>]+)>/i);
-    if (returnPathMatch) return returnPathMatch[1];
-    return null;
-}
-
 function detectarAnexoHTML(emailContent) {
     if (!emailContent) return false;
     
-    // Verifica se é um anexo HTML (arquivo .htm ou .html no conteúdo)
     const temAnexoHTML = (
         emailContent.includes('Content-Type: text/html') ||
         emailContent.includes('filename=".htm') ||
@@ -219,7 +231,6 @@ function analisarUrlsSuspeitas(urls) {
             const parsed = new URL(url);
             const hostname = parsed.hostname.toLowerCase();
             
-            // Detalhes da URL
             const detalhe = {
                 url: url.substring(0, 100),
                 dominio: hostname,
@@ -231,7 +242,6 @@ function analisarUrlsSuspeitas(urls) {
             
             urlsDetalhadas.push(detalhe);
             
-            // Gerar evidências
             if (detalhe.isCloud && detalhe.temDisfarceGov) {
                 evidencias.push(`URL em nuvem pública (${hostname}) com tentativa de disfarce gov.br - ALTA SUSPEITA`);
             } else if (detalhe.isCloud) {
@@ -240,23 +250,20 @@ function analisarUrlsSuspeitas(urls) {
                 evidencias.push(`URL tenta disfarçar destino incluindo gov.br no caminho: ${url.substring(0, 80)}`);
             }
             
-        } catch (e) {
-            // URL inválida, ignorar
-        }
+        } catch (e) {}
     }
     
     return { evidencias, urlsDetalhadas };
 }
 
 async function checkDomainAge(domain) {
-    // Para domínios de nuvem pública, a idade é irrelevante
     if (CLOUD_PLATFORMS.some(p => domain.includes(p))) {
         return "Plataforma de nuvem pública (idade irrelevante)";
     }
     
     try {
         const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 3000); // reduzido para 3s
+        const timeout = setTimeout(() => controller.abort(), 3000);
         
         const res = await fetch(`https://rdap.org/domain/${domain}`, {
             signal: controller.signal
@@ -278,31 +285,23 @@ async function checkDomainAge(domain) {
     }
 }
 
-// ==================== SYSTEM PROMPT CORRIGIDO ====================
+// ==================== SYSTEM PROMPT CORRIGIDO (BLINDADO) ====================
 
 const systemPrompt = `Você é um Analista de Segurança Sênior (Nível 3). Sua missão é detectar PHISHING com precisão cirúrgica, evitando FALSOS POSITIVOS em e-mails reais de grandes empresas.
 
 REGRAS DE CLASSIFICAÇÃO (SIGA ESTRITAMENTE NESTA ORDEM):
 
-1. AUTENTICAÇÃO NÃO É SOBERANA SEM CONTEXTO: Verifique 'AUTENTICAÇÃO DO SERVIDOR'. 
-   Se SPF e DKIM estiverem 'pass', isso significa que o E-MAIL VEIO DO SERVIDOR AUTORIZADO PELO DOMÍNIO REMETENTE.
-   PORÉM, você DEVE verificar se o DOMÍNIO AUTENTICADO CORRESPONDE AO DOMÍNIO ESPERADO para aquela empresa.
-   Exemplo: Se o e-mail diz ser da Receita Federal mas o domínio autenticado é @dominio-falso.com, o risco é ALTÍSSIMO, mesmo com SPF/DKIM pass.
+1. A REGRA DE OURO DA AUTENTICAÇÃO: Verifique a seção 'AUTENTICAÇÃO E ORIGEM'. Se SPF e DKIM estiverem 'pass' (ou verificados), o e-mail é CRIPTOGRAFICAMENTE LEGÍTIMO. Nestes casos, o 'Nivel_Risco' DEVE OBRIGATORIAMENTE ser entre 0 e 10, e o Veredito DEVE ser 'SEGURO'. Jamais classifique como suspeito.
 
-2. ANEXOS HTML SÃO ALTAMENTE SUSPEITOS: Arquivos .htm ou .html anexados são usados para clonar sites oficiais localmente. Se o e-mail contém um anexo HTML, isso é um FORTE indicador de phishing, especialmente se o assunto for urgente.
+2. DOMÍNIOS DE MARKETING E TERCEIROS: Grandes empresas (Enel, Bancos, etc.) usam variações do seu nome e plataformas de disparo (ex: exct.net, Salesforce, SendGrid). Se a Regra 1 passou, ignore o fato dos links serem de terceiros ou estranhos.
 
-3. PLATAFORMAS DE TERCEIROS:
-   - EMAIL MARKETING (ex: exct.net, sendgrid.net, salesforce.com): Podem ser legítimos se o remetente for uma empresa conhecida e o conteúdo não for alarmista.
-   - NUVEM PÚBLICA (ex: run.app, cloudfunctions.net, azurewebsites.net, amazonaws.com): NÃO SÃO CONFIÁVEIS para conteúdo sensível. Qualquer um pode hospedar phishing lá. Se encontrar links em nuvem pública + tema de urgência + órgão público = PHISHING CERTEIRO.
+3. SITES DESCONHECIDOS/OCULTOS: Se a investigação do domínio retornar 'Idade oculta' ou 'Privado', isso é NORMAL. Não aumente o risco.
 
-4. OFUSCAÇÃO DE URL: URLs que tentam incluir "gov.br" no meio do caminho (ex: sso.cidadania.gov.br@run.app) ou como subdomínio enganoso são TENTATIVAS DE DISFARCE e indicam phishing.
+4. CÓDIGO ESTRANHO: Ignore códigos como "=3D" ou tags HTML soltas.
 
-5. GOLPES BRASILEIROS (REGRA DE OURO):
-   - A Receita Federal NUNCA envia links de regularização por e-mail. Use o e-CAC com certificado digital.
-   - Órgãos públicos usam portais seguros (gov.br) com HTTPS e domínio oficial.
-   - Se o e-mail mencionar "suspensão de CPF", "bloqueio de conta", "dívida ativa" ou "regularização urgente" e tiver link para clicar, é 99% PHISHING.
+5. GOLPES COMUNS (BRASIL): Apenas considere PERIGOSO e-mails ameaçadores (ex: bloqueio de conta, Receita Federal, faturas urgentes) SE falharem na Regra 1 (Autenticação inválida ou ausente).
 
-6. PRAZOS URGENTES: E-mails que criam senso de urgência ("prazo final amanhã", "última chance") são táticas de engenharia social.
+6. FALSIDADE IDEOLÓGICA (O GOLPE DO FROM): Compare o 'Nome de Exibição' com o 'Remetente Real'. Se o Nome de Exibição for uma entidade famosa (ex: Receita Federal, Apple, Bancos) mas o 'Remetente Real (Return-Path)' for um domínio genérico (ex: gmail.com, run.app, domínios estranhos), isso é Falsificação Escancarada (Spoofing). O risco é 100% PERIGOSO.
 
 Retorne APENAS JSON válido com as chaves exatas:
 - "Nivel_Risco" (Número inteiro de 0 a 100)
@@ -371,9 +370,8 @@ module.exports = async function (context, req) {
     // Extrair informações básicas
     const foundUrls = extractUrls(emailContent || '');
     const authDetails = extractAuthDetails(headers);
-    const sender = extractSender(headers);
+    const senderData = extractSender(headers);
     const senderIP = extractSenderIP(headers);
-    const returnPath = extractReturnPath(headers);
     
     // DETECÇÕES AVANÇADAS
     const temAnexoHTML = detectarAnexoHTML(emailContent);
@@ -422,7 +420,7 @@ module.exports = async function (context, req) {
     const evidenciasLeves = [];
 
     // Evidência 1: Remetente alega ser órgão público mas domínio não é oficial
-    const remetenteLower = sender.toLowerCase();
+    const remetenteLower = senderData.nome_exibicao.toLowerCase();
     if (remetenteLower.includes('receita') || remetenteLower.includes('federal')) {
         if (!authDetails.dominioConfiavel && authDetails.dominioAutenticado) {
             localScore += 40;
@@ -466,24 +464,25 @@ module.exports = async function (context, req) {
         evidenciasLeves.push('E-mail cria senso de urgência (tática de engenharia social)');
     }
 
-    // Evidência 7: Return-Path diferente do From
-    if (returnPath && sender.includes('<') && sender.includes('@')) {
-        const fromDomain = sender.match(/<.*?@([^\s>]+)>/i)?.[1];
-        const returnPathDomain = returnPath.split('@')[1];
-        if (fromDomain && returnPathDomain && fromDomain !== returnPathDomain) {
+    // Evidência 7: Falsidade Ideológica (Return-Path vs From)
+    if (senderData.email_real !== 'Não identificado' && senderData.nome_exibicao.includes('@')) {
+        const fromDomainMatch = senderData.nome_exibicao.match(/<.*?@([^\s>]+)>/i);
+        const fromDomain = fromDomainMatch ? fromDomainMatch[1] : senderData.nome_exibicao.split('@')[1];
+        const returnPathDomain = senderData.email_real.split('@')[1];
+        
+        if (fromDomain && returnPathDomain && fromDomain.toLowerCase() !== returnPathDomain.toLowerCase()) {
             localScore += 30;
-            evidenciasFortes.push(`Return-Path (${returnPathDomain}) diferente do domínio do remetente (${fromDomain})`);
+            evidenciasFortes.push(`Remetente Real (${returnPathDomain}) é diferente do domínio de exibição (${fromDomain})`);
         }
     }
 
-    // Cap the local score (max 100)
     localScore = Math.min(100, localScore);
 
-    // Preparar intel para a IA
+    // Preparar intel mastigada para a IA (A nova arma anti-spoofing)
     const intelMastigada = `
-AUTENTICAÇÃO DO SERVIDOR:
-- Remetente (From): ${sender}
-- Return-Path: ${returnPath || 'Não informado'}
+AUTENTICAÇÃO E ORIGEM:
+- Nome de Exibição (From): ${senderData.nome_exibicao}
+- Remetente Real (Return-Path): ${senderData.email_real}
 - IP de Origem: ${senderIP || 'Desconhecido'}
 - Validação SPF: ${authDetails.spf || 'Não encontrado'}
 - Validação DKIM: ${authDetails.dkim || 'Não encontrado'}
@@ -495,7 +494,7 @@ AUTENTICAÇÃO DO SERVIDOR:
 ANEXOS DETECTADOS:
 - Anexo HTML: ${temAnexoHTML ? 'SIM (ALTA SUSPEITA)' : 'Não'}
 
-EVIDÊNCIAS DE PHISHING DETECTADAS PELO SISTEMA:
+EVIDÊNCIAS DE PHISHING DETECTADAS PELO SISTEMA LOCAL:
 ${evidenciasFortes.map(e => '🔴 ' + e).join('\n')}
 ${evidenciasLeves.map(e => '🟡 ' + e).join('\n')}
 ${evidenciasFortes.length === 0 && evidenciasLeves.length === 0 ? 'Nenhuma evidência automática detectada' : ''}
@@ -526,7 +525,7 @@ ${domainIntel}
                 ],
                 response_format: { type: "json_object" },
                 max_tokens: 500,
-                temperature: 0.1 // Aumentei ligeiramente para dar mais nuance
+                temperature: 0.1
             }),
             signal: controller.signal
         });
@@ -544,48 +543,31 @@ ${domainIntel}
         try {
             analise = JSON.parse(rawContent);
             
-            // COMBINAR SCORE DA IA COM SCORE LOCAL (de forma inteligente)
             let riscoIA = Math.min(100, Math.max(0, parseInt(analise.Nivel_Risco) || 50));
             
-            // Regra: Se temos evidências fortes, o score mínimo é 80
-            if (evidenciasFortes.length > 0) {
-                riscoIA = Math.max(riscoIA, 80);
-            }
-            
-            // Se temos evidências muito fortes (anexo HTML + disfarce gov), força 100
+            if (evidenciasFortes.length > 0) riscoIA = Math.max(riscoIA, 80);
             if (temAnexoHTML && temDisfarceGov) {
                 riscoIA = 100;
                 analise.Veredito = 'PERIGOSO';
             }
-            
-            // Se o domínio autenticado não é confiável mas a IA deu baixo risco, corrigir
             if (!authDetails.dominioConfiavel && authDetails.dominioAutenticado && riscoIA < 70) {
                 riscoIA = Math.max(riscoIA, 70);
             }
             
             const riscoFinal = Math.min(100, Math.max(0, riscoIA));
             
-            // Construir motivos combinados
             const motivosCombinados = [];
-            
-            // Adicionar evidências fortes primeiro
             evidenciasFortes.slice(0, 3).forEach(e => motivosCombinados.push(e));
             
-            // Adicionar motivos da IA (limitado)
             if (Array.isArray(analise.Motivos)) {
                 analise.Motivos.slice(0, 3).forEach(m => {
-                    if (!motivosCombinados.includes(m)) {
-                        motivosCombinados.push(m);
-                    }
+                    if (!motivosCombinados.includes(m)) motivosCombinados.push(m);
                 });
             }
             
-            // Adicionar evidências leves se ainda tiver espaço
             if (motivosCombinados.length < 5) {
                 evidenciasLeves.slice(0, 5 - motivosCombinados.length).forEach(e => {
-                    if (!motivosCombinados.includes(e)) {
-                        motivosCombinados.push(e);
-                    }
+                    if (!motivosCombinados.includes(e)) motivosCombinados.push(e);
                 });
             }
             
@@ -597,7 +579,6 @@ ${domainIntel}
             };
             
         } catch (e) {
-            // Fallback em caso de erro de parsing
             analise = { 
                 Nivel_Risco: localScore, 
                 Veredito: localScore >= 80 ? 'PERIGOSO' : (localScore >= 40 ? 'SUSPEITO' : 'SEGURO'), 
@@ -616,8 +597,8 @@ ${domainIntel}
                 dominio_confiavel: authDetails.dominioConfiavel,
                 autenticacao_valida: authDetails.autenticado
             },
-            remetente: sender,
-            return_path: returnPath,
+            remetente: senderData.nome_exibicao,
+            return_path: senderData.email_real,
             ip_remetente: senderIP || 'não identificado',
             anexo_html: temAnexoHTML,
             urls_encontradas: foundUrls.slice(0, 10),
@@ -628,20 +609,17 @@ ${domainIntel}
             }
         };
 
-        // Salvar no banco (opcional)
         try {
             const db = await connectDb();
             await db.collection('phishing_threats').insertOne({
                 timestamp: new Date(),
                 analise: { Nivel_Risco: analise.Nivel_Risco, Veredito: analise.Veredito },
                 ip: clientIp, 
-                remetente: sender, 
+                remetente: senderData.email_real, 
                 urls: foundUrls.length,
                 anexo_html: temAnexoHTML
             });
-        } catch (dbError) {
-            // Ignora erro de banco
-        }
+        } catch (dbError) {}
 
         memoryCache.set(cacheKey, { data: respostaCompleta, timestamp: Date.now() });
 
@@ -649,7 +627,6 @@ ${domainIntel}
         context.res.body = respostaCompleta;
 
     } catch (error) {
-        // Fallback em caso de erro na API
         context.res.status = 200;
         context.res.body = {
             Nivel_Risco: localScore,
@@ -663,8 +640,8 @@ ${domainIntel}
                 dominio_autenticado: authDetails.dominioAutenticado || 'não identificado',
                 dominio_confiavel: authDetails.dominioConfiavel
             },
-            remetente: sender || 'não identificado',
-            return_path: returnPath,
+            remetente: senderData.nome_exibicao || 'não identificado',
+            return_path: senderData.email_real || 'não identificado',
             ip_remetente: senderIP || 'não identificado',
             anexo_html: temAnexoHTML,
             urls_encontradas: foundUrls.slice(0, 10),
