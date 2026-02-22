@@ -69,7 +69,7 @@ function checkRateLimit(ip) {
     const now = Date.now();
     const windowMs = 60000;
     const maxRequests = 10;
-    
+
     // Anonimização do IP
     const hashedIp = crypto.createHash('sha256').update(ip + (process.env.IP_SALT || 'default_salt')).digest('hex');
 
@@ -110,54 +110,54 @@ function extractUrls(text) {
 // ==================== FUNÇÕES MELHORADAS ====================
 
 function extractAuthDetails(headers) {
-    const authDetails = { 
-        spf: null, 
-        dkim: null, 
-        dmarc: null, 
+    const authDetails = {
+        spf: null,
+        dkim: null,
+        dmarc: null,
         raw: null,
         autenticado: false,
         dominioAutenticado: null,
         dominioConfiavel: false,
         motivo: null
     };
-    
+
     if (!headers) return authDetails;
 
     const authMatch = headers.match(/Authentication-Results:(.*?)(?:\n[A-Z]|\n\n|$)/is);
     if (authMatch) {
         authDetails.raw = authMatch[1].trim();
-        
+
         const spfMatch = authDetails.raw.match(/spf=([^\s;]+)/i);
         if (spfMatch) authDetails.spf = spfMatch[1];
-        
+
         const dkimMatch = authDetails.raw.match(/dkim=([^\s;]+)/i);
         if (dkimMatch) authDetails.dkim = dkimMatch[1];
-        
+
         const dmarcMatch = authDetails.raw.match(/dmarc=([^\s;]+)/i);
         if (dmarcMatch) authDetails.dmarc = dmarcMatch[1];
-        
+
         const spfDomainMatch = authDetails.raw.match(/spf=pass\s+smtp\.mailfrom=([^\s;]+)/i);
         const dkimDomainMatch = authDetails.raw.match(/dkim=pass\s+header\.d=([^\s;]+)/i);
         const fromDomainMatch = headers.match(/From:.*?<.*?@([^\s>]+)>/i);
-        
-        authDetails.dominioAutenticado = 
-            spfDomainMatch?.[1] || 
-            dkimDomainMatch?.[1] || 
-            fromDomainMatch?.[1] || 
+
+        authDetails.dominioAutenticado =
+            spfDomainMatch?.[1] ||
+            dkimDomainMatch?.[1] ||
+            fromDomainMatch?.[1] ||
             null;
-        
+
         if (authDetails.dominioAutenticado) {
-            authDetails.dominioConfiavel = DOMINIOS_OFICIAIS.some(dom => 
+            authDetails.dominioConfiavel = DOMINIOS_OFICIAIS.some(dom =>
                 authDetails.dominioAutenticado.includes(dom)
             );
         }
-        
+
         authDetails.autenticado = (
-            authDetails.spf?.toLowerCase() === 'pass' && 
+            authDetails.spf?.toLowerCase() === 'pass' &&
             authDetails.dkim?.toLowerCase() === 'pass' &&
             authDetails.dominioConfiavel
         );
-        
+
         if (authDetails.spf === 'pass' && authDetails.dkim === 'pass' && !authDetails.dominioConfiavel) {
             authDetails.motivo = 'Autenticação passou, mas domínio não é oficial';
         }
@@ -167,9 +167,9 @@ function extractAuthDetails(headers) {
 
 // MUDANÇA FORENSE: Separar Nome de Exibição do E-mail Real
 function extractSender(headers) {
-    const senderInfo = { 
-        nome_exibicao: 'Não identificado', 
-        email_real: 'Não identificado' 
+    const senderInfo = {
+        nome_exibicao: 'Não identificado',
+        email_real: 'Não identificado'
     };
 
     if (!headers) return senderInfo;
@@ -211,26 +211,26 @@ function extractSenderIP(headers) {
 
 function detectarAnexoHTML(emailContent) {
     if (!emailContent) return false;
-    
+
     const temAnexoHTML = (
         emailContent.includes('Content-Type: text/html') ||
         emailContent.includes('filename=".htm') ||
         emailContent.includes('filename=".html') ||
         (emailContent.includes('<html') && emailContent.includes('</html>') && emailContent.length < 500000)
     );
-    
+
     return temAnexoHTML;
 }
 
 function analisarUrlsSuspeitas(urls) {
     const evidencias = [];
     const urlsDetalhadas = [];
-    
+
     for (const url of urls) {
         try {
             const parsed = new URL(url);
             const hostname = parsed.hostname.toLowerCase();
-            
+
             const detalhe = {
                 url: url.substring(0, 100),
                 dominio: hostname,
@@ -239,9 +239,9 @@ function analisarUrlsSuspeitas(urls) {
                 temDisfarceGov: url.includes('gov.br') && !hostname.includes('gov.br'),
                 path: parsed.pathname
             };
-            
+
             urlsDetalhadas.push(detalhe);
-            
+
             if (detalhe.isCloud && detalhe.temDisfarceGov) {
                 evidencias.push(`URL em nuvem pública (${hostname}) com tentativa de disfarce gov.br - ALTA SUSPEITA`);
             } else if (detalhe.isCloud) {
@@ -249,10 +249,10 @@ function analisarUrlsSuspeitas(urls) {
             } else if (detalhe.temDisfarceGov) {
                 evidencias.push(`URL tenta disfarçar destino incluindo gov.br no caminho: ${url.substring(0, 80)}`);
             }
-            
-        } catch (e) {}
+
+        } catch (e) { }
     }
-    
+
     return { evidencias, urlsDetalhadas };
 }
 
@@ -260,21 +260,21 @@ async function checkDomainAge(domain) {
     if (CLOUD_PLATFORMS.some(p => domain.includes(p))) {
         return "Plataforma de nuvem pública (idade irrelevante)";
     }
-    
+
     try {
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 3000);
-        
+
         const res = await fetch(`https://rdap.org/domain/${domain}`, {
             signal: controller.signal
         });
-        
+
         clearTimeout(timeout);
         if (!res.ok) return "Idade oculta (Proteção de Privacidade Normal)";
-        
+
         const data = await res.json();
         const regEvent = data.events?.find(e => e.eventAction === 'registration');
-        
+
         if (regEvent) {
             const ageDays = Math.floor((new Date() - new Date(regEvent.eventDate)) / (1000 * 60 * 60 * 24));
             return `${ageDays} dias`;
@@ -282,6 +282,40 @@ async function checkDomainAge(domain) {
         return "Privado (Normal)";
     } catch {
         return "Consulta indisponível (Ignorar, não é um risco)";
+    }
+}
+
+// NOVA FUNÇÃO: Integração com o VirusTotal
+async function checkVirusTotal(domain) {
+    const vtKey = process.env.VT_API_KEY;
+    if (!vtKey) return null; // Ignora pacificamente se você ainda não tiver configurado a chave
+
+    try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 4000); // 4 segundos de limite
+
+        const response = await fetch(`https://www.virustotal.com/api/v3/domains/${domain}`, {
+            method: 'GET',
+            headers: { 'x-apikey': vtKey },
+            signal: controller.signal
+        });
+
+        clearTimeout(timeout);
+        if (!response.ok) return null;
+
+        const data = await response.json();
+        const stats = data.data.attributes.last_analysis_stats;
+
+        // Quantos antivírus mundiais dizem que isto é crime?
+        const totalMalicious = (stats.malicious || 0) + (stats.phishing || 0) + (stats.malware || 0);
+
+        if (totalMalicious > 0) {
+            return `ALERTA VERMELHO: ${totalMalicious} motores de antivírus classificaram este domínio como PERIGOSO/PHISHING!`;
+        }
+
+        return "Limpo nos motores de antivírus";
+    } catch (e) {
+        return null;
     }
 }
 
@@ -372,7 +406,7 @@ module.exports = async function (context, req) {
     const authDetails = extractAuthDetails(headers);
     const senderData = extractSender(headers);
     const senderIP = extractSenderIP(headers);
-    
+
     // DETECÇÕES AVANÇADAS
     const temAnexoHTML = detectarAnexoHTML(emailContent);
     const analiseUrls = analisarUrlsSuspeitas(foundUrls);
@@ -403,18 +437,33 @@ module.exports = async function (context, req) {
         domainIntel = "DOMÍNIOS:\n";
         const domainsToCheck = uniqueDomains.slice(0, 5);
 
+        // Inicia a investigação paralela dupla (WHOIS + VirusTotal)
         const ageResults = await Promise.all(
-            domainsToCheck.map(domain => checkDomainAge(domain).then(age => ({ domain, age })))
+            domainsToCheck.map(async domain => {
+                const age = await checkDomainAge(domain);
+                const vtResult = await checkVirusTotal(domain); // Chama o VirusTotal
+                return { domain, age, vtResult };
+            })
         );
 
         ageResults.forEach(info => {
-            domainIntel += `- ${info.domain} (${info.age})\n`;
-            domainDetails.push({ domain: info.domain, age: info.age });
+            let infoLinha = `- ${info.domain} (Idade: ${info.age})`;
+            if (info.vtResult) {
+                infoLinha += ` | VirusTotal: ${info.vtResult}`;
+                
+                // Se o VirusTotal detetar vírus, dispara o alarme local para 100%
+                if (info.vtResult.includes('ALERTA VERMELHO')) {
+                    localScore += 100;
+                    evidenciasFortes.push(`O domínio ${info.domain} está na BLACKLIST global de cibercrime (VirusTotal)!`);
+                }
+            }
+            domainIntel += `${infoLinha}\n`;
+            domainDetails.push({ domain: info.domain, age: info.age, vt: info.vtResult });
         });
     }
 
     // ==================== CÁLCULO DE RISCO LOCAL ====================
-    
+
     let localScore = 0;
     const evidenciasFortes = [];
     const evidenciasLeves = [];
@@ -469,7 +518,7 @@ module.exports = async function (context, req) {
         const fromDomainMatch = senderData.nome_exibicao.match(/<.*?@([^\s>]+)>/i);
         const fromDomain = fromDomainMatch ? fromDomainMatch[1] : senderData.nome_exibicao.split('@')[1];
         const returnPathDomain = senderData.email_real.split('@')[1];
-        
+
         if (fromDomain && returnPathDomain && fromDomain.toLowerCase() !== returnPathDomain.toLowerCase()) {
             localScore += 30;
             evidenciasFortes.push(`Remetente Real (${returnPathDomain}) é diferente do domínio de exibição (${fromDomain})`);
@@ -500,9 +549,9 @@ ${evidenciasLeves.map(e => '🟡 ' + e).join('\n')}
 ${evidenciasFortes.length === 0 && evidenciasLeves.length === 0 ? 'Nenhuma evidência automática detectada' : ''}
 
 ANÁLISE DE URLs:
-${analiseUrls.urlsDetalhadas.map(u => 
-    `- ${u.url.substring(0, 80)}...\n  Domínio: ${u.dominio} | Nuvem: ${u.isCloud} | Disfarce gov: ${u.temDisfarceGov}`
-).join('\n')}
+${analiseUrls.urlsDetalhadas.map(u =>
+        `- ${u.url.substring(0, 80)}...\n  Domínio: ${u.dominio} | Nuvem: ${u.isCloud} | Disfarce gov: ${u.temDisfarceGov}`
+    ).join('\n')}
 
 ${domainIntel}
 `;
@@ -542,9 +591,9 @@ ${domainIntel}
         let analise;
         try {
             analise = JSON.parse(rawContent);
-            
+
             let riscoIA = Math.min(100, Math.max(0, parseInt(analise.Nivel_Risco) || 50));
-            
+
             if (evidenciasFortes.length > 0) riscoIA = Math.max(riscoIA, 80);
             if (temAnexoHTML && temDisfarceGov) {
                 riscoIA = 100;
@@ -553,35 +602,35 @@ ${domainIntel}
             if (!authDetails.dominioConfiavel && authDetails.dominioAutenticado && riscoIA < 70) {
                 riscoIA = Math.max(riscoIA, 70);
             }
-            
+
             const riscoFinal = Math.min(100, Math.max(0, riscoIA));
-            
+
             const motivosCombinados = [];
             evidenciasFortes.slice(0, 3).forEach(e => motivosCombinados.push(e));
-            
+
             if (Array.isArray(analise.Motivos)) {
                 analise.Motivos.slice(0, 3).forEach(m => {
                     if (!motivosCombinados.includes(m)) motivosCombinados.push(m);
                 });
             }
-            
+
             if (motivosCombinados.length < 5) {
                 evidenciasLeves.slice(0, 5 - motivosCombinados.length).forEach(e => {
                     if (!motivosCombinados.includes(e)) motivosCombinados.push(e);
                 });
             }
-            
+
             analise = {
                 Nivel_Risco: riscoFinal,
                 Veredito: riscoFinal >= 80 ? 'PERIGOSO' : (riscoFinal >= 40 ? 'SUSPEITO' : 'SEGURO'),
                 Motivos: motivosCombinados.slice(0, 5),
                 Recomendacao: analise.Recomendacao || 'Consulte um especialista'
             };
-            
+
         } catch (e) {
-            analise = { 
-                Nivel_Risco: localScore, 
-                Veredito: localScore >= 80 ? 'PERIGOSO' : (localScore >= 40 ? 'SUSPEITO' : 'SEGURO'), 
+            analise = {
+                Nivel_Risco: localScore,
+                Veredito: localScore >= 80 ? 'PERIGOSO' : (localScore >= 40 ? 'SUSPEITO' : 'SEGURO'),
                 Motivos: evidenciasFortes.length > 0 ? evidenciasFortes.slice(0, 5) : ['Análise automática baseada em heurísticas'],
                 Recomendacao: 'Erro no formato da resposta da IA. Análise baseada em regras locais.'
             };
@@ -614,12 +663,12 @@ ${domainIntel}
             await db.collection('phishing_threats').insertOne({
                 timestamp: new Date(),
                 analise: { Nivel_Risco: analise.Nivel_Risco, Veredito: analise.Veredito },
-                ip: clientIp, 
-                remetente: senderData.email_real, 
+                ip: clientIp,
+                remetente: senderData.email_real,
                 urls: foundUrls.length,
                 anexo_html: temAnexoHTML
             });
-        } catch (dbError) {}
+        } catch (dbError) { }
 
         memoryCache.set(cacheKey, { data: respostaCompleta, timestamp: Date.now() });
 
