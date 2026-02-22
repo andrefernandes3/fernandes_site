@@ -138,24 +138,24 @@ async function checkDomainAge(domain) {
     try {
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 5000);
-
+        
         const res = await fetch(`https://rdap.org/domain/${domain}`, {
             signal: controller.signal
         });
-
+        
         clearTimeout(timeout);
-        if (!res.ok) return "Desconhecida";
-
+        if (!res.ok) return "Idade oculta (Proteção de Privacidade Normal)";
+        
         const data = await res.json();
         const regEvent = data.events?.find(e => e.eventAction === 'registration');
-
+        
         if (regEvent) {
             const ageDays = Math.floor((new Date() - new Date(regEvent.eventDate)) / (1000 * 60 * 60 * 24));
             return `${ageDays} dias`;
         }
-        return "Privado";
+        return "Privado (Normal)";
     } catch {
-        return "Falha";
+        return "Consulta indisponível (Ignorar, não é um risco)";
     }
 }
 
@@ -393,20 +393,20 @@ module.exports = async function (context, req) {
         });
     }
 
-    // MELHORIA 4: Engenharia de Prompt Atualizada (Agora com regras de Autenticação)
-    const systemPrompt = `Você é um Analista de Segurança Sênior. Sua missão é detectar PHISHING.
-    
-REGRAS DE ANÁLISE RIGOROSAS:
-1. Compare os domínios informados na seção 'DOMÍNIOS' com o remetente alegado no texto.
-2. AVALIAÇÃO DE CRIPTOGRAFIA (MUITO IMPORTANTE): Se SPF, DKIM e DMARC estiverem como "pass" ou verificados, significa que o e-mail é genuíno. Se o e-mail for genuíno e os links apontarem para o próprio domínio do remetente (ex: fernandesit.com), classifique como SEGURO com risco muito baixo (0-15%).
-3. Domínios com menos de 30 dias de vida ou nomes confusos representam risco EXTREMO.
-4. E-mails curtos de boas-vindas ('Welcome', 'Thanks for subscribing') enviados de domínios validados são comportamento padrão de sistemas, NÃO são phishing.
+    // MELHORIA FINAL: Regras anti-paranoia para Falsos Positivos
+    const systemPrompt = `Você é um Analista de Segurança Sênior (Nível 3). Sua missão é detectar PHISHING com precisão cirúrgica, evitando FALSOS POSITIVOS em e-mails reais.
+
+REGRAS DE CLASSIFICAÇÃO (SIGA ESTRITAMENTE):
+1. AUTENTICAÇÃO É SOBERANA: Leia os dados de "AUTENTICAÇÃO DO SERVIDOR". Se SPF e DKIM estiverem "pass" (ou verificados) e o Remetente (From) usar o MESMO domínio dos links encontrados na mensagem, o e-mail é 100% LEGÍTIMO E SEGURO. O Nível de Risco DEVE ser menor que 10%.
+2. SITES DESCONHECIDOS: Se a idade do domínio estiver "oculta" ou "indisponível", isso é NORMAL devido a leis de privacidade. Não aumente o risco por causa disso. Apenas penalize domínios que explicitly tenham "menos de 30 dias".
+3. E-MAILS CURTOS/BOAS-VINDAS: Mensagens de "Welcome", "Thanks for subscribing", ou com pouco texto são normais para sistemas automáticos.
+4. CÓDIGO ESTRANHO: Ignore fragmentos como "=3D" ou tags soltas. Isso é apenas formatação 'Quoted-Printable' do servidor e não ofuscação maliciosa.
 
 Retorne APENAS JSON válido com:
-- "Nivel_Risco" (0-100. Acima de 70 se houver links recém-criados ou falsos)
+- "Nivel_Risco" (0-100. Obrigatoriamente < 10% se a Regra 1 for cumprida)
 - "Veredito" (SEGURO, SUSPEITO, PERIGOSO)
-- "Motivos" (array máx 5 itens explicando o racional técnico)
-- "Recomendacao" (texto curto de ação sem acento na chave)`;
+- "Motivos" (array máx 5 itens. Se for seguro, elogie a validação do SPF/DKIM)
+- "Recomendacao" (texto direto, sem acento na chave)`;
 
     try {
         const controller = new AbortController();
