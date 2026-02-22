@@ -1,5 +1,4 @@
 const fetch = require('node-fetch');
-const validator = require('validator');
 const crypto = require('crypto');
 const { MongoClient } = require('mongodb');
 
@@ -77,65 +76,35 @@ function extractUrls(text) {
 
 // Função para extrair detalhes de autenticação
 function extractAuthDetails(headers) {
-    const authDetails = {
-        spf: null,
-        dkim: null,
-        dmarc: null,
-        raw: null
-    };
-
+    const authDetails = { spf: null, dkim: null, dmarc: null, raw: null };
     if (!headers) return authDetails;
 
-    // Procurar por Authentication-Results
     const authMatch = headers.match(/Authentication-Results:(.*?)(?:\n[A-Z]|\n\n|$)/is);
     if (authMatch) {
         authDetails.raw = authMatch[1].trim();
-
-        // Extrair SPF
         const spfMatch = authDetails.raw.match(/spf=([^\s;]+)/i);
         if (spfMatch) authDetails.spf = spfMatch[1];
-
-        // Extrair DKIM
         const dkimMatch = authDetails.raw.match(/dkim=([^\s;]+)/i);
         if (dkimMatch) authDetails.dkim = dkimMatch[1];
-
-        // Extrair DMARC
         const dmarcMatch = authDetails.raw.match(/dmarc=([^\s;]+)/i);
         if (dmarcMatch) authDetails.dmarc = dmarcMatch[1];
     }
-
     return authDetails;
 }
 
-// Função para extrair remetente
 function extractSender(headers) {
     if (!headers) return 'Não identificado';
-
-    // Procurar por From:
     const fromMatch = headers.match(/From:?\s*(.*?)(?:\n[A-Z]|\n\n|$)/i);
-    if (fromMatch) {
-        return fromMatch[1].trim();
-    }
-
+    if (fromMatch) return fromMatch[1].trim();
     return 'Não identificado';
 }
 
-// Função para extrair IP do remetente
 function extractSenderIP(headers) {
     if (!headers) return null;
-
-    // Procurar por Received: ou IP do remetente
     const ipMatch = headers.match(/\[(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\]/);
-    if (ipMatch) {
-        return ipMatch[1];
-    }
-
-    // Tentar encontrar no Authentication-Results
+    if (ipMatch) return ipMatch[1];
     const authResults = headers.match(/Authentication-Results:.*?smtp\.mailfrom=.*?ip=([^\s\];]+)/i);
-    if (authResults) {
-        return authResults[1];
-    }
-
+    if (authResults) return authResults[1];
     return null;
 }
 
@@ -164,134 +133,10 @@ async function checkDomainAge(domain) {
     }
 }
 
-function analisarDominioLocal(domain, age) {
-    const dominiosConhecidos = {
-        'receita.fazenda.gov.br': 'governo',
-        'gov.br': 'governo',
-        'bradesco.com.br': 'banco',
-        'itau.com.br': 'banco',
-        'santander.com.br': 'banco',
-        'bb.com.br': 'banco',
-        'caixa.gov.br': 'banco',
-        'paypal.com': 'pagamento',
-        'mercadopago.com.br': 'pagamento'
-    };
-
-    const partes = domain.split('.');
-    const tld = partes.slice(-2).join('.');
-
-    let score = 0;
-    let motivo = [];
-
-    // 1. Verificar idade do domínio
-    const idadeNum = parseInt(age);
-    if (idadeNum < 7) {
-        score += 40;
-        motivo.push(`Domínio criado há apenas ${age} (MUITO recente)`);
-    } else if (idadeNum < 30) {
-        score += 25;
-        motivo.push(`Domínio recente (${age})`);
-    } else if (idadeNum > 365) {
-        score -= 10; // Domínio antigo é menos suspeito
-    }
-
-    // 2. Verificar se é domínio conhecido
-    if (dominiosConhecidos[tld]) {
-        score -= 20; // Domínio legítimo conhecido
-    }
-
-    // 3. Padrões suspeitos
-    if (domain.includes('receita') && !domain.includes('gov.br')) {
-        score += 35;
-        motivo.push('Domínio imitando Receita Federal mas não é .gov.br');
-    }
-
-    if (domain.match(/[0-9]{5,}/)) {
-        score += 15;
-        motivo.push('Domínio com muitos números (padrão suspeito)');
-    }
-
-    if (domain.length > 30) {
-        score += 10;
-        motivo.push('Domínio muito longo');
-    }
-
-    if (domain.includes('-')) {
-        score += 5;
-        motivo.push('Domínio com hífen');
-    }
-
-    return { score, motivo: motivo.slice(0, 2) };
-}
-
-function calcularRiscoLocal(emailData) {
-    let score = 0;
-    const motivos = [];
-
-    // 1. Análise de autenticação
-    if (emailData.auth.spf === 'none' || emailData.auth.spf === 'fail') {
-        score += 25;
-        motivos.push('SPF ausente/falho');
-    }
-
-    if (emailData.auth.dkim === 'none' || !emailData.auth.dkim) {
-        score += 15;
-        motivos.push('DKIM ausente');
-    }
-
-    // 2. Análise de domínio do remetente
-    if (emailData.dominio_remetente) {
-        if (emailData.dominio_remetente.includes('receita') &&
-            !emailData.dominio_remetente.includes('gov.br')) {
-            score += 35;
-            motivos.push('Domínio suspeito imitando Receita Federal');
-        }
-
-        if (emailData.dominio_remetente.match(/[0-9]{5,}/)) {
-            score += 20;
-            motivos.push('Domínio com padrão numérico suspeito');
-        }
-    }
-
-    // 3. URLs suspeitas
-    if (emailData.urls_encontradas.length > 0) {
-        const urlsSuspeitas = emailData.urls_encontradas.filter(u => {
-            try {
-                const url = new URL(u);
-                return url.hostname.includes('bit.ly') ||
-                    url.hostname.includes('tinyurl') ||
-                    url.hostname.match(/[0-9]{5,}/);
-            } catch {
-                return false;
-            }
-        }).length;
-
-        if (urlsSuspeitas > 0) {
-            score += urlsSuspeitas * 10;
-            motivos.push(`${urlsSuspeitas} URL(s) encurtada(s) suspeita(s)`);
-        }
-    }
-
-    // 4. Discrepância entre domínio alegado e real
-    if (emailData.dominio_remetente && emailData.assunto) {
-        if (emailData.assunto.includes('Receita') &&
-            !emailData.dominio_remetente.includes('gov.br')) {
-            score += 30;
-            motivos.push('Assunto menciona Receita mas domínio não é governamental');
-        }
-    }
-
-    return {
-        score: Math.min(95, score),
-        motivos: motivos.slice(0, 3)
-    };
-}
-
 module.exports = async function (context, req) {
     const startTime = Date.now();
     const clientIp = req.headers['x-forwarded-for']?.split(',')[0] || 'unknown';
 
-    // Headers de segurança
     context.res = {
         headers: {
             'Content-Type': 'application/json',
@@ -301,7 +146,6 @@ module.exports = async function (context, req) {
         }
     };
 
-    // Rate limiting
     if (!checkRateLimit(clientIp)) {
         context.res.status = 429;
         context.res.body = {
@@ -323,11 +167,6 @@ module.exports = async function (context, req) {
     const { emailContent, headers } = req.body;
     const apiKey = process.env.GROQ_API_KEY;
 
-    // Sanitização com validator
-    const cleanBody = emailContent ? validator.escape(emailContent) : '';
-    const cleanHeaders = headers ? validator.escape(headers) : '';
-
-    // Validação básica
     if (!emailContent || emailContent.trim().length < 10) {
         context.res.status = 400;
         context.res.body = {
@@ -340,28 +179,21 @@ module.exports = async function (context, req) {
         return;
     }
 
-    // Cache
     const cacheKey = Buffer.from((emailContent || '') + (headers || '')).toString('base64').substring(0, 100);
     const cachedItem = memoryCache.get(cacheKey);
 
     if (cachedItem && (Date.now() - cachedItem.timestamp < CACHE_TTL)) {
-        context.log.info('Cache HIT', { key: cacheKey.substring(0, 10) });
+        context.log.info('Cache HIT');
         context.res.status = 200;
         context.res.body = cachedItem.data;
         return;
     }
 
-    context.log.info('Cache MISS', { key: cacheKey.substring(0, 10) });
-
-    // Processamento
     const foundUrls = extractUrls(emailContent || '');
-
-    // Extrair informações detalhadas
     const authDetails = extractAuthDetails(headers);
     const sender = extractSender(headers);
     const senderIP = extractSenderIP(headers);
 
-    // Limpeza de HTML e Limite reduzido
     let cleanBodyProcessed = emailContent || 'Não fornecido';
     cleanBodyProcessed = cleanBodyProcessed.replace(/<[^>]*>?/gm, '').replace(/\s+/g, ' ').trim();
     if (cleanBodyProcessed.length > 4000) {
@@ -373,23 +205,17 @@ module.exports = async function (context, req) {
         cleanHeadersProcessed = cleanHeadersProcessed.substring(0, 2000) + '... [CORTADO]';
     }
 
-    // Investigação de domínios (limitada)
     let domainIntel = "Nenhum link detectado.";
     const domainDetails = [];
 
     if (foundUrls.length > 0) {
         const uniqueDomains = [...new Set(foundUrls.map(u => {
-            try {
-                return new URL(u).hostname.replace('www.', '');
-            } catch {
-                return null;
-            }
+            try { return new URL(u).hostname.replace('www.', ''); } catch { return null; }
         }).filter(Boolean))];
 
         domainIntel = "DOMÍNIOS:\n";
         const domainsToCheck = uniqueDomains.slice(0, 5);
 
-        // Consultas WHOIS Paralelas
         const ageResults = await Promise.all(
             domainsToCheck.map(domain => checkDomainAge(domain).then(age => ({ domain, age })))
         );
@@ -400,7 +226,6 @@ module.exports = async function (context, req) {
         });
     }
 
-    // Heurística contra golpes conhecidos
     const knownScams = /receita federal|irregularidade cpf|suspensão do cpf|bloqueio do cpf/i.test(cleanBodyProcessed);
     let localScore = 0;
     
@@ -408,29 +233,26 @@ module.exports = async function (context, req) {
         localScore += 40;
     }
 
-    // System Prompt refinado
     const systemPrompt = `Você é um Analista de Segurança Sênior (Nível 3). Sua missão é detectar PHISHING com precisão cirúrgica, evitando FALSOS POSITIVOS em e-mails reais.
 
 REGRAS DE CLASSIFICAÇÃO (SIGA ESTRITAMENTE):
 1. AUTENTICAÇÃO É SOBERANA: Leia os dados de "AUTENTICAÇÃO DO SERVIDOR". Se SPF e DKIM estiverem "pass" (ou verificados) e o Remetente (From) usar o MESMO domínio dos links encontrados na mensagem, o e-mail é 100% LEGÍTIMO E SEGURO. O Nível de Risco DEVE ser menor que 10%.
-2. SITES DESCONHECIDOS: Se a idade do domínio estiver "oculta" ou "indisponível", isso é NORMAL devido a leis de privacidade. Não aumente o risco por causa disso. Apenas penalize domínios que explicitamente tenham "menos de 30 dias".
+2. SITES DESCONHECIDOS: Se a idade do domínio estiver "oculta" ou "indisponível", isso é NORMAL devido a leis de privacidade. Não aumente o risco por causa disso.
 3. E-MAILS CURTOS/BOAS-VINDAS: Mensagens de "Welcome", "Thanks for subscribing", ou com pouco texto são normais para sistemas automáticos.
-4. CÓDIGO ESTRANHO: Ignore fragmentos como "=3D" ou tags soltas. Isso é apenas formatação 'Quoted-Printable' do servidor e não ofuscação maliciosa.
-5. GOLPES COMUNS NO BRASIL: Receita Federal NÃO envia e-mails com links para regularizar CPF ou suspensões. Qualquer e-mail ameaçando bloqueio/suspensão sem autenticação oficial é phishing (risco >80%).
-6. E-MAILS BANCÁRIOS LEGÍTIMOS (ex.: Itaú): Focam em benefícios sem ameaças; verifique domínios como itau.com.br.
-7. Penalize urgência extrema (ex.: 'prazo final', 'suspensão imediata') se não houver SPF/DKIM pass.
+4. CÓDIGO ESTRANHO: Ignore fragmentos como "=3D" ou tags soltas.
+5. GOLPES COMUNS NO BRASIL: Receita Federal NÃO envia e-mails com links para regularizar CPF.
+6. E-MAILS BANCÁRIOS LEGÍTIMOS: Focam em benefícios; verifique domínios oficiais.
 
 Retorne APENAS JSON válido com:
 - "Nivel_Risco" (0-100. Obrigatoriamente < 10% se a Regra 1 for cumprida)
 - "Veredito" (SEGURO, SUSPEITO, PERIGOSO)
-- "Motivos" (array máx 5 itens. Se for seguro, elogie a validação do SPF/DKIM)
+- "Motivos" (array máx 5 itens)
 - "Recomendacao" (texto direto, sem acento na chave)`;
 
     try {
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 15000);
 
-        // Compilar as provas mastigadas para a IA
         const intelMastigada = `
         AUTENTICAÇÃO DO SERVIDOR:
         - Remetente: ${sender}
@@ -471,8 +293,6 @@ Retorne APENAS JSON válido com:
         let analise;
         try {
             analise = JSON.parse(rawContent);
-            
-            // Ajustar risco baseado na heurística local
             let riscoFinal = Math.min(100, Math.max(0, parseInt(analise.Nivel_Risco) || 50));
             riscoFinal = Math.min(95, riscoFinal + localScore);
             
@@ -483,15 +303,9 @@ Retorne APENAS JSON válido com:
                 Recomendacao: (analise.Recomendacao || 'Consulte um especialista').substring(0, 200)
             };
         } catch {
-            analise = {
-                Nivel_Risco: Math.min(95, 50 + localScore),
-                Veredito: 'SUSPEITO',
-                Motivos: ['Erro no formato da resposta'],
-                Recomendacao: 'Recomendamos análise manual'
-            };
+            analise = { Nivel_Risco: 50, Veredito: 'SUSPEITO', Motivos: ['Erro formato IA'], Recomendacao: 'Análise manual' };
         }
 
-        // Adicionar informações detalhadas à resposta
         const respostaCompleta = {
             ...analise,
             detalhes_autenticacao: {
@@ -506,58 +320,28 @@ Retorne APENAS JSON válido com:
             dominios_analisados: domainDetails
         };
 
-        // Salvar no banco (não crítico)
         try {
             const db = await connectDb();
             await db.collection('phishing_threats').insertOne({
                 timestamp: new Date(),
-                analise: {
-                    Nivel_Risco: analise.Nivel_Risco,
-                    Veredito: analise.Veredito
-                },
-                ip: clientIp,
-                remetente: sender,
-                urls: foundUrls.length,
-                duration: Date.now() - startTime
+                analise: { Nivel_Risco: analise.Nivel_Risco, Veredito: analise.Veredito },
+                ip: clientIp, remetente: sender, urls: foundUrls.length
             });
-        } catch (dbError) {
-            context.log.error('Erro no banco:', dbError);
-        }
+        } catch (dbError) {}
 
-        // Salvar no cache
-        memoryCache.set(cacheKey, {
-            data: respostaCompleta,
-            timestamp: Date.now()
-        });
-
-        context.log.info('Análise concluída', {
-            duration: Date.now() - startTime,
-            urls: foundUrls.length,
-            veredito: analise.Veredito,
-            risco: analise.Nivel_Risco,
-            remetente: sender
-        });
+        memoryCache.set(cacheKey, { data: respostaCompleta, timestamp: Date.now() });
 
         context.res.status = 200;
         context.res.body = respostaCompleta;
 
     } catch (error) {
-        context.log.error('Erro na análise:', error);
-
         context.res.status = 200;
         context.res.body = {
             Nivel_Risco: Math.min(95, 50 + localScore),
             Veredito: 'SUSPEITO',
-            Motivos: ['Erro na análise automática'],
-            Recomendacao: error.name === 'AbortError'
-                ? 'Tempo limite excedido. Tente novamente.'
-                : 'Falha técnica. Encaminhe para análise manual.',
-            detalhes_autenticacao: {
-                spf: authDetails.spf || 'não verificado',
-                dkim: authDetails.dkim || 'não verificado',
-                dmarc: authDetails.dmarc || 'não verificado',
-                raw: authDetails.raw || 'não disponível'
-            },
+            Motivos: ['Erro na comunicação com a Inteligência Artificial'],
+            Recomendacao: 'Falha técnica. ' + error.message,
+            detalhes_autenticacao: { spf: 'não verificado', dkim: 'não verificado', dmarc: 'não verificado', raw: 'não disponível' },
             remetente: sender || 'não identificado',
             ip_remetente: senderIP || 'não identificado',
             urls_encontradas: foundUrls.slice(0, 10),

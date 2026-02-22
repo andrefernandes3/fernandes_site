@@ -242,14 +242,21 @@ async function processarAnalise() {
         document.getElementById('resultPanel').classList.remove('hidden');
 
     } catch (error) {
-        console.error('Erro:', error);
-        Swal.fire({
-            icon: 'error',
-            title: 'Erro',
-            text: 'Não foi possível realizar a análise.',
-            timer: 3000,
-            showConfirmButton: false
-        });
+        console.error('Erro Técnico:', error);
+        
+        // Verifica se a biblioteca SweetAlert carregou corretamente. Se não, usa o alert nativo do Windows/Mac
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                icon: 'error',
+                title: 'Erro de Análise',
+                text: 'Houve uma falha ao comunicar com o servidor. O problema já foi reportado.',
+                timer: 4000,
+                showConfirmButton: true
+            });
+        } else {
+            alert('Erro de Análise: Houve uma falha ao comunicar com o servidor.');
+        }
+        
     } finally {
         btn.innerHTML = originalText;
         btn.disabled = false;
