@@ -44,7 +44,7 @@ function exibirResultados(res) {
     riskValue.innerText = `${res.Nivel_Risco}%`;
     statusLabel.innerText = res.Veredito;
     statusLabel.className = corClass;
-    recomendacao.innerText = res.Recomendação;
+    recomendacao.innerText = res.Recomendacao;
 
     // Limpa e preenche motivos
     lista.innerHTML = "";
