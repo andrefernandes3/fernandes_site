@@ -146,7 +146,11 @@ function criarDetalhesAdicionais(res) {
     if (res.dominios_analisados && res.dominios_analisados.length > 0) {
         res.dominios_analisados.forEach(dom => {
             const li = document.createElement('li');
-            li.innerHTML = `<span class="domain-name">${escapeHtml(dom.dominio)}</span> | <span class="domain-age">Idade: ${escapeHtml(dom.age || dom.idade)}</span>`;
+            
+            // NOVO: Adiciona a etiqueta do VirusTotal se ela existir
+            const vtInfo = dom.vt ? ` | <span style="color: ${dom.vt.includes('ALERTA') ? '#ff4444' : '#00C851'}"><strong>VT:</strong> ${escapeHtml(dom.vt)}</span>` : '';
+            
+            li.innerHTML = `<span class="domain-name"><strong>${escapeHtml(dom.dominio)}</strong></span> | Idade: ${escapeHtml(dom.age || dom.idade)}${vtInfo}`;
             dominiosList.appendChild(li);
         });
     } else {
