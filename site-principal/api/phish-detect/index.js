@@ -35,12 +35,12 @@ function checkRateLimit(ip) {
     const now = Date.now();
     const windowMs = 60000;
     const maxRequests = 10;
-    
+
     const userRequests = rateLimit.get(ip) || [];
     const recentRequests = userRequests.filter(time => now - time < windowMs);
-    
+
     if (recentRequests.length >= maxRequests) return false;
-    
+
     recentRequests.push(now);
     rateLimit.set(ip, recentRequests);
     return true;
@@ -48,14 +48,14 @@ function checkRateLimit(ip) {
 
 function extractUrls(text) {
     if (!text) return [];
-    
+
     const urls = new Set();
     const regexes = [
         /(https?:\/\/[^\s"'\>\]\)]+)/g,
         /href=["'](https?:\/\/[^"']+)["']/gi,
         /src=["'](https?:\/\/[^"']+)["']/gi
     ];
-    
+
     regexes.forEach(regex => {
         const matches = text.match(regex) || [];
         matches.forEach(m => {
@@ -63,10 +63,10 @@ function extractUrls(text) {
                 const cleanUrl = m.replace(/^(href|src)=["']/, '').replace(/["']$/, '');
                 new URL(cleanUrl);
                 urls.add(cleanUrl);
-            } catch {}
+            } catch { }
         });
     });
-    
+
     return Array.from(urls).slice(0, 20);
 }
 
@@ -78,59 +78,59 @@ function extractAuthDetails(headers) {
         dmarc: null,
         raw: null
     };
-    
+
     if (!headers) return authDetails;
-    
+
     // Procurar por Authentication-Results
     const authMatch = headers.match(/Authentication-Results:(.*?)(?:\n[A-Z]|\n\n|$)/is);
     if (authMatch) {
         authDetails.raw = authMatch[1].trim();
-        
+
         // Extrair SPF
         const spfMatch = authDetails.raw.match(/spf=([^\s;]+)/i);
         if (spfMatch) authDetails.spf = spfMatch[1];
-        
+
         // Extrair DKIM
         const dkimMatch = authDetails.raw.match(/dkim=([^\s;]+)/i);
         if (dkimMatch) authDetails.dkim = dkimMatch[1];
-        
+
         // Extrair DMARC
         const dmarcMatch = authDetails.raw.match(/dmarc=([^\s;]+)/i);
         if (dmarcMatch) authDetails.dmarc = dmarcMatch[1];
     }
-    
+
     return authDetails;
 }
 
 // NOVA FUNÇÃO: Extrair remetente
 function extractSender(headers) {
     if (!headers) return 'Não identificado';
-    
+
     // Procurar por From:
     const fromMatch = headers.match(/From:?\s*(.*?)(?:\n[A-Z]|\n\n|$)/i);
     if (fromMatch) {
         return fromMatch[1].trim();
     }
-    
+
     return 'Não identificado';
 }
 
 // NOVA FUNÇÃO: Extrair IP do remetente
 function extractSenderIP(headers) {
     if (!headers) return null;
-    
+
     // Procurar por Received: ou IP do remetente
     const ipMatch = headers.match(/\[(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\]/);
     if (ipMatch) {
         return ipMatch[1];
     }
-    
+
     // Tentar encontrar no Authentication-Results
     const authResults = headers.match(/Authentication-Results:.*?smtp\.mailfrom=.*?ip=([^\s\];]+)/i);
     if (authResults) {
         return authResults[1];
     }
-    
+
     return null;
 }
 
@@ -138,17 +138,17 @@ async function checkDomainAge(domain) {
     try {
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 5000);
-        
+
         const res = await fetch(`https://rdap.org/domain/${domain}`, {
             signal: controller.signal
         });
-        
+
         clearTimeout(timeout);
         if (!res.ok) return "Desconhecida";
-        
+
         const data = await res.json();
         const regEvent = data.events?.find(e => e.eventAction === 'registration');
-        
+
         if (regEvent) {
             const ageDays = Math.floor((new Date() - new Date(regEvent.eventDate)) / (1000 * 60 * 60 * 24));
             return `${ageDays} dias`;
@@ -172,13 +172,13 @@ function analisarDominioLocal(domain, age) {
         'paypal.com': 'pagamento',
         'mercadoPago.com': 'pagamento'
     };
-    
+
     const partes = domain.split('.');
     const tld = partes.slice(-2).join('.');
-    
+
     let score = 0;
     let motivo = [];
-    
+
     // 1. Verificar idade do domínio
     const idadeNum = parseInt(age);
     if (idadeNum < 7) {
@@ -190,33 +190,33 @@ function analisarDominioLocal(domain, age) {
     } else if (idadeNum > 365) {
         score -= 10; // Domínio antigo é menos suspeito
     }
-    
+
     // 2. Verificar se é domínio conhecido
     if (dominiosConhecidos[tld]) {
         score -= 20; // Domínio legítimo conhecido
     }
-    
+
     // 3. Padrões suspeitos
     if (domain.includes('receita') && !domain.includes('gov.br')) {
         score += 35;
         motivo.push('Domínio imitando Receita Federal mas não é .gov.br');
     }
-    
+
     if (domain.match(/[0-9]{5,}/)) {
         score += 15;
         motivo.push('Domínio com muitos números (padrão suspeito)');
     }
-    
+
     if (domain.length > 30) {
         score += 10;
         motivo.push('Domínio muito longo');
     }
-    
+
     if (domain.includes('-')) {
         score += 5;
         motivo.push('Domínio com hífen');
     }
-    
+
     return { score, motivo: motivo.slice(0, 2) };
 }
 
@@ -224,60 +224,60 @@ function analisarDominioLocal(domain, age) {
 function calcularRiscoLocal(emailData) {
     let score = 0;
     const motivos = [];
-    
+
     // 1. Análise de autenticação
     if (emailData.auth.spf === 'none' || emailData.auth.spf === 'fail') {
         score += 25;
         motivos.push('SPF ausente/falho');
     }
-    
+
     if (emailData.auth.dkim === 'none' || !emailData.auth.dkim) {
         score += 15;
         motivos.push('DKIM ausente');
     }
-    
+
     // 2. Análise de domínio do remetente
     if (emailData.dominio_remetente) {
-        if (emailData.dominio_remetente.includes('receita') && 
+        if (emailData.dominio_remetente.includes('receita') &&
             !emailData.dominio_remetente.includes('gov.br')) {
             score += 35;
             motivos.push('Domínio suspeito imitando Receita Federal');
         }
-        
+
         if (emailData.dominio_remetente.match(/[0-9]{5,}/)) {
             score += 20;
             motivos.push('Domínio com padrão numérico suspeito');
         }
     }
-    
+
     // 3. URLs suspeitas
     if (emailData.urls_encontradas.length > 0) {
         const urlsSuspeitas = emailData.urls_encontradas.filter(u => {
             try {
                 const url = new URL(u);
                 return url.hostname.includes('bit.ly') ||
-                       url.hostname.includes('tinyurl') ||
-                       url.hostname.match(/[0-9]{5,}/);
+                    url.hostname.includes('tinyurl') ||
+                    url.hostname.match(/[0-9]{5,}/);
             } catch {
                 return false;
             }
         }).length;
-        
+
         if (urlsSuspeitas > 0) {
             score += urlsSuspeitas * 10;
             motivos.push(`${urlsSuspeitas} URL(s) encurtada(s) suspeita(s)`);
         }
     }
-    
+
     // 4. Discrepância entre domínio alegado e real
     if (emailData.dominio_remetente && emailData.assunto) {
-        if (emailData.assunto.includes('Receita') && 
+        if (emailData.assunto.includes('Receita') &&
             !emailData.dominio_remetente.includes('gov.br')) {
             score += 30;
             motivos.push('Assunto menciona Receita mas domínio não é governamental');
         }
     }
-    
+
     return {
         score: Math.min(95, score),
         motivos: motivos.slice(0, 3)
@@ -287,7 +287,7 @@ function calcularRiscoLocal(emailData) {
 module.exports = async function (context, req) {
     const startTime = Date.now();
     const clientIp = req.headers['x-forwarded-for']?.split(',')[0] || 'unknown';
-    
+
     // Headers de segurança
     context.res = {
         headers: {
@@ -301,7 +301,7 @@ module.exports = async function (context, req) {
     // Rate limiting
     if (!checkRateLimit(clientIp)) {
         context.res.status = 429;
-        context.res.body = { 
+        context.res.body = {
             error: 'Muitas requisições',
             Nivel_Risco: 50,
             Veredito: 'SUSPEITO',
@@ -310,7 +310,7 @@ module.exports = async function (context, req) {
         };
         return;
     }
-    
+
     if (req.method !== 'POST') {
         context.res.status = 405;
         context.res.body = { error: 'Método não permitido' };
@@ -336,7 +336,7 @@ module.exports = async function (context, req) {
     // Cache
     const cacheKey = Buffer.from((emailContent || '') + (headers || '')).toString('base64').substring(0, 100);
     const cachedItem = memoryCache.get(cacheKey);
-    
+
     if (cachedItem && (Date.now() - cachedItem.timestamp < CACHE_TTL)) {
         context.log.info('Cache HIT', { key: cacheKey.substring(0, 10) });
         context.res.status = 200;
@@ -348,12 +348,12 @@ module.exports = async function (context, req) {
 
     // Processamento
     const foundUrls = extractUrls(emailContent || '');
-    
+
     // Extrair informações detalhadas
     const authDetails = extractAuthDetails(headers);
     const sender = extractSender(headers);
     const senderIP = extractSenderIP(headers);
-    
+
     // MELHORIA 1: Limpeza de HTML e Limite reduzido
     let cleanBody = emailContent || 'Não fornecido';
     cleanBody = cleanBody.replace(/<[^>]*>?/gm, '').replace(/\s+/g, ' ').trim();
@@ -369,37 +369,38 @@ module.exports = async function (context, req) {
     // Investigação de domínios (limitada)
     let domainIntel = "Nenhum link detectado.";
     const domainDetails = [];
-    
+
     if (foundUrls.length > 0) {
         const uniqueDomains = [...new Set(foundUrls.map(u => {
-            try { 
-                return new URL(u).hostname.replace('www.', ''); 
-            } catch { 
-                return null; 
+            try {
+                return new URL(u).hostname.replace('www.', '');
+            } catch {
+                return null;
             }
         }).filter(Boolean))];
-        
+
         domainIntel = "DOMÍNIOS:\n";
         const domainsToCheck = uniqueDomains.slice(0, 5);
-        
+
         // MELHORIA 3: Consultas WHOIS Paralelas (Velocidade Extrema)
         const ageResults = await Promise.all(
             domainsToCheck.map(domain => checkDomainAge(domain).then(age => ({ domain, age })))
         );
-        
+
         ageResults.forEach(info => {
             domainIntel += `- ${info.domain} (${info.age})\n`;
             domainDetails.push({ domain: info.domain, age: info.age });
         });
     }
 
-    // MELHORIA 4: Engenharia de Prompt (Chain of Thought)
+    // MELHORIA 4: Engenharia de Prompt Atualizada (Agora com regras de Autenticação)
     const systemPrompt = `Você é um Analista de Segurança Sênior. Sua missão é detectar PHISHING.
     
 REGRAS DE ANÁLISE RIGOROSAS:
 1. Compare os domínios informados na seção 'DOMÍNIOS' com o remetente alegado no texto.
-2. Domínios com menos de 30 dias de vida ou nomes confusos representam risco EXTREMO.
-3. Ignore formatação quebrada se os links forem legítimos.
+2. AVALIAÇÃO DE CRIPTOGRAFIA (MUITO IMPORTANTE): Se SPF, DKIM e DMARC estiverem como "pass" ou verificados, significa que o e-mail é genuíno. Se o e-mail for genuíno e os links apontarem para o próprio domínio do remetente (ex: fernandesit.com), classifique como SEGURO com risco muito baixo (0-15%).
+3. Domínios com menos de 30 dias de vida ou nomes confusos representam risco EXTREMO.
+4. E-mails curtos de boas-vindas ('Welcome', 'Thanks for subscribing') enviados de domínios validados são comportamento padrão de sistemas, NÃO são phishing.
 
 Retorne APENAS JSON válido com:
 - "Nivel_Risco" (0-100. Acima de 70 se houver links recém-criados ou falsos)
@@ -408,9 +409,18 @@ Retorne APENAS JSON válido com:
 - "Recomendacao" (texto curto de ação sem acento na chave)`;
 
     try {
-        // Timeout para a API
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 15000);
+
+        // Compilar as provas mastigadas para a IA
+        const intelMastigada = `
+        AUTENTICAÇÃO DO SERVIDOR:
+        - Remetente: ${sender}
+        - IP de Origem: ${senderIP || 'Desconhecido'}
+        - Validação SPF: ${authDetails.spf || 'Não encontrado'}
+        - Validação DKIM: ${authDetails.dkim || 'Não encontrado'}
+        - Validação DMARC: ${authDetails.dmarc || 'Não encontrado'}
+        `;
 
         const groqResponse = await fetch("https://api.groq.com/openai/v1/chat/completions", {
             method: 'POST',
@@ -422,11 +432,11 @@ Retorne APENAS JSON válido com:
                 model: "llama-3.3-70b-versatile",
                 messages: [
                     { role: "system", content: systemPrompt },
-                    { role: "user", content: `EMAIL:\n${cleanBody}\n\nHEADERS:\n${cleanHeaders}\n\n${domainIntel}` }
+                    // Agora enviamos a Autenticação mastigada logo antes dos domínios!
+                    { role: "user", content: `EMAIL:\n${cleanBody}\n\n${intelMastigada}\n\n${domainIntel}\n\nHEADERS BRUTOS:\n${cleanHeaders}` }
                 ],
                 response_format: { type: "json_object" },
                 max_tokens: 500,
-                // MELHORIA 2: Frieza analítica máxima (Temperatura 0)
                 temperature: 0.0
             }),
             signal: controller.signal
@@ -440,7 +450,7 @@ Retorne APENAS JSON válido com:
 
         const data = await groqResponse.json();
         let rawContent = data.choices[0].message.content.replace(/```json|```/g, '').trim();
-        
+
         let analise;
         try {
             analise = JSON.parse(rawContent);
@@ -498,7 +508,7 @@ Retorne APENAS JSON válido com:
             timestamp: Date.now()
         });
 
-        context.log.info('Análise concluída', { 
+        context.log.info('Análise concluída', {
             duration: Date.now() - startTime,
             urls: foundUrls.length,
             veredito: analise.Veredito,
@@ -511,13 +521,13 @@ Retorne APENAS JSON válido com:
 
     } catch (error) {
         context.log.error('Erro na análise:', error);
-        
+
         context.res.status = 200;
         context.res.body = {
             Nivel_Risco: 50,
             Veredito: 'SUSPEITO',
             Motivos: ['Erro na análise automática'],
-            Recomendacao: error.name === 'AbortError' 
+            Recomendacao: error.name === 'AbortError'
                 ? 'Tempo limite excedido. Tente novamente.'
                 : 'Falha técnica. Encaminhe para análise manual.',
             detalhes_autenticacao: {
