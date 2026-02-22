@@ -1,7 +1,12 @@
 const fetch = require('node-fetch');
 const { MongoClient } = require('mongodb');
+const NodeCache = require('node-cache');
 
+const cache = new NodeCache({ stdTTL: 300 }); // 5 minutos cache
 let cachedDb = null;
+
+// Rate limiting simples
+const rateLimit = new Map();
 
 async function connectDb() {
     if (cachedDb) return cachedDb;
@@ -11,121 +16,236 @@ async function connectDb() {
     return cachedDb;
 }
 
-// NOVO: Função para descobrir a idade do domínio
+function checkRateLimit(ip) {
+    const now = Date.now();
+    const windowMs = 60000; // 1 minuto
+    const maxRequests = 10;
+    
+    const userRequests = rateLimit.get(ip) || [];
+    const recentRequests = userRequests.filter(time => now - time < windowMs);
+    
+    if (recentRequests.length >= maxRequests) {
+        return false;
+    }
+    
+    recentRequests.push(now);
+    rateLimit.set(ip, recentRequests);
+    return true;
+}
+
+function extractUrls(text) {
+    if (!text) return [];
+    
+    const urls = new Set();
+    const regexes = [
+        /(https?:\/\/[^\s"'\>\]\)]+)/g,
+        /href=["'](https?:\/\/[^"']+)["']/gi,
+        /src=["'](https?:\/\/[^"']+)["']/gi
+    ];
+    
+    regexes.forEach(regex => {
+        const matches = text.match(regex) || [];
+        matches.forEach(m => {
+            try {
+                const cleanUrl = m.replace(/^(href|src)=["']/, '').replace(/["']$/, '');
+                new URL(cleanUrl);
+                urls.add(cleanUrl);
+            } catch {
+                // Ignora URLs inválidas
+            }
+        });
+    });
+    
+    return Array.from(urls).slice(0, 20);
+}
+
 async function checkDomainAge(domain) {
     try {
-        const res = await fetch(`https://rdap.org/domain/${domain}`);
-        if (!res.ok) return "Desconhecida (Possível domínio falso ou ccTLD oculto)";
-
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 5000);
+        
+        const res = await fetch(`https://rdap.org/domain/${domain}`, {
+            signal: controller.signal
+        });
+        
+        clearTimeout(timeout);
+        
+        if (!res.ok) return "Desconhecida";
+        
         const data = await res.json();
-        // Procura a data de registo ("registration")
         const regEvent = data.events?.find(e => e.eventAction === 'registration');
+        
         if (regEvent) {
             const ageDays = Math.floor((new Date() - new Date(regEvent.eventDate)) / (1000 * 60 * 60 * 24));
-            return `Criado a: ${new Date(regEvent.eventDate).toLocaleDateString()} (${ageDays} dias de vida)`;
+            return `${ageDays} dias`;
         }
-        return "Data oculta pela privacidade do domínio";
+        return "Privado";
     } catch (e) {
-        return "Falha ao verificar";
+        return "Falha";
     }
 }
 
 module.exports = async function (context, req) {
-    if (req.method === 'POST') {
-        const { emailContent, headers } = req.body;
-        const apiKey = process.env.GROQ_API_KEY;
-
-        // 1. EXTRAÇÃO DE LINKS (Fazemos isto ANTES de cortar o texto)
-        const urlRegex = /(https?:\/\/[^\s"'>]+)/g;
-        const foundUrls = (emailContent || '').match(urlRegex) || [];
-
-        // 2. CORTE DE SEGURANÇA PARA O CORPO DO E-MAIL (Máx 8000 caracteres)
-        let cleanBody = emailContent || 'Não fornecido';
-        if (cleanBody.length > 8000) {
-            cleanBody = cleanBody.substring(0, 8000) + '\n\n[AVISO DA API: O e-mail era demasiado longo e o código HTML irrelevante foi cortado para análise.]';
-        }
-
-        // 3. LIMPEZA E CORTE PARA OS CABEÇALHOS (Máx 4000 caracteres)
-        let cleanHeaders = headers || 'Não fornecidos';
-        if (cleanHeaders !== 'Não fornecidos') {
-            const base64Index = cleanHeaders.indexOf('Content-Transfer-Encoding: base64');
-            if (base64Index !== -1) {
-                cleanHeaders = cleanHeaders.substring(0, base64Index) + '\n[CORTADO: Restante código base64 removido]';
+    const startTime = Date.now();
+    
+    // Rate limiting
+    const clientIp = req.headers['x-forwarded-for']?.split(',')[0] || 'unknown';
+    if (!checkRateLimit(clientIp)) {
+        context.res = { 
+            status: 429, 
+            body: { 
+                error: 'Muitas requisições',
+                Nivel_Risco: 50,
+                Veredito: 'SUSPEITO',
+                Motivos: ['Rate limit excedido', 'Análise temporariamente indisponível'],
+                Recomendacao: 'Aguarde 1 minuto antes de nova análise'
             }
-            if (cleanHeaders.length > 4000) {
-                cleanHeaders = cleanHeaders.substring(0, 4000) + '\n[CORTADO: Cabeçalho reduzido por segurança]';
+        };
+        return;
+    }
+    
+    if (req.method !== 'POST') {
+        context.res = { status: 405, body: { error: 'Método não permitido' } };
+        return;
+    }
+
+    const { emailContent, headers } = req.body;
+    const apiKey = process.env.GROQ_API_KEY;
+
+    // Verificar cache
+    const cacheKey = Buffer.from((emailContent || '') + (headers || '')).toString('base64').substring(0, 100);
+    const cachedResult = cache.get(cacheKey);
+    
+    if (cachedResult) {
+        context.log('Resultado retornado do cache');
+        context.res = { status: 200, body: cachedResult };
+        return;
+    }
+
+    // Extrair URLs
+    const foundUrls = extractUrls(emailContent || '');
+    
+    // Preparar conteúdo para IA (LIMITADO)
+    let cleanBody = emailContent || 'Não fornecido';
+    if (cleanBody.length > 6000) {
+        cleanBody = cleanBody.substring(0, 6000) + '... [CONTEÚDO CORTADO POR LIMITE DE TOKENS]';
+    }
+
+    let cleanHeaders = headers || 'Não fornecidos';
+    if (cleanHeaders !== 'Não fornecidos' && cleanHeaders.length > 2000) {
+        cleanHeaders = cleanHeaders.substring(0, 2000) + '... [HEADERS CORTADOS]';
+    }
+
+    // Investigação de domínios (limitada)
+    let domainIntel = "Nenhum link detectado.";
+    if (foundUrls.length > 0) {
+        const uniqueDomains = [...new Set(foundUrls.map(u => {
+            try { 
+                return new URL(u).hostname.replace('www.', ''); 
+            } catch { 
+                return null; 
             }
-        }
-
-        // 4. INVESTIGAÇÃO DE DOMÍNIOS (Com os links guardados no passo 1)
-        let domainIntel = "Nenhum link detetado na mensagem.";
-        if (foundUrls.length > 0) {
-            const uniqueDomains = [...new Set(foundUrls.map(u => {
-                try { return new URL(u).hostname; } catch (e) { return null; }
-            }).filter(Boolean))];
-
-            domainIntel = "INVESTIGAÇÃO DE DOMÍNIOS:\n";
-            for (const domain of uniqueDomains.slice(0, 3)) { // Verifica no máximo 3 domínios para ser rápido
-                const ageInfo = await checkDomainAge(domain);
-                domainIntel += `- Domínio: ${domain} | Info: ${ageInfo}\n`;
-            }
-        }
-
-        const systemPrompt = `Você é um Analista de Segurança Sénior da Fernandes Technology.
-        Sua tarefa é analisar e-mails para detectar PHISHING.
+        }).filter(Boolean))];
         
-        ATENÇÃO ESPECIAL: Foi fornecida abaixo uma "Investigação de Domínios". Se o e-mail disser ser de uma grande empresa (ex: Bradesco, Apple), mas os domínios extraídos tiverem poucos dias de vida ou nomes esquisitos, classifique IMEDIATAMENTE como PERIGOSO e explique isso nos motivos.
+        domainIntel = "DOMÍNIOS:\n";
+        const domainsToCheck = uniqueDomains.slice(0, 5); // Máx 5 domínios
         
-        Retorne um JSON OBRIGATÓRIAMENTE com as chaves exatas:
-        - "Nivel_Risco" (número de 0 a 100)
-        - "Veredito" (SEGURO, SUSPEITO ou PERIGOSO)
-        - "Motivos" (array de strings com os pontos encontrados)
-        - "Recomendacao" (texto com o que o usuário deve fazer)`;
+        for (const domain of domainsToCheck) {
+            const ageInfo = await checkDomainAge(domain);
+            domainIntel += `- ${domain} (${ageInfo})\n`;
+        }
+    }
 
+    const systemPrompt = `Você é um Analista de Segurança. Analise e-mails para detectar PHISHING.
+Retorne JSON com:
+- "Nivel_Risco" (0-100)
+- "Veredito" (SEGURO, SUSPEITO, PERIGOSO)
+- "Motivos" (array máx 5 itens)
+- "Recomendacao" (texto curto)`;
+
+    try {
+        const groqResponse = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${apiKey}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                model: "llama-3.3-70b-versatile",
+                messages: [
+                    { role: "system", content: systemPrompt },
+                    { role: "user", content: `EMAIL:\n${cleanBody}\n\nHEADERS:\n${cleanHeaders}\n\n${domainIntel}` }
+                ],
+                response_format: { type: "json_object" },
+                max_tokens: 500 // Limitar resposta
+            })
+        });
+
+        if (!groqResponse.ok) {
+            throw new Error(`Erro IA: ${groqResponse.status}`);
+        }
+
+        const data = await groqResponse.json();
+        let rawContent = data.choices[0].message.content.replace(/```json|```/g, '').trim();
+        
+        let analise;
         try {
-            const groqResponse = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${apiKey}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    model: "llama-3.3-70b-versatile",
-                    messages: [
-                        { role: "system", content: systemPrompt },
-                        // Usamos o cleanBody e cleanHeaders aqui!
-                        { role: "user", content: `Analise este e-mail:\n\nCONTEÚDO: ${cleanBody}\n\nHEADERS: ${cleanHeaders}\n\n${domainIntel}` }
-                    ],
-                    response_format: { type: "json_object" }
-                })
-            });
+            analise = JSON.parse(rawContent);
+            // Validar e sanitizar
+            analise = {
+                Nivel_Risco: Math.min(100, Math.max(0, parseInt(analise.Nivel_Risco) || 50)),
+                Veredito: ['SEGURO', 'SUSPEITO', 'PERIGOSO'].includes(analise.Veredito) ? analise.Veredito : 'SUSPEITO',
+                Motivos: (Array.isArray(analise.Motivos) ? analise.Motivos : ['Análise automática']).slice(0, 5),
+                Recomendacao: (analise.Recomendacao || 'Consulte um especialista').substring(0, 200)
+            };
+        } catch {
+            analise = {
+                Nivel_Risco: 50,
+                Veredito: 'SUSPEITO',
+                Motivos: ['Erro no formato da resposta'],
+                Recomendacao: 'Recomendamos análise manual'
+            };
+        }
 
-            if (!groqResponse.ok) {
-                const errorData = await groqResponse.text();
-                throw new Error(`Erro IA (Status ${groqResponse.status}): ${errorData}`);
-            }
-
-            const data = await groqResponse.json();
-            let rawContent = data.choices[0].message.content.replace(/```json/i, '').replace(/```/g, '').trim();
-            const analise = JSON.parse(rawContent);
-
+        // Salvar no banco (apenas metadados)
+        try {
             const db = await connectDb();
             await db.collection('phishing_threats').insertOne({
                 timestamp: new Date(),
-                analise,
-                ip: req.headers['x-forwarded-for']?.split(',')[0] || "IP oculto"
+                analise: {
+                    Nivel_Risco: analise.Nivel_Risco,
+                    Veredito: analise.Veredito
+                },
+                ip: clientIp,
+                duration: Date.now() - startTime
             });
-
-            context.res = { status: 200, body: analise };
-
-        } catch (error) {
-            context.log('Erro na análise:', error);
-            context.res = {
-                status: 500,
-                body: { error: 'Falha na análise técnica.', detalhe_tecnico: error.message }
-            };
+        } catch (dbError) {
+            context.log('Erro ao salvar no banco:', dbError);
         }
-    } else {
-        context.res = { status: 405, body: "Método não permitido" };
+
+        // Salvar no cache
+        cache.set(cacheKey, analise);
+
+        context.log('Análise concluída', { 
+            duration: Date.now() - startTime,
+            urls: foundUrls.length,
+            veredito: analise.Veredito 
+        });
+
+        context.res = { status: 200, body: analise };
+
+    } catch (error) {
+        context.log('Erro na análise:', error);
+        
+        // Fallback seguro
+        context.res = {
+            status: 200,
+            body: {
+                Nivel_Risco: 50,
+                Veredito: 'SUSPEITO',
+                Motivos: ['Erro na análise automática', 'Revisão manual necessária'],
+                Recomendacao: 'Falha técnica. Encaminhe para análise manual.'
+            }
+        };
     }
 };
