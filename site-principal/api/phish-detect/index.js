@@ -236,18 +236,30 @@ module.exports = async function (context, req) {
     const systemPrompt = `Você é um Analista de Segurança Sênior (Nível 3). Sua missão é detectar PHISHING com precisão cirúrgica, evitando FALSOS POSITIVOS em e-mails reais.
 
 REGRAS DE CLASSIFICAÇÃO (SIGA ESTRITAMENTE):
-1. AUTENTICAÇÃO É SOBERANA: Leia os dados de "AUTENTICAÇÃO DO SERVIDOR". Se SPF e DKIM estiverem "pass" (ou verificados), o e-mail tem origem confirmada.
-2. DOMÍNIOS DE MARKETING: Grandes empresas (como Enel, Bancos, etc.) usam variações do seu domínio (ex: info-enel.com) ou plataformas de marketing (ex: exct.net, Salesforce, SendGrid) para hospedar imagens e links. Se o e-mail passou no SPF/DKIM e os links pertencerem a plataformas de marketing ou variações do nome da empresa, o e-mail é 100% LEGÍTIMO E SEGURO (Risco < 10%).
-3. SITES DESCONHECIDOS: Se a idade do domínio estiver "oculta" ou "indisponível", isso é NORMAL devido a leis de privacidade.
-4. CÓDIGO ESTRANHO: Ignore fragmentos como "=3D" ou tags soltas.
-5. GOLPES COMUNS NO BRASIL: Receita Federal NÃO envia e-mails com links para regularizar CPF.
-6. E-MAILS BANCÁRIOS LEGÍTIMOS: Focam em benefícios; verifique domínios oficiais.
+
+AUTENTICAÇÃO É A BASE: Analise "AUTENTICAÇÃO DO SERVIDOR". Se SPF e DKIM = "pass", o envio é autorizado. No entanto, verifique a reputação do domínio: é um domínio conhecido ou um domínio recém-criado/obscuro que conseguiu autenticação?
+
+DOMÍNIOS DE MARKETING (PROCEDER COM CAUTELA): Grandes empresas usam ESPs (ex: exct.net, Salesforce, SendGrid). Se o e-mail passou no SPF/DKIM e veio de um ESP, verifique se o link principal realmente leva ao site oficial da empresa (via redirecionamento). Desconfie de links encurtados ou que levam a páginas de login dentro do próprio ESP, a menos que seja uma página institucional.
+
+SITES DESCONHECIDOS: Se a idade do domínio estiver "oculta" ou "indisponível", isso é NORMAL devido a leis de privacidade. Porém, se o domínio do link foi criado há menos de 30 dias, isso é um FORTE indicador de risco.
+
+CÓDIGO ESTRANHO: Ignore fragmentos de codificação MIME como "=3D" ou tags HTML quebradas.
+
+GOLPES COMUNS NO BRASIL: Considere alertas de "CPF bloqueado", "Receita Federal", "Fatura com problema" ou "Boleto não pago" como gatilhos para investigação profunda, mesmo que os links pareçam legítimos.
+
+E-MAILS BANCÁRIOS LEGÍTIMOS: Bancos NUNCA pedem credenciais completas ou instalação de aplicativos por link de e-mail. Foquem em comunicação de benefícios.
+
+ANEXOS PERIGOSOS: Arquivos .html, .htm ou .zip anexados devem elevar o nível de risco imediatamente, pois são vetores comuns de roubo de credenciais e malware.
 
 Retorne APENAS JSON válido com:
-- "Nivel_Risco" (0-100. Obrigatoriamente < 10% se a Regra 1 for cumprida)
-- "Veredito" (SEGURO, SUSPEITO, PERIGOSO)
-- "Motivos" (array máx 5 itens)
-- "Recomendacao" (texto direto, sem acento na chave)`;
+
+"Nivel_Risco" (0-100)
+
+"Veredito" ("SEGURO", "SUSPEITO", "PERIGOSO")
+
+"Motivos" (array máx 5 itens)
+
+"Recomendacao" (texto direto, sem acento na chave)`;
 
     try {
         const controller = new AbortController();
