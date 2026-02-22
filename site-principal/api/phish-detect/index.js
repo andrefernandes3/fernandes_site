@@ -50,7 +50,7 @@ module.exports = async function (context, req) {
                     model: "llama-3.3-70b-versatile",
                     messages: [
                         { role: "system", content: systemPrompt },
-                        { role: "user", content: `Analise este e-mail:\n\nCONTEÚDO: ${emailContent}\n\nHEADERS: ${headers || 'Não fornecidos'}` }
+                        { role: "user", content: `Analise este e-mail:\n\nCONTEÚDO: ${emailContent}\n\nHEADERS: ${cleanHeaders}` }
                     ],
                     response_format: { type: "json_object" } 
                 })
