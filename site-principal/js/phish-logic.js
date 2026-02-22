@@ -61,3 +61,41 @@ function toggleHeaders() {
     const h = document.getElementById('emailHeaders');
     h.classList.toggle('hidden');
 }
+
+// Intercepta a ação de "Colar" para extrair links ocultos
+document.addEventListener('DOMContentLoaded', () => {
+    const emailBodyInput = document.getElementById('emailBody');
+    
+    if (emailBodyInput) {
+        emailBodyInput.addEventListener('paste', function(e) {
+            // Tenta capturar a versão HTML (rica) do que foi copiado
+            const htmlData = e.clipboardData.getData('text/html');
+            
+            if (htmlData) {
+                // Cria um documento virtual para procurar os links
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(htmlData, 'text/html');
+                const links = doc.querySelectorAll('a'); // Encontra todas as tags de link
+                
+                let urls = [];
+                links.forEach(link => {
+                    // Pega apenas links externos válidos (http/https)
+                    if (link.href && link.href.startsWith('http')) {
+                        urls.push(link.href);
+                    }
+                });
+
+                // Limpa links duplicados
+                const uniqueUrls = [...new Set(urls)];
+
+                // Se encontrou algum link oculto, adiciona no final do texto
+                if (uniqueUrls.length > 0) {
+                    setTimeout(() => {
+                        this.value += "\n\n[ANÁLISE DO SISTEMA: LINKS OCULTOS DETETADOS NA MENSAGEM]\n";
+                        this.value += uniqueUrls.join("\n");
+                    }, 50); // Aguarda o navegador colar o texto normal primeiro
+                }
+            }
+        });
+    }
+});
