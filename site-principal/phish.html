@@ -26,7 +26,11 @@
                     <textarea id="emailHeaders" class="hidden"
                         placeholder="Cole os headers (SPF, DKIM...) aqui para uma análise técnica."></textarea>
                 </div>
-
+                <input type="file" id="emlFileInput" accept=".eml" style="display: none;">
+                <button type="button" class="btn btn-outline-secondary"
+                    onclick="document.getElementById('emlFileInput').click()">
+                    <i class="bi bi-file-earmark-arrow-up"></i> Carregar Ficheiro .eml
+                </button>
                 <button id="btnAnalisar" onclick="processarAnalise()">Analisar Ameaça Agora</button>
             </section>
 

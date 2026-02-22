@@ -99,3 +99,33 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
+
+// Leitor Automático de ficheiros .eml
+document.getElementById('emlFileInput')?.addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(event) {
+        const text = event.target.result;
+        
+        // Num ficheiro .eml, a primeira linha em branco separa o cabeçalho do corpo
+        const separador = text.indexOf('\r\n\r\n') !== -1 ? '\r\n\r\n' : '\n\n';
+        const parts = text.split(separador);
+        
+        if (parts.length > 1) {
+            document.getElementById('emailHeaders').value = parts[0]; // Põe o cabeçalho
+            document.getElementById('emailBody').value = parts.slice(1).join(separador); // Põe o corpo
+            
+            // Alerta visual amigável
+            Swal.fire({
+                icon: 'success',
+                title: 'Ficheiro Carregado',
+                text: 'Cabeçalhos e corpo extraídos com sucesso. Pronto para analisar!',
+                timer: 2000,
+                showConfirmButton: false
+            });
+        }
+    };
+    reader.readAsText(file);
+});
