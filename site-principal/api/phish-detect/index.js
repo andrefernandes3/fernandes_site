@@ -43,8 +43,13 @@ module.exports = async function (context, req) {
                 })
             });
 
-            const data = await response.json();
-            const analise = JSON.parse(data.choices[0].message.content);
+            const data = await groqResponse.json();
+            let rawContent = data.choices[0].message.content;
+
+            // Limpa qualquer formatação markdown (```json ... ```) que a IA possa adicionar por engano
+            rawContent = rawContent.replace(/```json/i, '').replace(/```/g, '').trim();
+
+            const result = JSON.parse(rawContent);
 
             // Salva a ameaça no MongoDB para seu banco de dados de inteligência
             const db = await connectDb();
