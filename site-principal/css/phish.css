@@ -1,23 +1,470 @@
-.phish-container { max-width: 800px; margin: 50px auto; padding: 20px; font-family: 'Segoe UI', sans-serif; }
-header h1 { color: #2563eb; display: flex; align-items: center; gap: 10px; }
-header h1 span { font-size: 0.4em; background: #eee; padding: 4px 8px; border-radius: 4px; }
+.phish-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
 
-textarea { width: 100%; border: 2px solid #e2e8f0; border-radius: 8px; padding: 15px; margin-top: 10px; min-height: 200px; font-size: 16px; }
-.hidden { display: none; }
+header {
+    text-align: center;
+    margin-bottom: 30px;
+}
 
-#btnAnalisar { width: 100%; background: #dc2626; color: white; border: none; padding: 18px; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 20px; transition: 0.3s; }
-#btnAnalisar:hover { background: #b91c1c; transform: translateY(-2px); }
+header h1 {
+    color: #00bcd4;
+    font-size: 2.5em;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
 
-/* Gráfico Circular de Risco */
-.circular-chart { max-width: 120px; }
-.circle-bg { fill: none; stroke: #eee; stroke-width: 3.8; }
-.circle { fill: none; stroke-width: 3.8; stroke-linecap: round; transition: stroke-dasharray 1s ease; }
-.risk-meter { position: relative; width: 120px; }
-.percentage { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-weight: bold; font-size: 1.2em; }
+header h1 span {
+    font-size: 0.4em;
+    background: #333;
+    color: #fff;
+    padding: 4px 8px;
+    border-radius: 4px;
+}
 
-/* Cores do Veredito */
-.perigoso { stroke: #dc2626; color: #dc2626; }
-.suspeito { stroke: #f59e0b; color: #f59e0b; }
-.seguro { stroke: #10b981; color: #10b981; }
+header p {
+    color: #ccc;
+    font-size: 1.1em;
+}
 
-.result-panel { margin-top: 40px; padding: 25px; border-radius: 12px; background: #fff; box-shadow: 0 4px 20px rgba(0,0,0,0.1); border-left: 10px solid #eee; }
+.input-area {
+    background: #1e1e1e;
+    padding: 25px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+}
+
+.input-area label {
+    display: block;
+    margin-bottom: 10px;
+    color: #00bcd4;
+    font-weight: bold;
+    font-size: 1.1em;
+}
+
+.input-area textarea {
+    width: 100%;
+    min-height: 150px;
+    padding: 15px;
+    background: #2d2d2d;
+    border: 2px solid #444;
+    border-radius: 8px;
+    color: #fff;
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 14px;
+    line-height: 1.5;
+    margin-bottom: 15px;
+    resize: vertical;
+    transition: border-color 0.3s;
+}
+
+.input-area textarea:focus {
+    outline: none;
+    border-color: #00bcd4;
+}
+
+.advanced-toggle {
+    margin-bottom: 15px;
+}
+
+#btnHeaders {
+    background: none;
+    border: none;
+    color: #00bcd4;
+    cursor: pointer;
+    font-size: 0.9em;
+    padding: 8px 0;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+#btnHeaders:hover {
+    text-decoration: underline;
+    color: #00acc1;
+}
+
+#emailHeaders {
+    margin-top: 10px;
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 12px;
+    background: #1a1a1a;
+}
+
+.btn-outline-secondary {
+    background: #333;
+    border: 2px solid #00bcd4;
+    color: #00bcd4;
+    padding: 12px 24px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 1em;
+    transition: all 0.3s;
+    margin-right: 10px;
+}
+
+.btn-outline-secondary:hover {
+    background: #00bcd4;
+    color: #000;
+    transform: translateY(-2px);
+}
+
+#btnAnalisar {
+    background: #00bcd4;
+    border: none;
+    color: #000;
+    padding: 14px 32px;
+    border-radius: 8px;
+    font-weight: bold;
+    font-size: 1.1em;
+    cursor: pointer;
+    transition: all 0.3s;
+    margin-top: 15px;
+    width: 100%;
+}
+
+#btnAnalisar:hover:not(:disabled) {
+    background: #00acc1;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,188,212,0.3);
+}
+
+#btnAnalisar:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.hidden {
+    display: none !important;
+}
+
+.result-panel {
+    background: #1e1e1e;
+    padding: 30px;
+    border-radius: 12px;
+    margin-top: 30px;
+    border-left: 5px solid #00bcd4;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+}
+
+.result-header {
+    display: flex;
+    align-items: center;
+    gap: 40px;
+    margin-bottom: 30px;
+    flex-wrap: wrap;
+}
+
+.risk-meter {
+    position: relative;
+    width: 140px;
+    height: 140px;
+}
+
+.circular-chart {
+    width: 100%;
+    height: 100%;
+}
+
+.circle-bg {
+    stroke: #333;
+    stroke-width: 3;
+    fill: none;
+}
+
+.circle {
+    stroke: #00bcd4;
+    stroke-width: 3;
+    fill: none;
+    stroke-linecap: round;
+    transition: stroke-dasharray 0.8s ease;
+}
+
+.circle.seguro {
+    stroke: #10b981;
+}
+
+.circle.suspeito {
+    stroke: #f59e0b;
+}
+
+.circle.perigoso {
+    stroke: #dc2626;
+}
+
+.percentage {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 1.8em;
+    font-weight: bold;
+    color: #fff;
+}
+
+.veredito-text {
+    flex: 1;
+}
+
+.veredito-text h3 {
+    margin: 0 0 15px 0;
+    color: #fff;
+    font-size: 1.5em;
+}
+
+.status-seguro {
+    color: #10b981 !important;
+    font-weight: bold;
+    font-size: 1.3em;
+}
+
+.status-suspeito {
+    color: #f59e0b !important;
+    font-weight: bold;
+    font-size: 1.3em;
+}
+
+.status-perigoso {
+    color: #dc2626 !important;
+    font-weight: bold;
+    font-size: 1.3em;
+}
+
+#recomendacao {
+    color: #ccc;
+    line-height: 1.6;
+    font-size: 1.1em;
+    margin: 10px 0 0 0;
+    padding: 15px;
+    background: #2d2d2d;
+    border-radius: 8px;
+    border-left: 3px solid #00bcd4;
+}
+
+.details {
+    border-top: 1px solid #333;
+    padding-top: 25px;
+}
+
+.details h4 {
+    color: #00bcd4;
+    margin-bottom: 20px;
+    font-size: 1.2em;
+}
+
+#listaMotivos {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+#listaMotivos li {
+    background: #2d2d2d;
+    padding: 12px 18px;
+    margin-bottom: 10px;
+    border-left: 4px solid #00bcd4;
+    color: #fff;
+    border-radius: 0 8px 8px 0;
+    font-size: 1em;
+    transition: transform 0.2s;
+}
+
+#listaMotivos li:hover {
+    transform: translateX(5px);
+    background: #333;
+}
+
+.cta-security {
+    text-align: center;
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid #333;
+}
+
+.cta-security p {
+    color: #ccc;
+    font-size: 1em;
+}
+
+.cta-security a {
+    color: #00bcd4;
+    text-decoration: none;
+    font-weight: bold;
+    transition: color 0.3s;
+}
+
+.cta-security a:hover {
+    color: #00acc1;
+    text-decoration: underline;
+}
+
+/* Spinner */
+.spinner-border {
+    display: inline-block;
+    width: 1.2rem;
+    height: 1.2rem;
+    vertical-align: text-bottom;
+    border: 0.2em solid currentColor;
+    border-right-color: transparent;
+    border-radius: 50%;
+    animation: spinner-border .75s linear infinite;
+    margin-right: 8px;
+}
+
+@keyframes spinner-border {
+    to { transform: rotate(360deg); }
+}
+
+/* SweetAlert customizações */
+.swal2-popup {
+    background: #1e1e1e !important;
+    color: #fff !important;
+    border-radius: 12px !important;
+}
+
+.swal2-title {
+    color: #00bcd4 !important;
+}
+
+.swal2-html-container {
+    color: #ccc !important;
+}
+
+.swal2-timer-progress-bar {
+    background: #00bcd4 !important;
+}
+
+.swal2-icon.swal2-success {
+    border-color: #10b981 !important;
+    color: #10b981 !important;
+}
+
+.swal2-icon.swal2-error {
+    border-color: #dc2626 !important;
+    color: #dc2626 !important;
+}
+
+.swal2-icon.swal2-warning {
+    border-color: #f59e0b !important;
+    color: #f59e0b !important;
+}
+
+.swal2-icon.swal2-info {
+    border-color: #00bcd4 !important;
+    color: #00bcd4 !important;
+}
+
+/* Responsividade */
+@media (max-width: 600px) {
+    .phish-container {
+        padding: 10px;
+    }
+    
+    header h1 {
+        font-size: 2em;
+    }
+    
+    .result-header {
+        flex-direction: column;
+        text-align: center;
+        gap: 20px;
+    }
+    
+    .btn-outline-secondary,
+    #btnAnalisar {
+        width: 100%;
+        margin: 5px 0;
+    }
+    
+    .risk-meter {
+        width: 120px;
+        height: 120px;
+    }
+    
+    .percentage {
+        font-size: 1.5em;
+    }
+}
+
+/* Scrollbar personalizada */
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: #1e1e1e;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #444;
+    border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #00bcd4;
+}
+
+/* Tooltip para informações extras */
+.tooltip {
+    position: relative;
+    display: inline-block;
+    cursor: help;
+}
+
+.tooltip .tooltiptext {
+    visibility: hidden;
+    width: 200px;
+    background-color: #333;
+    color: #fff;
+    text-align: center;
+    padding: 8px;
+    border-radius: 6px;
+    position: absolute;
+    z-index: 1;
+    bottom: 125%;
+    left: 50%;
+    margin-left: -100px;
+    opacity: 0;
+    transition: opacity 0.3s;
+    font-size: 0.9em;
+    border: 1px solid #00bcd4;
+}
+
+.tooltip:hover .tooltiptext {
+    visibility: visible;
+    opacity: 1;
+}
+
+/* Badge para anexos perigosos */
+.attachment-badge {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 0.8em;
+    font-weight: bold;
+    margin-left: 8px;
+}
+
+.attachment-badge.danger {
+    background: #dc2626;
+    color: white;
+}
+
+.attachment-badge.warning {
+    background: #f59e0b;
+    color: black;
+}
+
+.attachment-badge.safe {
+    background: #10b981;
+    color: white;
+}
