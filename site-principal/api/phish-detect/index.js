@@ -159,6 +159,131 @@ async function checkDomainAge(domain) {
     }
 }
 
+// Adicione esta função antes do module.exports
+function analisarDominioLocal(domain, age) {
+    const dominiosConhecidos = {
+        'receita.fazenda.gov.br': 'governo',
+        'gov.br': 'governo',
+        'bradesco.com.br': 'banco',
+        'itau.com.br': 'banco',
+        'santander.com.br': 'banco',
+        'bb.com.br': 'banco',
+        'caixa.gov.br': 'banco',
+        'paypal.com': 'pagamento',
+        'mercadoPago.com': 'pagamento'
+    };
+    
+    const partes = domain.split('.');
+    const tld = partes.slice(-2).join('.');
+    
+    let score = 0;
+    let motivo = [];
+    
+    // 1. Verificar idade do domínio
+    const idadeNum = parseInt(age);
+    if (idadeNum < 7) {
+        score += 40;
+        motivo.push(`Domínio criado há apenas ${age} (MUITO recente)`);
+    } else if (idadeNum < 30) {
+        score += 25;
+        motivo.push(`Domínio recente (${age})`);
+    } else if (idadeNum > 365) {
+        score -= 10; // Domínio antigo é menos suspeito
+    }
+    
+    // 2. Verificar se é domínio conhecido
+    if (dominiosConhecidos[tld]) {
+        score -= 20; // Domínio legítimo conhecido
+    }
+    
+    // 3. Padrões suspeitos
+    if (domain.includes('receita') && !domain.includes('gov.br')) {
+        score += 35;
+        motivo.push('Domínio imitando Receita Federal mas não é .gov.br');
+    }
+    
+    if (domain.match(/[0-9]{5,}/)) {
+        score += 15;
+        motivo.push('Domínio com muitos números (padrão suspeito)');
+    }
+    
+    if (domain.length > 30) {
+        score += 10;
+        motivo.push('Domínio muito longo');
+    }
+    
+    if (domain.includes('-')) {
+        score += 5;
+        motivo.push('Domínio com hífen');
+    }
+    
+    return { score, motivo: motivo.slice(0, 2) };
+}
+
+// Adicione também função de heurísticas combinadas
+function calcularRiscoLocal(emailData) {
+    let score = 0;
+    const motivos = [];
+    
+    // 1. Análise de autenticação
+    if (emailData.auth.spf === 'none' || emailData.auth.spf === 'fail') {
+        score += 25;
+        motivos.push('SPF ausente/falho');
+    }
+    
+    if (emailData.auth.dkim === 'none' || !emailData.auth.dkim) {
+        score += 15;
+        motivos.push('DKIM ausente');
+    }
+    
+    // 2. Análise de domínio do remetente
+    if (emailData.dominio_remetente) {
+        if (emailData.dominio_remetente.includes('receita') && 
+            !emailData.dominio_remetente.includes('gov.br')) {
+            score += 35;
+            motivos.push('Domínio suspeito imitando Receita Federal');
+        }
+        
+        if (emailData.dominio_remetente.match(/[0-9]{5,}/)) {
+            score += 20;
+            motivos.push('Domínio com padrão numérico suspeito');
+        }
+    }
+    
+    // 3. URLs suspeitas
+    if (emailData.urls_encontradas.length > 0) {
+        const urlsSuspeitas = emailData.urls_encontradas.filter(u => {
+            try {
+                const url = new URL(u);
+                return url.hostname.includes('bit.ly') ||
+                       url.hostname.includes('tinyurl') ||
+                       url.hostname.match(/[0-9]{5,}/);
+            } catch {
+                return false;
+            }
+        }).length;
+        
+        if (urlsSuspeitas > 0) {
+            score += urlsSuspeitas * 10;
+            motivos.push(`${urlsSuspeitas} URL(s) encurtada(s) suspeita(s)`);
+        }
+    }
+    
+    // 4. Discrepância entre domínio alegado e real
+    if (emailData.dominio_remetente && emailData.assunto) {
+        if (emailData.assunto.includes('Receita') && 
+            !emailData.dominio_remetente.includes('gov.br')) {
+            score += 30;
+            motivos.push('Assunto menciona Receita mas domínio não é governamental');
+        }
+    }
+    
+    return {
+        score: Math.min(95, score),
+        motivos: motivos.slice(0, 3)
+    };
+}
+
 module.exports = async function (context, req) {
     const startTime = Date.now();
     const clientIp = req.headers['x-forwarded-for']?.split(',')[0] || 'unknown';
