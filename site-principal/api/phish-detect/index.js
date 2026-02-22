@@ -1,11 +1,13 @@
 const fetch = require('node-fetch');
 const { MongoClient } = require('mongodb');
-const NodeCache = require('node-cache');
 
-const cache = new NodeCache({ stdTTL: 300 }); // 5 minutos cache
+// CACHE NATIVO (Substitui o 'node-cache' que estava a causar o erro 500)
+const memoryCache = new Map();
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutos em milissegundos
+
 let cachedDb = null;
 
-// Rate limiting simples
+// Rate limiting simples nativo
 const rateLimit = new Map();
 
 async function connectDb() {
@@ -112,13 +114,14 @@ module.exports = async function (context, req) {
     const { emailContent, headers } = req.body;
     const apiKey = process.env.GROQ_API_KEY;
 
-    // Verificar cache
+    // Verificar Cache Nativo
     const cacheKey = Buffer.from((emailContent || '') + (headers || '')).toString('base64').substring(0, 100);
-    const cachedResult = cache.get(cacheKey);
+    const cachedItem = memoryCache.get(cacheKey);
     
-    if (cachedResult) {
+    // Se existe no cache e ainda não expirou
+    if (cachedItem && (Date.now() - cachedItem.timestamp < CACHE_TTL)) {
         context.log('Resultado retornado do cache');
-        context.res = { status: 200, body: cachedResult };
+        context.res = { status: 200, body: cachedItem.data };
         return;
     }
 
@@ -161,7 +164,7 @@ Retorne JSON com:
 - "Nivel_Risco" (0-100)
 - "Veredito" (SEGURO, SUSPEITO, PERIGOSO)
 - "Motivos" (array máx 5 itens)
-- "Recomendacao" (texto curto)`;
+- "Recomendacao" (texto curto sem acento na chave)`;
 
     try {
         const groqResponse = await fetch("https://api.groq.com/openai/v1/chat/completions", {
@@ -223,8 +226,11 @@ Retorne JSON com:
             context.log('Erro ao salvar no banco:', dbError);
         }
 
-        // Salvar no cache
-        cache.set(cacheKey, analise);
+        // Guardar no Novo Cache Nativo
+        memoryCache.set(cacheKey, {
+            data: analise,
+            timestamp: Date.now()
+        });
 
         context.log('Análise concluída', { 
             duration: Date.now() - startTime,
