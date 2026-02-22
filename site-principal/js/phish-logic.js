@@ -2,10 +2,19 @@
 class EMLProcessor {
     constructor() {
         this.MAX_TOKENS_ESTIMATE = 6000;
+        this.MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
     }
 
     async processFile(file) {
         return new Promise((resolve, reject) => {
+            // Validações iniciais
+            if (file.size > this.MAX_FILE_SIZE) {
+                return reject(new Error('Arquivo muito grande (máx 5MB)'));
+            }
+            if (!file.name.toLowerCase().endsWith('.eml')) {
+                return reject(new Error('Tipo de arquivo inválido'));
+            }
+
             const reader = new FileReader();
             
             reader.onload = async (event) => {
@@ -49,6 +58,9 @@ class EMLProcessor {
                     // Calcular estimativa de risco
                     const riskScore = this.calculateRiskScore(headers, links, suspicious);
                     
+                    // Checagem de datas suspeitas
+                    const dateSuspicious = this.checkSuspiciousDates(headers.date, body);
+                    
                     resolve({
                         headers,
                         body: body.substring(0, 3000), // Limite final
@@ -59,7 +71,8 @@ class EMLProcessor {
                         subject: headers.subject || 'Sem assunto',
                         spf: headers['received-spf'] || headers['spf'] || 'Não verificado',
                         dkim: headers['dkim-signature'] ? 'Presente' : 'Ausente',
-                        dmarc: headers['dmarc'] || 'Não verificado'
+                        dmarc: headers['dmarc'] || 'Não verificado',
+                        dateSuspicious // Novo campo
                     });
                     
                 } catch (error) {
@@ -76,8 +89,8 @@ class EMLProcessor {
         if (!text) return [];
         
         const links = new Set();
-        const urlRegex = /(https?:\/\/[^\s"\'<>\]\)]+)/gi;
-        const hrefRegex = /href=["'](https?:\/\/[^"']+)["']/gi;
+        const urlRegex = /(https?:\/\/[^\s"\'<>\]\)]{1,200})/gi; // Otimizado contra ReDoS
+        const hrefRegex = /href=["'](https?:\/\/[^"']{1,200})["']/gi;
         
         let match;
         while ((match = urlRegex.exec(text)) !== null) {
@@ -117,7 +130,11 @@ class EMLProcessor {
             { pattern: /confirmar identidade/i, desc: 'Confirmação de identidade' },
             { pattern: /heran[cç]a|pr[eê]mio/i, desc: 'Golpe financeiro' },
             { pattern: /urgente|imediato|r[aá]pido/i, desc: 'Tom de urgência' },
-            { pattern: /anexo|documento anexo/i, desc: 'Menção a anexo' }
+            { pattern: /anexo|documento anexo/i, desc: 'Menção a anexo' },
+            // Novos patterns para golpes brasileiros
+            { pattern: /irregularidade fiscal|pendência fiscal|suspensão do cpf|bloqueio do cpf|restrição ativa/i, desc: 'Ameaça de irregularidade governamental' },
+            { pattern: /prazo final|regularize imediatamente/i, desc: 'Urgência falsa governamental' },
+            { pattern: /receita federal|ministério da fazenda/i, desc: 'Imitação de órgão oficial' }
         ];
         
         patterns.forEach(p => {
@@ -154,6 +171,23 @@ class EMLProcessor {
         score += suspicious.length * 6;
         
         return Math.min(95, score);
+    }
+
+    // Nova função: Checar datas suspeitas
+    checkSuspiciousDates(emailDate, body) {
+        const now = new Date(); // Data atual
+        if (emailDate) {
+            const parsedDate = new Date(emailDate);
+            if (parsedDate > now) return 'Data do e-mail no futuro (suspeito)';
+        }
+        
+        const dateRegex = /\d{2}\/\d{2}\/\d{4}/g;
+        const datesInBody = body.match(dateRegex) || [];
+        for (let d of datesInBody) {
+            const parsedD = new Date(d.split('/').reverse().join('-'));
+            if (parsedD > now || (now - parsedD) < 0) return 'Datas inconsistentes ou expiradas no corpo';
+        }
+        return null;
     }
 }
 
@@ -245,21 +279,38 @@ function exibirResultados(res) {
         lista.appendChild(li);
     });
 
-   // NOVO: Preencher detalhes de autenticação
+    // Adicionar alertas de data se houver
+    if (res.dateSuspicious) {
+        const li = document.createElement('li');
+        li.innerHTML = escapeHtml(res.dateSuspicious);
+        lista.appendChild(li);
+    }
+
+    // NOVO: Adicionar seção de alertas
+    const alertSection = document.createElement('div');
+    alertSection.className = 'alert-section';
+    alertSection.innerHTML = `<h4>Alertas Relacionados</h4><p>Ex.: Receita Federal não envia e-mails com links para regularizar CPF. Verifique em <a href="https://www.gov.br/receitafederal/pt-br" target="_blank" rel="noopener noreferrer">gov.br</a>.</p>`;
+    
+    // Verificar se já existe para não duplicar
+    if (!document.querySelector('.alert-section')) {
+        panel.appendChild(alertSection);
+    }
+
+    // NOVO: Preencher detalhes de autenticação
     if (res.detalhes_autenticacao) {
         document.getElementById('spfDetail').innerHTML = `
             <span class="badge ${getStatusClass(res.detalhes_autenticacao.spf)}">
-                ${res.detalhes_autenticacao.spf}
+                ${escapeHtml(res.detalhes_autenticacao.spf)}
             </span>
         `;
         document.getElementById('dkimDetail').innerHTML = `
             <span class="badge ${getStatusClass(res.detalhes_autenticacao.dkim)}">
-                ${res.detalhes_autenticacao.dkim}
+                ${escapeHtml(res.detalhes_autenticacao.dkim)}
             </span>
         `;
         document.getElementById('dmarcDetail').innerHTML = `
             <span class="badge ${getStatusClass(res.detalhes_autenticacao.dmarc)}">
-                ${res.detalhes_autenticacao.dmarc}
+                ${escapeHtml(res.detalhes_autenticacao.dmarc)}
             </span>
         `;
         
@@ -445,17 +496,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const file = e.target.files[0];
             if (!file) return;
 
-            if (!file.name.toLowerCase().endsWith('.eml')) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Arquivo Inválido',
-                    text: 'Por favor, selecione um arquivo .eml válido.',
-                    timer: 3000,
-                    showConfirmButton: false
-                });
-                return;
-            }
-
             const btn = document.getElementById('btnAnalisar');
             const originalText = btn.innerHTML;
             btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Processando...';
@@ -491,7 +531,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     icon: 'success',
                     title: 'Arquivo Processado',
                     html: `
-                        <b>De:</b> ${result.from}<br>
+                        <b>De:</b> ${escapeHtml(result.from)}<br>
                         <b>Links:</b> ${result.links.length}<br>
                         <b>Tokens Estimados:</b> ~${tokensEstimados}<br>
                         <b>Risco:</b> ${result.riskScore}%<br>
@@ -506,7 +546,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 Swal.fire({
                     icon: 'error',
                     title: 'Erro',
-                    text: 'Não foi possível processar o arquivo .eml',
+                    text: error.message || 'Não foi possível processar o arquivo .eml',
                     timer: 3000,
                     showConfirmButton: false
                 });

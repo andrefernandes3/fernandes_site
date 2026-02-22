@@ -1,4 +1,6 @@
 const fetch = require('node-fetch');
+const validator = require('validator');
+const crypto = require('crypto');
 const { MongoClient } = require('mongodb');
 
 // CACHE NATIVO
@@ -35,14 +37,17 @@ function checkRateLimit(ip) {
     const now = Date.now();
     const windowMs = 60000;
     const maxRequests = 10;
+    
+    // Anonimização do IP
+    const hashedIp = crypto.createHash('sha256').update(ip + (process.env.IP_SALT || 'default_salt')).digest('hex');
 
-    const userRequests = rateLimit.get(ip) || [];
+    const userRequests = rateLimit.get(hashedIp) || [];
     const recentRequests = userRequests.filter(time => now - time < windowMs);
 
     if (recentRequests.length >= maxRequests) return false;
 
     recentRequests.push(now);
-    rateLimit.set(ip, recentRequests);
+    rateLimit.set(hashedIp, recentRequests);
     return true;
 }
 
@@ -70,7 +75,7 @@ function extractUrls(text) {
     return Array.from(urls).slice(0, 20);
 }
 
-// NOVA FUNÇÃO: Extrair detalhes de autenticação
+// Função para extrair detalhes de autenticação
 function extractAuthDetails(headers) {
     const authDetails = {
         spf: null,
@@ -102,7 +107,7 @@ function extractAuthDetails(headers) {
     return authDetails;
 }
 
-// NOVA FUNÇÃO: Extrair remetente
+// Função para extrair remetente
 function extractSender(headers) {
     if (!headers) return 'Não identificado';
 
@@ -115,7 +120,7 @@ function extractSender(headers) {
     return 'Não identificado';
 }
 
-// NOVA FUNÇÃO: Extrair IP do remetente
+// Função para extrair IP do remetente
 function extractSenderIP(headers) {
     if (!headers) return null;
 
@@ -159,7 +164,6 @@ async function checkDomainAge(domain) {
     }
 }
 
-// Adicione esta função antes do module.exports
 function analisarDominioLocal(domain, age) {
     const dominiosConhecidos = {
         'receita.fazenda.gov.br': 'governo',
@@ -170,7 +174,7 @@ function analisarDominioLocal(domain, age) {
         'bb.com.br': 'banco',
         'caixa.gov.br': 'banco',
         'paypal.com': 'pagamento',
-        'mercadoPago.com': 'pagamento'
+        'mercadopago.com.br': 'pagamento'
     };
 
     const partes = domain.split('.');
@@ -220,7 +224,6 @@ function analisarDominioLocal(domain, age) {
     return { score, motivo: motivo.slice(0, 2) };
 }
 
-// Adicione também função de heurísticas combinadas
 function calcularRiscoLocal(emailData) {
     let score = 0;
     const motivos = [];
@@ -320,6 +323,10 @@ module.exports = async function (context, req) {
     const { emailContent, headers } = req.body;
     const apiKey = process.env.GROQ_API_KEY;
 
+    // Sanitização com validator
+    const cleanBody = emailContent ? validator.escape(emailContent) : '';
+    const cleanHeaders = headers ? validator.escape(headers) : '';
+
     // Validação básica
     if (!emailContent || emailContent.trim().length < 10) {
         context.res.status = 400;
@@ -354,16 +361,16 @@ module.exports = async function (context, req) {
     const sender = extractSender(headers);
     const senderIP = extractSenderIP(headers);
 
-    // MELHORIA 1: Limpeza de HTML e Limite reduzido
-    let cleanBody = emailContent || 'Não fornecido';
-    cleanBody = cleanBody.replace(/<[^>]*>?/gm, '').replace(/\s+/g, ' ').trim();
-    if (cleanBody.length > 4000) {
-        cleanBody = cleanBody.substring(0, 4000) + '... [CORTADO]';
+    // Limpeza de HTML e Limite reduzido
+    let cleanBodyProcessed = emailContent || 'Não fornecido';
+    cleanBodyProcessed = cleanBodyProcessed.replace(/<[^>]*>?/gm, '').replace(/\s+/g, ' ').trim();
+    if (cleanBodyProcessed.length > 4000) {
+        cleanBodyProcessed = cleanBodyProcessed.substring(0, 4000) + '... [CORTADO]';
     }
 
-    let cleanHeaders = headers || 'Não fornecidos';
-    if (cleanHeaders !== 'Não fornecidos' && cleanHeaders.length > 2000) {
-        cleanHeaders = cleanHeaders.substring(0, 2000) + '... [CORTADO]';
+    let cleanHeadersProcessed = headers || 'Não fornecidos';
+    if (cleanHeadersProcessed !== 'Não fornecidos' && cleanHeadersProcessed.length > 2000) {
+        cleanHeadersProcessed = cleanHeadersProcessed.substring(0, 2000) + '... [CORTADO]';
     }
 
     // Investigação de domínios (limitada)
@@ -382,7 +389,7 @@ module.exports = async function (context, req) {
         domainIntel = "DOMÍNIOS:\n";
         const domainsToCheck = uniqueDomains.slice(0, 5);
 
-        // MELHORIA 3: Consultas WHOIS Paralelas (Velocidade Extrema)
+        // Consultas WHOIS Paralelas
         const ageResults = await Promise.all(
             domainsToCheck.map(domain => checkDomainAge(domain).then(age => ({ domain, age })))
         );
@@ -393,14 +400,25 @@ module.exports = async function (context, req) {
         });
     }
 
-    // MELHORIA FINAL: Regras anti-paranoia para Falsos Positivos
+    // Heurística contra golpes conhecidos
+    const knownScams = /receita federal|irregularidade cpf|suspensão do cpf|bloqueio do cpf/i.test(cleanBodyProcessed);
+    let localScore = 0;
+    
+    if (knownScams && !foundUrls.some(u => u.includes('gov.br'))) {
+        localScore += 40;
+    }
+
+    // System Prompt refinado
     const systemPrompt = `Você é um Analista de Segurança Sênior (Nível 3). Sua missão é detectar PHISHING com precisão cirúrgica, evitando FALSOS POSITIVOS em e-mails reais.
 
 REGRAS DE CLASSIFICAÇÃO (SIGA ESTRITAMENTE):
 1. AUTENTICAÇÃO É SOBERANA: Leia os dados de "AUTENTICAÇÃO DO SERVIDOR". Se SPF e DKIM estiverem "pass" (ou verificados) e o Remetente (From) usar o MESMO domínio dos links encontrados na mensagem, o e-mail é 100% LEGÍTIMO E SEGURO. O Nível de Risco DEVE ser menor que 10%.
-2. SITES DESCONHECIDOS: Se a idade do domínio estiver "oculta" ou "indisponível", isso é NORMAL devido a leis de privacidade. Não aumente o risco por causa disso. Apenas penalize domínios que explicitly tenham "menos de 30 dias".
+2. SITES DESCONHECIDOS: Se a idade do domínio estiver "oculta" ou "indisponível", isso é NORMAL devido a leis de privacidade. Não aumente o risco por causa disso. Apenas penalize domínios que explicitamente tenham "menos de 30 dias".
 3. E-MAILS CURTOS/BOAS-VINDAS: Mensagens de "Welcome", "Thanks for subscribing", ou com pouco texto são normais para sistemas automáticos.
 4. CÓDIGO ESTRANHO: Ignore fragmentos como "=3D" ou tags soltas. Isso é apenas formatação 'Quoted-Printable' do servidor e não ofuscação maliciosa.
+5. GOLPES COMUNS NO BRASIL: Receita Federal NÃO envia e-mails com links para regularizar CPF ou suspensões. Qualquer e-mail ameaçando bloqueio/suspensão sem autenticação oficial é phishing (risco >80%).
+6. E-MAILS BANCÁRIOS LEGÍTIMOS (ex.: Itaú): Focam em benefícios sem ameaças; verifique domínios como itau.com.br.
+7. Penalize urgência extrema (ex.: 'prazo final', 'suspensão imediata') se não houver SPF/DKIM pass.
 
 Retorne APENAS JSON válido com:
 - "Nivel_Risco" (0-100. Obrigatoriamente < 10% se a Regra 1 for cumprida)
@@ -432,8 +450,7 @@ Retorne APENAS JSON válido com:
                 model: "llama-3.3-70b-versatile",
                 messages: [
                     { role: "system", content: systemPrompt },
-                    // Agora enviamos a Autenticação mastigada logo antes dos domínios!
-                    { role: "user", content: `EMAIL:\n${cleanBody}\n\n${intelMastigada}\n\n${domainIntel}\n\nHEADERS BRUTOS:\n${cleanHeaders}` }
+                    { role: "user", content: `EMAIL:\n${cleanBodyProcessed}\n\n${intelMastigada}\n\n${domainIntel}\n\nHEADERS BRUTOS:\n${cleanHeadersProcessed}` }
                 ],
                 response_format: { type: "json_object" },
                 max_tokens: 500,
@@ -454,15 +471,20 @@ Retorne APENAS JSON válido com:
         let analise;
         try {
             analise = JSON.parse(rawContent);
+            
+            // Ajustar risco baseado na heurística local
+            let riscoFinal = Math.min(100, Math.max(0, parseInt(analise.Nivel_Risco) || 50));
+            riscoFinal = Math.min(95, riscoFinal + localScore);
+            
             analise = {
-                Nivel_Risco: Math.min(100, Math.max(0, parseInt(analise.Nivel_Risco) || 50)),
+                Nivel_Risco: riscoFinal,
                 Veredito: ['SEGURO', 'SUSPEITO', 'PERIGOSO'].includes(analise.Veredito) ? analise.Veredito : 'SUSPEITO',
                 Motivos: (Array.isArray(analise.Motivos) ? analise.Motivos : ['Análise automática']).slice(0, 5),
                 Recomendacao: (analise.Recomendacao || 'Consulte um especialista').substring(0, 200)
             };
         } catch {
             analise = {
-                Nivel_Risco: 50,
+                Nivel_Risco: Math.min(95, 50 + localScore),
                 Veredito: 'SUSPEITO',
                 Motivos: ['Erro no formato da resposta'],
                 Recomendacao: 'Recomendamos análise manual'
@@ -524,7 +546,7 @@ Retorne APENAS JSON válido com:
 
         context.res.status = 200;
         context.res.body = {
-            Nivel_Risco: 50,
+            Nivel_Risco: Math.min(95, 50 + localScore),
             Veredito: 'SUSPEITO',
             Motivos: ['Erro na análise automática'],
             Recomendacao: error.name === 'AbortError'

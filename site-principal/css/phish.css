@@ -671,3 +671,8 @@ header p {
         min-width: auto;
     }
 }
+.warning {
+    color: #f59e0b;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
