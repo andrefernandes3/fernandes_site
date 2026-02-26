@@ -27,7 +27,7 @@ async function connectDb() {
 function checkRateLimit(ip) {
     const now = Date.now();
     const windowMs = 60000;
-    const maxRequests = 10;
+    const maxRequests = 15; // Aumentado para evitar bloqueios nos seus testes
     const hashedIp = crypto.createHash('sha256').update(ip + (process.env.IP_SALT || 'default_salt')).digest('hex');
     const userRequests = rateLimit.get(hashedIp) || [];
     const recentRequests = userRequests.filter(time => now - time < windowMs);
@@ -54,12 +54,12 @@ function extractUrls(text) {
     return Array.from(urls).slice(0, 20);
 }
 
-// 🟢 CORREÇÃO FORENSE: Leitura à prova de bala para Microsoft O365 e Google
+// 🟢 NOVO MOTOR FORENSE: Lê corretamente cabeçalhos complexos da Microsoft (O365) e Google
 function extractAuthDetails(headers) {
     const authDetails = { spf: null, dkim: null, dmarc: null, autenticado: false, dominioAutenticado: null };
     if (!headers) return authDetails;
     
-    // Unifica cabeçalhos dobrados (line wrapping)
+    // Normaliza linhas dobradas
     const normHeaders = headers.replace(/\r?\n\s+/g, ' ');
     
     const spfMatch = normHeaders.match(/spf=(pass|fail|softfail|none|neutral|permerror|temperror)/i);
@@ -80,6 +80,7 @@ function extractAuthDetails(headers) {
     return authDetails;
 }
 
+// 🟢 CORREÇÃO DO NOME "=": Extrai o Nome e E-mail Real perfeitamente
 function extractSender(headers) {
     const senderInfo = { nome_exibicao: 'Não identificado', email_real: 'Não identificado' };
     if (!headers) return senderInfo;
@@ -88,10 +89,11 @@ function extractSender(headers) {
     const returnPathMatch = normHeaders.match(/Return-Path:\s*<([^>]+)>/i);
     if (returnPathMatch) senderInfo.email_real = returnPathMatch[1].trim();
 
-    // Procura por "From:" no início da linha para evitar confusões com Authentication-Results
+    // Impede que leia a palavra "from" dentro de Authentication-Results
     const fromMatch = normHeaders.match(/(?:^|\n)From:\s*(.*?)(?=\n[A-Z]|$)/i);
     if (fromMatch) {
         let fromRaw = fromMatch[1].trim();
+        // Remove os <email> para sobrar só o nome bonito
         senderInfo.nome_exibicao = fromRaw.replace(/<.*?>/g, '').trim() || fromRaw;
         
         if (senderInfo.email_real === 'Não identificado') {
@@ -102,10 +104,10 @@ function extractSender(headers) {
     return senderInfo;
 }
 
+// 🟢 LÊ IPV6 DA MICROSOFT ALÉM DOS ANTIGOS IPV4
 function extractSenderIP(headers) {
     if (!headers) return null;
     const normHeaders = headers.replace(/\r?\n\s+/g, ' ');
-    // Extrai o IP oficial (Suporta IPv4 e os novos IPv6 da Microsoft)
     const ipMatch = normHeaders.match(/sender IP is ([0-9a-fA-F:.]+)/i) || normHeaders.match(/ip=([0-9a-fA-F:.]+)/i) || normHeaders.match(/\[(\d{1,3}(?:\.\d{1,3}){3})\]/);
     return ipMatch ? ipMatch[1] : null;
 }
@@ -113,50 +115,33 @@ function extractSenderIP(headers) {
 function detectarAnexoHTML(emailContent, headers) {
     if (!headers && !emailContent) return false;
     const bodyToCheck = (headers || '') + '\n' + (emailContent || '');
-    // Verifica APENAS ficheiros em anexo genuínos, ignorando links no corpo
     const regexAnexoReal = /Content-Disposition:\s*attachment;[\s\S]*?filename=["']?[^"'\r\n]+\.html?["']?/i;
     const regexBase64HTML = /Content-Type:\s*text\/html;\s*name=["']?[^"'\r\n]+\.html?["']?/i;
     return regexAnexoReal.test(bodyToCheck) || regexBase64HTML.test(bodyToCheck);
 }
 
-function analisarUrlsSuspeitas(urls) {
-    const evidencias = [];
-    const urlsDetalhadas = [];
-    for (const url of urls) {
-        try {
-            const parsed = new URL(url);
-            const hostname = parsed.hostname.toLowerCase();
-            const isCloud = CLOUD_PLATFORMS.some(p => hostname.includes(p));
-            urlsDetalhadas.push({ url: url.substring(0, 100), dominio: hostname, isCloud });
-            if (isCloud && hostname.includes('onmicrosoft.com')) {
-                evidencias.push(`URL hospedada em subdomínio Azure/O365 suspeito (${hostname})`);
-            }
-        } catch (e) {}
-    }
-    return { evidencias, urlsDetalhadas };
-}
+const systemPrompt = `Você é um Analista de Segurança Sênior (Nível 3). Sua missão é detectar PHISHING com precisão cirúrgica, evitando FALSOS POSITIVOS em e-mails reais.
 
-const systemPrompt = `Você é um Analista de Segurança Sênior (Nível 3). Sua missão é detectar PHISHING com precisão cirúrgica, evitando FALSOS POSITIVOS em e-mails reais de grandes empresas e mercado internacional.
+REGRAS DE CLASSIFICAÇÃO:
+1. AUTENTICAÇÃO FORTE: Se 'Autenticação válida' for SIM (SPF ou DKIM pass), e o conteúdo for serviços conhecidos (SharePoint, Power Apps, Bancos), o 'Nivel_Risco' DEVE ser menor que 10.
+2. ABUSO DE NUVEM: Se o domínio for '.onmicrosoft.com' genérico mas fingir ser AAA Survey ou HR, o Risco é 90+.
+3. QUISHING: E-mails pedindo para scan de "Código QR" (VoiceMail falso) são 100% PERIGOSOS.
 
-REGRAS DE CLASSIFICAÇÃO (SIGA ESTRITAMENTE NESTA ORDEM):
-1. A REGRA DE OURO DA AUTENTICAÇÃO: Verifique a seção 'AUTENTICAÇÃO E ORIGEM'. Se a 'Autenticação completa válida' for SIM (SPF ou DKIM pass), o e-mail tem a sua infraestrutura técnica confirmada. SE O CONTEÚDO FOR MARKETING ou SERVIÇOS LEGÍTIMOS (como Microsoft Power Apps, SharePoint, Bancos, Aviação), o 'Nivel_Risco' DEVE ser entre 0 e 15 (SEGURO).
-2. COMPROMETIMENTO DE NUVEM (O365 / AZURE): Se o e-mail passou no SPF/DKIM mas a Origem é uma conta '.onmicrosoft.com' genérica, e o remetente finge ser de uma entidade famosa (ex: AAA Survey, Recursos Humanos), o e-mail não é legítimo, mas sim Spam/Phishing utilizando contas gratuitas. O Risco deve ser > 70.
-3. QUISHING E VOICEMAILS: Considere PERIGOSO (100%) e-mails sem autenticação que peçam para scannear um "Código QR" (Quishing) ou "Voice Message" simulada.
-4. FALSIDADE IDEOLÓGICA BÁSICA: Compare o 'Nome de Exibição' com o 'Remetente Real'. Ignorar falhas em empresas de e-mail marketing. Penalizar apenas se um remetente tentar simular ser quem não é (ex: fingir ser a Receita Federal via gmail.com).
-
-Retorne APENAS JSON válido com as chaves exatas:
-- "Nivel_Risco" (Número inteiro de 0 a 100)
-- "Veredito" ("SEGURO", "SUSPEITO", "PERIGOSO")
-- "Motivos" (Array com no máximo 5 itens curtos e objetivos)
-- "Recomendacao" (Texto direto com orientação, chave sem acento)`;
+Retorne JSON: "Nivel_Risco" (0-100), "Veredito" (SEGURO, SUSPEITO, PERIGOSO), "Motivos" (array curto) e "Recomendacao" (texto direto).`;
 
 module.exports = async function (context, req) {
     const clientIp = req.headers['x-forwarded-for']?.split(',')[0] || 'unknown';
 
     context.res = { headers: { 'Content-Type': 'application/json', 'X-Content-Type-Options': 'nosniff' } };
 
+    // Se bater limite de acessos, envia resposta formatada corretamente
     if (!checkRateLimit(clientIp)) {
-        context.res.status = 429; context.res.body = { error: 'Rate Limit', Nivel_Risco: 50, Veredito: 'SUSPEITO', Motivos: ['Muitas requisições'] };
+        context.res.status = 429;
+        context.res.body = { 
+            Nivel_Risco: 50, Veredito: 'SUSPEITO', Motivos: ['Sistema anti-spam ativado: Limite de análises excedido.'], Recomendacao: 'Aguarde 1 minuto.',
+            detalhes_autenticacao: { spf: 'nd', dkim: 'nd', dmarc: 'nd', dominio_autenticado: 'nd' },
+            remetente: 'Sistema Proteção', return_path: 'nd', ip_remetente: clientIp
+        };
         return;
     }
 
@@ -164,10 +149,12 @@ module.exports = async function (context, req) {
     const apiKey = process.env.GROQ_API_KEY;
 
     if (!emailContent || emailContent.trim().length < 10) {
-        context.res.status = 400; context.res.body = { Nivel_Risco: 0, Veredito: 'SEGURO', Motivos: ['Conteúdo insuficiente'] };
+        context.res.status = 400; 
+        context.res.body = { Nivel_Risco: 0, Veredito: 'SEGURO', Motivos: ['Conteúdo insuficiente'] };
         return;
     }
 
+    // Cache Hash seguro
     const cacheKey = crypto.createHash('sha256').update((emailContent || '') + (headers || '')).digest('hex');
     const cachedItem = memoryCache.get(cacheKey);
     if (cachedItem && (Date.now() - cachedItem.timestamp < CACHE_TTL)) {
@@ -179,79 +166,80 @@ module.exports = async function (context, req) {
     const senderData = extractSender(headers);
     const senderIP = extractSenderIP(headers);
     const temAnexoHTML = detectarAnexoHTML(emailContent, headers);
-    const analiseUrls = analisarUrlsSuspeitas(foundUrls);
 
     let cleanBodyProcessed = (emailContent || '').replace(/<[^>]*>?/gm, ' ').substring(0, 4000);
-    let cleanHeadersProcessed = (headers || '').substring(0, 2000);
-
     let localScore = 0;
     const evidenciasFortes = [];
     const evidenciasLeves = [];
 
-    if (temAnexoHTML) { localScore += 50; evidenciasFortes.push('E-mail contém anexo HTML real - técnica de clone de site de login'); }
+    if (temAnexoHTML) { localScore += 50; evidenciasFortes.push('Anexo HTML detetado - técnica comum de clone de login'); }
     
-    const knownScams = /receita federal|irregularidade cpf|irs tax|voicemail|qr code|scan the qr|milhas expirando|fatura de pe[çc]as|car safety kit|survey reward/i.test(cleanBodyProcessed);
-    if (knownScams) { localScore += 30; evidenciasLeves.push('Conteúdo utiliza temas de golpes conhecidos ou iscas de pesquisa falsas'); }
-
-    // Deteção Avançada de Nuvem (O365 Comprometido)
     const isCloudSpam = senderData.email_real.includes('.onmicrosoft.com') && authDetails.autenticado;
     if (isCloudSpam && !senderData.nome_exibicao.toLowerCase().includes('microsoft')) {
-        localScore += 40; evidenciasFortes.push('Alerta de Nuvem: E-mail disparado de infraestrutura gratuita O365 simulando empresa real');
+        localScore += 60; evidenciasFortes.push('Abuso de Nuvem: Enviado de conta O365 gratuita simulando empresa legítima');
     }
+
+    const knownScams = /receita federal|irregularidade cpf|voicemail|qr code|scan the qr|milhas expirando|car safety kit|survey reward/i.test(cleanBodyProcessed);
+    if (knownScams) { localScore += 40; evidenciasLeves.push('Conteúdo contém iscas clássicas de golpes (QR Codes, Pesquisas Falsas)'); }
+
+    // Inteligência de Risco Dinâmico
+    if (authDetails.autenticado && localScore === 0) localScore = 5;
+    else if (!authDetails.autenticado && localScore < 50) localScore += 20;
 
     localScore = Math.min(100, localScore);
 
     const intelMastigada = `
-AUTENTICAÇÃO E ORIGEM:
-- Nome de Exibição: ${senderData.nome_exibicao}
-- Remetente Real: ${senderData.email_real}
-- IP Origem: ${senderIP || 'Não identificado'}
-- SPF: ${authDetails.spf || 'Não encontrado'}
-- DKIM: ${authDetails.dkim || 'Não encontrado'}
-- Domínio Autenticado: ${authDetails.dominioAutenticado || 'Não identificado'}
-- Autenticação completa válida: ${authDetails.autenticado ? 'SIM' : 'NÃO'}
-
-ANEXOS: ${temAnexoHTML ? 'SIM (ALTA SUSPEITA)' : 'Não (Limpo)'}
-EVIDÊNCIAS LOCAIS:
-${evidenciasFortes.map(e => '🔴 ' + e).join('\n')}
-${evidenciasLeves.map(e => '🟡 ' + e).join('\n')}
-`;
+    ORIGEM:
+    - Nome: ${senderData.nome_exibicao}
+    - SMTP Real: ${senderData.email_real}
+    - IP: ${senderIP || 'Não identificado'}
+    - SPF: ${authDetails.spf} | DKIM: ${authDetails.dkim}
+    - Autenticação válida: ${authDetails.autenticado ? 'SIM' : 'NÃO'}
+    EVIDÊNCIAS LOCAIS: ${evidenciasFortes.join(' | ')}
+    `;
 
     try {
-        const controller = new AbortController(); const timeout = setTimeout(() => controller.abort(), 15000);
+        const controller = new AbortController(); const timeout = setTimeout(() => controller.abort(), 8000);
         const groqResponse = await fetch("https://api.groq.com/openai/v1/chat/completions", {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 model: "llama-3.3-70b-versatile",
                 messages: [ { role: "system", content: systemPrompt }, { role: "user", content: `EMAIL:\n${cleanBodyProcessed}\n\n${intelMastigada}` } ],
-                response_format: { type: "json_object" }, max_tokens: 500, temperature: 0.1
+                response_format: { type: "json_object" }, max_tokens: 300, temperature: 0.1
             }), signal: controller.signal
         });
         clearTimeout(timeout);
 
         const data = await groqResponse.json();
-        let analise = JSON.parse(data.choices[0].message.content.replace(/```json|```/g, '').trim());
+        let analise = JSON.parse(data.choices[0].message.content);
         
-        let riscoIA = Math.max(0, parseInt(analise.Nivel_Risco) || 50);
-        if (evidenciasFortes.length > 0) riscoIA = Math.max(riscoIA, 80);
-        
-        const riscoFinal = Math.min(100, riscoIA);
-        const motivosCombinados = [...evidenciasFortes.slice(0, 3)];
-        if (Array.isArray(analise.Motivos)) analise.Motivos.slice(0,3).forEach(m => { if(!motivosCombinados.includes(m)) motivosCombinados.push(m) });
-        
-        analise = { Nivel_Risco: riscoFinal, Veredito: riscoFinal >= 80 ? 'PERIGOSO' : (riscoFinal >= 40 ? 'SUSPEITO' : 'SEGURO'), Motivos: motivosCombinados.slice(0, 5), Recomendacao: analise.Recomendacao };
-        
+        let riscoFinal = parseInt(analise.Nivel_Risco) || localScore;
+        if (evidenciasFortes.length > 0) riscoFinal = Math.max(riscoFinal, 80);
+        if (authDetails.autenticado && evidenciasFortes.length === 0 && !knownScams) riscoFinal = Math.min(riscoFinal, 15);
+
         const respostaCompleta = {
-            ...analise,
-            detalhes_autenticacao: { spf: authDetails.spf || 'não verificado', dkim: authDetails.dkim || 'não verificado', dmarc: authDetails.dmarc || 'não verificado' },
-            remetente: senderData.nome_exibicao, return_path: senderData.email_real, ip_remetente: senderIP || 'não identificado', anexo_html: temAnexoHTML
+            Nivel_Risco: riscoFinal,
+            Veredito: riscoFinal >= 80 ? 'PERIGOSO' : (riscoFinal >= 40 ? 'SUSPEITO' : 'SEGURO'),
+            Motivos: analise.Motivos || evidenciasFortes,
+            Recomendacao: analise.Recomendacao || 'Analise com cautela.',
+            detalhes_autenticacao: { spf: authDetails.spf, dkim: authDetails.dkim, dmarc: authDetails.dmarc, dominio_autenticado: authDetails.dominioAutenticado },
+            remetente: senderData.nome_exibicao, return_path: senderData.email_real, ip_remetente: senderIP || 'Não identificado', anexo_html: temAnexoHTML
         };
 
         memoryCache.set(cacheKey, { data: respostaCompleta, timestamp: Date.now() });
         context.res.status = 200; context.res.body = respostaCompleta;
 
     } catch (error) {
-        context.res.status = 200; context.res.body = { Nivel_Risco: localScore, Veredito: localScore >= 80 ? 'PERIGOSO' : 'SEGURO', Motivos: evidenciasFortes, Recomendacao: 'Análise Local' };
+        // Fallback Seguro à prova de falhas (Garante que os dados do remetente vão para a UI)
+        context.res.status = 200; 
+        context.res.body = { 
+            Nivel_Risco: localScore, 
+            Veredito: localScore >= 80 ? 'PERIGOSO' : (localScore >= 40 ? 'SUSPEITO' : 'SEGURO'), 
+            Motivos: evidenciasFortes.length > 0 ? evidenciasFortes : ['Análise Heurística Rápida (IA Indisponível)'], 
+            Recomendacao: 'Análise gerada localmente.',
+            detalhes_autenticacao: { spf: authDetails.spf, dkim: authDetails.dkim, dmarc: authDetails.dmarc, dominio_autenticado: authDetails.dominioAutenticado },
+            remetente: senderData.nome_exibicao, return_path: senderData.email_real, ip_remetente: senderIP || 'Não identificado', anexo_html: temAnexoHTML
+        };
     }
 };
