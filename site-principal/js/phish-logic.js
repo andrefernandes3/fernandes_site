@@ -105,40 +105,67 @@ function criarDetalhesAdicionais(res) {
     container.className = 'detalhes-adicionais mt-4 card shadow-sm';
     
     const auth = res.detalhes_autenticacao;
-    const statusClasses = {
-        success: 'badge-success', danger: 'badge-danger', warning: 'badge-warning', secondary: 'badge-secondary'
-    };
+    
+    // Constrói a lista de URLs (se existirem)
+    let urlsHtml = '';
+    if (res.urls_encontradas && res.urls_encontradas.length > 0) {
+        // Limita a 10 URLs no ecrã para não desformatar o PDF
+        const urlsMostrar = res.urls_encontradas.slice(0, 10);
+        const listaUrls = urlsMostrar.map(u => `<li class="list-group-item py-1 text-muted small" style="word-break: break-all;">${escapeHtml(u)}</li>`).join('');
+        
+        urlsHtml = `
+            <div class="row mt-3 border-top pt-3">
+                <div class="col-12">
+                    <h5><i class="bi bi-link-45deg text-primary"></i> URLs e Links Detetados Forensicamente</h5>
+                    <ul class="list-group list-group-flush border rounded">
+                        ${listaUrls}
+                    </ul>
+                    ${res.urls_encontradas.length > 10 ? `<div class="text-muted small mt-1">+ ${res.urls_encontradas.length - 10} links ocultados.</div>` : ''}
+                </div>
+            </div>
+        `;
+    } else {
+        urlsHtml = `
+            <div class="row mt-3 border-top pt-3">
+                <div class="col-12">
+                    <h5><i class="bi bi-link-45deg text-secondary"></i> URLs e Links Detetados</h5>
+                    <p class="text-muted small">Nenhum link web encontrado no corpo do e-mail.</p>
+                </div>
+            </div>
+        `;
+    }
 
     container.innerHTML = `
         <div class="card-body">
             <div class="row">
                 <div class="col-md-4">
                     <h5><i class="bi bi-shield-lock"></i> Autenticação Email</h5>
-                    <div class="auth-grid">
-                        <div class="auth-item">
-                            <span class="auth-label">SPF</span>
+                    <div class="auth-grid mt-2">
+                        <div class="auth-item mb-1">
+                            <span class="auth-label fw-bold me-2">SPF:</span>
                             <span class="auth-value badge ${getStatusClass(auth.spf)}">${escapeHtml(auth.spf || 'não verificado')}</span>
                         </div>
-                        <div class="auth-item">
-                            <span class="auth-label">DKIM</span>
+                        <div class="auth-item mb-1">
+                            <span class="auth-label fw-bold me-2">DKIM:</span>
                             <span class="auth-value badge ${getStatusClass(auth.dkim)}">${escapeHtml(auth.dkim || 'não verificado')}</span>
                         </div>
-                        <div class="auth-item">
-                            <span class="auth-label">DMARC</span>
+                        <div class="auth-item mb-1">
+                            <span class="auth-label fw-bold me-2">DMARC:</span>
                             <span class="auth-value badge ${getStatusClass(auth.dmarc)}">${escapeHtml(auth.dmarc || 'não verificado')}</span>
                         </div>
                     </div>
                 </div>
                 <div class="col-md-8">
                     <h5><i class="bi bi-person-lines-fill"></i> Origem do Email</h5>
-                    <div class="row">
-                        <div class="col-6"><strong>Nome:</strong> ${escapeHtml(res.remetente || 'Não identificado')}</div>
-                        <div class="col-6"><strong>SMTP:</strong> ${escapeHtml(res.return_path || 'Não identificado')}</div>
-                        <div class="col-6"><strong>IP:</strong> ${escapeHtml(res.ip_remetente || 'Não identificado')}</div>
-                        <div class="col-6"><strong>Domínio:</strong> ${escapeHtml(auth.dominio_autenticado || 'Não identificado')}</div>
+                    <div class="row mt-2 text-break">
+                        <div class="col-12 mb-1"><strong>Nome:</strong> ${escapeHtml(res.remetente || 'Não identificado')}</div>
+                        <div class="col-12 mb-1"><strong>SMTP:</strong> ${escapeHtml(res.return_path || 'Não identificado')}</div>
+                        <div class="col-6 mb-1"><strong>IP:</strong> ${escapeHtml(res.ip_remetente || 'Não identificado')}</div>
+                        <div class="col-6 mb-1"><strong>Domínio:</strong> ${escapeHtml(auth.dominio_autenticado || 'Não identificado')}</div>
                     </div>
                 </div>
             </div>
+            ${urlsHtml}
         </div>
     `;
     return container;
