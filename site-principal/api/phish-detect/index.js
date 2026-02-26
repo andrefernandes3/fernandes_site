@@ -44,24 +44,39 @@ function checkRateLimit(ip) {
 function extractUrls(text) {
     if (!text) return [];
     const urls = new Set();
-    const regexes = [ /(https?:\/\/[^\s"'\>\]\)]+)/g, /href=["'](https?:\/\/[^"']+)["']/gi, /src=["'](https?:\/\/[^"']+)["']/gi ];
+    
+    // ✅ REGEX CORRETOS para Node.js (sem escapes duplos)
+    const regexes = [
+        /(https?:\/\/[^\s"'>\]\)]+)/gi,
+        /href=["']([^"']+)["']/gi, 
+        /src=["']([^"']+)["']/gi
+    ];
+    
     regexes.forEach(regex => {
         const matches = text.match(regex) || [];
         matches.forEach(m => {
             try {
-                const cleanUrl = m.replace(/^(href|src)=["']/, '').replace(/["']$/, '');
-                new URL(cleanUrl);
+                let cleanUrl = m;
+                // Limpa href/src= se existir
+                cleanUrl = cleanUrl.replace(/^href=["']|src=["']/, '').replace(/["']$/, '');
+                // Valida URL
+                new URL(cleanUrl.startsWith('http') ? cleanUrl : 'http://' + cleanUrl);
                 urls.add(cleanUrl);
-            } catch { }
+            } catch {}
         });
     });
+    
     return Array.from(urls).slice(0, 20);
 }
+
 
 function extractAuthDetails(headers) {
     const authDetails = { spf: null, dkim: null, dmarc: null, raw: null, autenticado: false, dominioAutenticado: null, dominioConfiavel: false, motivo: null };
     if (!headers) return authDetails;
-    const authMatch = headers.match(/Authentication-Results:(.*?)(?:\n[A-Z]|\n\n|$)/is);
+    
+    // ✅ CORRIGIDO: Remove escapes duplos
+    const normalizedHeaders = headers.replace(/\\r\\n/g, '\n').replace(/\\n/g, '\n');
+    const authMatch = normalizedHeaders.match(/Authentication-Results:(.*?)(?:\n[A-Z]|\n\n|$)/is);
     if (authMatch) {
         authDetails.raw = authMatch[1].trim();
         const spfMatch = authDetails.raw.match(/spf=([^\s;]+)/i);
