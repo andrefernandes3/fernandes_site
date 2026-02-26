@@ -202,49 +202,45 @@ function toggleHeaders() {
 function gerarPDF() {
     // 1. Prevenção de falhas (Verifica se a biblioteca do PDF carregou)
     if (typeof html2pdf === 'undefined') {
-        Swal.fire('Erro Técnico', 'A biblioteca de PDF não foi carregada. Atualize a página ou verifique a internet.', 'error');
+        Swal.fire('Erro Técnico', 'A biblioteca de PDF não foi carregada. Atualize a página ou verifique a sua internet.', 'error');
         return;
     }
 
     const element = document.getElementById('resultPanel');
     const status = document.getElementById('statusLabel').innerText || 'Analise';
     
-    // 2. Configurações de alta resolução do PDF
+    // 2. Configurações de alta resolução (Formato A4)
     const opt = {
-        margin:       10, // Margem limpa de 1cm
-        filename:     `PhishDetect-${status}-${new Date().toISOString().slice(0,10)}.pdf`,
-        image:        { type: 'jpeg', quality: 1.0 },
+        margin:       [10, 10, 10, 10], // Margem em mm (Cima, Esquerda, Baixo, Direita)
+        filename:     `Relatorio-Phishing-${status}-${new Date().toISOString().slice(0,10)}.pdf`,
+        image:        { type: 'jpeg', quality: 0.98 },
         html2canvas:  { scale: 2, useCORS: true, logging: false },
         jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
 
-    // 3. Ecrã de Carregamento Suave
-    Swal.fire({
-        title: 'A gerar Relatório Forense...',
-        text: 'A processar as evidências. Por favor, aguarde.',
-        allowOutsideClick: false,
-        didOpen: () => {
-            Swal.showLoading();
-            
-            // 4. Atraso cirúrgico para dar tempo ao navegador de renderizar os gráficos
-            setTimeout(() => {
-                // Esconde o botão para não aparecer impresso no relatório
-                const btnPdf = element.querySelector('button[onclick="gerarPDF()"]');
-                if (btnPdf) btnPdf.style.display = 'none';
+    // 3. Esconde o próprio botão de PDF para ele não sair na "fotografia" impressa
+    const btnPdf = element.querySelector('button[onclick="gerarPDF()"]');
+    if (btnPdf) btnPdf.style.display = 'none';
 
-                // Tira a fotografia e gera o PDF
-                html2pdf().set(opt).from(element).save().then(() => {
-                    // Restaura o botão
-                    if (btnPdf) btnPdf.style.display = 'inline-block';
-                    Swal.fire('Sucesso!', 'O seu Relatório de Phishing foi descarregado.', 'success');
-                }).catch(err => {
-                    if (btnPdf) btnPdf.style.display = 'inline-block';
-                    Swal.fire('Erro', 'Houve uma falha ao criar o documento. Tente novamente.', 'error');
-                    console.error("Falha no PDF:", err);
-                });
-            }, 500); // 500ms é o "doce" perfeito para não congelar o browser
-        }
+    // 4. Mostra o alerta (Isto avisa o utilizador para não fechar a página)
+    Swal.fire({
+        title: 'Gerando Relatório...',
+        text: 'A processar as evidências em PDF.',
+        allowOutsideClick: false,
+        didOpen: () => { Swal.showLoading(); }
     });
+
+    // 5. Execução Imediata (Como não tem 'setTimeout', o Chrome não bloqueia o Download)
+    html2pdf().set(opt).from(element).save()
+        .then(() => {
+            if (btnPdf) btnPdf.style.display = 'inline-block'; // Devolve o botão ao ecrã
+            Swal.fire('Sucesso!', 'O Relatório de Segurança foi descarregado!', 'success');
+        })
+        .catch(err => {
+            if (btnPdf) btnPdf.style.display = 'inline-block';
+            Swal.fire('Erro', 'Houve uma falha técnica ao criar o documento.', 'error');
+            console.error("Falha detalhada do PDF:", err);
+        });
 }
 
 // ==========================================
