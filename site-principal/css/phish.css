@@ -362,38 +362,6 @@ header p {
     color: #00bcd4 !important;
 }
 
-/* Responsividade */
-@media (max-width: 600px) {
-    .phish-container {
-        padding: 10px;
-    }
-    
-    header h1 {
-        font-size: 2em;
-    }
-    
-    .result-header {
-        flex-direction: column;
-        text-align: center;
-        gap: 20px;
-    }
-    
-    .btn-outline-secondary,
-    #btnAnalisar {
-        width: 100%;
-        margin: 5px 0;
-    }
-    
-    .risk-meter {
-        width: 120px;
-        height: 120px;
-    }
-    
-    .percentage {
-        font-size: 1.5em;
-    }
-}
-
 /* Scrollbar personalizada */
 ::-webkit-scrollbar {
     width: 10px;
@@ -443,33 +411,6 @@ header p {
     visibility: visible;
     opacity: 1;
 }
-
-/* Badge para anexos perigosos */
-.attachment-badge {
-    display: inline-block;
-    padding: 3px 8px;
-    border-radius: 4px;
-    font-size: 0.8em;
-    font-weight: bold;
-    margin-left: 8px;
-}
-
-.attachment-badge.danger {
-    background: #dc2626;
-    color: white;
-}
-
-.attachment-badge.warning {
-    background: #f59e0b;
-    color: black;
-}
-
-.attachment-badge.safe {
-    background: #10b981;
-    color: white;
-}
-
-/* Adicione isso ao final do arquivo phish.css */
 
 /* Detalhes de Autenticação */
 .detalhes-adicionais {
@@ -551,28 +492,6 @@ header p {
     color: #fff;
 }
 
-.auth-raw {
-    margin-top: 10px;
-}
-
-.auth-raw summary {
-    color: #00bcd4;
-    cursor: pointer;
-    font-size: 0.9em;
-}
-
-.auth-raw pre {
-    background: #1a1a1a;
-    padding: 10px;
-    border-radius: 4px;
-    color: #ccc;
-    font-size: 0.85em;
-    overflow-x: auto;
-    white-space: pre-wrap;
-    word-wrap: break-word;
-    margin-top: 10px;
-}
-
 /* Informações do Remetente */
 .sender-info {
     background: #1e1e1e;
@@ -590,89 +509,71 @@ header p {
     margin-right: 10px;
 }
 
-/* URLs e Domínios */
-.urls-list, .dominios-list {
-    list-style: none;
-    padding: 0;
-}
-
-.urls-list li, .dominios-list li {
-    background: #1e1e1e;
-    padding: 10px 15px;
-    margin-bottom: 8px;
-    border-radius: 6px;
-    color: #fff;
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 10px;
-}
-
-.url-domain {
-    color: #00bcd4;
-    font-weight: bold;
-    font-size: 0.95em;
-}
-
-.url-full {
-    color: #999;
-    font-size: 0.85em;
-    word-break: break-all;
-    flex: 1;
-}
-
-.url-suspeita {
-    border-left: 4px solid #f59e0b;
-}
-
-.domain-name {
-    color: #00bcd4;
-    font-weight: bold;
-    min-width: 150px;
-}
-
-.domain-age {
-    color: #999;
-    font-size: 0.9em;
-}
-
-.domain-age.recente {
-    color: #f59e0b;
-    font-weight: bold;
-}
-
-.dominio-recente {
-    border-left: 4px solid #f59e0b;
-}
-
-/* Tooltips e badges extras */
-.badge.danger {
-    background: #dc2626;
-    color: white;
-}
-
-.badge.warning {
-    background: #f59e0b;
-    color: black;
-}
-
-/* Responsividade para os novos elementos */
-@media (max-width: 600px) {
-    .auth-grid {
-        grid-template-columns: 1fr;
-    }
-    
-    .urls-list li, .dominios-list li {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-    
-    .domain-name {
-        min-width: auto;
-    }
-}
 .warning {
     color: #f59e0b;
     font-weight: bold;
     margin-bottom: 10px;
+}
+
+/* Responsividade Movel */
+@media (max-width: 600px) {
+    .phish-container {
+        padding: 10px;
+    }
+    
+    header h1 {
+        font-size: 2em;
+    }
+    
+    .result-header {
+        flex-direction: column;
+        text-align: center;
+        gap: 20px;
+    }
+    
+    .btn-outline-secondary,
+    #btnAnalisar {
+        width: 100%;
+        margin: 5px 0;
+    }
+    
+    .risk-meter {
+        width: 120px;
+        height: 120px;
+    }
+    
+    .percentage {
+        font-size: 1.5em;
+    }
+
+    .auth-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* =========================================
+   REGRAS DE IMPRESSÃO / EXPORTAÇÃO PDF
+   Estas regras proíbem quebras de linha que estragam o documento
+========================================= */
+.result-header,
+.detalhes-adicionais,
+.alert-section,
+.auth-grid,
+.sender-info,
+.row,
+ul.list-group {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+}
+
+.list-group-item,
+.info-item {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    word-break: break-all !important;
+    overflow-wrap: break-word !important;
+}
+
+button[onclick="gerarPDF()"] {
+    margin-bottom: 0 !important;
 }
