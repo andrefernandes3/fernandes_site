@@ -240,7 +240,7 @@ module.exports = async function (context, req) {
         return;
     }
 
-    const cacheKey = Buffer.from((emailContent || '') + (headers || '')).toString('base64').substring(0, 100);
+    const cacheKey = crypto.createHash('sha256').update((emailContent || '') + (headers || '')).digest('hex');
     const cachedItem = memoryCache.get(cacheKey);
 
     if (cachedItem && (Date.now() - cachedItem.timestamp < CACHE_TTL)) {
