@@ -128,8 +128,12 @@ function extractSenderIP(headers) {
 }
 
 function detectarAnexoHTML(emailContent) {
-    if (!emailContent) return false;
-    return (emailContent.includes('Content-Type: text/html') || emailContent.includes('filename=".htm') || emailContent.includes('filename=".html') || (emailContent.includes('<html') && emailContent.includes('</html>') && emailContent.length < 500000));
+    if (!emailContent) return false;    
+    // Procura APENAS por ficheiros anexados onde o nome termine em .htm ou .html
+    // Ignora o corpo (text/html) que todos os e-mails legítimos usam
+    const regexAnexo = /filename=["']?[^"'\r\n]+\.html?["']?/i;
+    
+    return regexAnexo.test(emailContent);
 }
 
 function analisarUrlsSuspeitas(urls) {
