@@ -54,7 +54,7 @@ function extractUrls(text) {
     return Array.from(urls).slice(0, 20);
 }
 
-// 🟢 CORREÇÃO FORENSE: Leitura de múltiplas linhas para não perder dados!
+// 🟢 CORREÇÃO FORENSE: Leitura à prova de bala para Microsoft O365 e Google
 function extractAuthDetails(headers) {
     const authDetails = { spf: null, dkim: null, dmarc: null, autenticado: false, dominioAutenticado: null };
     if (!headers) return authDetails;
@@ -75,7 +75,6 @@ function extractAuthDetails(headers) {
     const spfDomainMatch = normHeaders.match(/smtp\.mailfrom=([a-zA-Z0-9.-]+)/i);
     authDetails.dominioAutenticado = (dkimDomainMatch?.[1] || spfDomainMatch?.[1] || '').toLowerCase();
     
-    // Domínio validado pela Criptografia, independentemente de ser gov.br ou não
     authDetails.autenticado = (authDetails.spf === 'pass' || authDetails.dkim === 'pass');
     
     return authDetails;
@@ -89,7 +88,8 @@ function extractSender(headers) {
     const returnPathMatch = normHeaders.match(/Return-Path:\s*<([^>]+)>/i);
     if (returnPathMatch) senderInfo.email_real = returnPathMatch[1].trim();
 
-    const fromMatch = normHeaders.match(/From:\s*(.*?)(?=\n[A-Z]|$)/i);
+    // Procura por "From:" no início da linha para evitar confusões com Authentication-Results
+    const fromMatch = normHeaders.match(/(?:^|\n)From:\s*(.*?)(?=\n[A-Z]|$)/i);
     if (fromMatch) {
         let fromRaw = fromMatch[1].trim();
         senderInfo.nome_exibicao = fromRaw.replace(/<.*?>/g, '').trim() || fromRaw;
@@ -105,16 +105,15 @@ function extractSender(headers) {
 function extractSenderIP(headers) {
     if (!headers) return null;
     const normHeaders = headers.replace(/\r?\n\s+/g, ' ');
-    // Extrai o IP oficial usado pelo SMTP
+    // Extrai o IP oficial (Suporta IPv4 e os novos IPv6 da Microsoft)
     const ipMatch = normHeaders.match(/sender IP is ([0-9a-fA-F:.]+)/i) || normHeaders.match(/ip=([0-9a-fA-F:.]+)/i) || normHeaders.match(/\[(\d{1,3}(?:\.\d{1,3}){3})\]/);
     return ipMatch ? ipMatch[1] : null;
 }
 
-// 🟢 CORREÇÃO DA FALHA 1: Deteta ANEXOS reais, não palavras no texto!
 function detectarAnexoHTML(emailContent, headers) {
     if (!headers && !emailContent) return false;
     const bodyToCheck = (headers || '') + '\n' + (emailContent || '');
-    // Verifica apenas os "Content-Disposition" e anexos reais, e não links do corpo
+    // Verifica APENAS ficheiros em anexo genuínos, ignorando links no corpo
     const regexAnexoReal = /Content-Disposition:\s*attachment;[\s\S]*?filename=["']?[^"'\r\n]+\.html?["']?/i;
     const regexBase64HTML = /Content-Type:\s*text\/html;\s*name=["']?[^"'\r\n]+\.html?["']?/i;
     return regexAnexoReal.test(bodyToCheck) || regexBase64HTML.test(bodyToCheck);
@@ -137,14 +136,13 @@ function analisarUrlsSuspeitas(urls) {
     return { evidencias, urlsDetalhadas };
 }
 
-// 🟢 CORREÇÃO DA IA: Reconhecer a nova dinâmica e não punir o Microsoft SharePoint
 const systemPrompt = `Você é um Analista de Segurança Sênior (Nível 3). Sua missão é detectar PHISHING com precisão cirúrgica, evitando FALSOS POSITIVOS em e-mails reais de grandes empresas e mercado internacional.
 
 REGRAS DE CLASSIFICAÇÃO (SIGA ESTRITAMENTE NESTA ORDEM):
 1. A REGRA DE OURO DA AUTENTICAÇÃO: Verifique a seção 'AUTENTICAÇÃO E ORIGEM'. Se a 'Autenticação completa válida' for SIM (SPF ou DKIM pass), o e-mail tem a sua infraestrutura técnica confirmada. SE O CONTEÚDO FOR MARKETING ou SERVIÇOS LEGÍTIMOS (como Microsoft Power Apps, SharePoint, Bancos, Aviação), o 'Nivel_Risco' DEVE ser entre 0 e 15 (SEGURO).
 2. COMPROMETIMENTO DE NUVEM (O365 / AZURE): Se o e-mail passou no SPF/DKIM mas a Origem é uma conta '.onmicrosoft.com' genérica, e o remetente finge ser de uma entidade famosa (ex: AAA Survey, Recursos Humanos), o e-mail não é legítimo, mas sim Spam/Phishing utilizando contas gratuitas. O Risco deve ser > 70.
 3. QUISHING E VOICEMAILS: Considere PERIGOSO (100%) e-mails sem autenticação que peçam para scannear um "Código QR" (Quishing) ou "Voice Message" simulada.
-4. FALSIDADE IDEOLÓGICA BÁSICA: Compare o 'Nome de Exibição' com o 'Remetente Real'. Ignorar falhas em empresas de e-mail marketing (onde o remetente real costuma ser um serviço técnico). Penalizar apenas se um remetente tentar simular ser quem não é (ex: fingir ser a Receita Federal via gmail.com).
+4. FALSIDADE IDEOLÓGICA BÁSICA: Compare o 'Nome de Exibição' com o 'Remetente Real'. Ignorar falhas em empresas de e-mail marketing. Penalizar apenas se um remetente tentar simular ser quem não é (ex: fingir ser a Receita Federal via gmail.com).
 
 Retorne APENAS JSON válido com as chaves exatas:
 - "Nivel_Risco" (Número inteiro de 0 a 100)
@@ -170,7 +168,6 @@ module.exports = async function (context, req) {
         return;
     }
 
-    // 🟢 CORREÇÃO DO CACHE: Usa o Hash seguro SHA-256 da mensagem inteira
     const cacheKey = crypto.createHash('sha256').update((emailContent || '') + (headers || '')).digest('hex');
     const cachedItem = memoryCache.get(cacheKey);
     if (cachedItem && (Date.now() - cachedItem.timestamp < CACHE_TTL)) {
@@ -191,12 +188,12 @@ module.exports = async function (context, req) {
     const evidenciasFortes = [];
     const evidenciasLeves = [];
 
-    // Lógica local muito mais refinada e cirúrgica
     if (temAnexoHTML) { localScore += 50; evidenciasFortes.push('E-mail contém anexo HTML real - técnica de clone de site de login'); }
     
     const knownScams = /receita federal|irregularidade cpf|irs tax|voicemail|qr code|scan the qr|milhas expirando|fatura de pe[çc]as|car safety kit|survey reward/i.test(cleanBodyProcessed);
     if (knownScams) { localScore += 30; evidenciasLeves.push('Conteúdo utiliza temas de golpes conhecidos ou iscas de pesquisa falsas'); }
 
+    // Deteção Avançada de Nuvem (O365 Comprometido)
     const isCloudSpam = senderData.email_real.includes('.onmicrosoft.com') && authDetails.autenticado;
     if (isCloudSpam && !senderData.nome_exibicao.toLowerCase().includes('microsoft')) {
         localScore += 40; evidenciasFortes.push('Alerta de Nuvem: E-mail disparado de infraestrutura gratuita O365 simulando empresa real');
