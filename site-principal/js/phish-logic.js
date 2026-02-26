@@ -200,46 +200,47 @@ function toggleHeaders() {
 // EXPORTAÇÃO DE RELATÓRIO FORENSE (PDF)
 // ==========================================
 function gerarPDF() {
-    // 1. Prevenção de falhas (Verifica se a biblioteca do PDF carregou)
     if (typeof html2pdf === 'undefined') {
-        Swal.fire('Erro Técnico', 'A biblioteca de PDF não foi carregada. Atualize a página ou verifique a sua internet.', 'error');
+        Swal.fire('Erro Técnico', 'A biblioteca de PDF não foi carregada. Atualize a página.', 'error');
         return;
     }
 
     const element = document.getElementById('resultPanel');
     const status = document.getElementById('statusLabel').innerText || 'Analise';
     
-    // 2. Configurações de alta resolução (Formato A4)
+    // Configurações avançadas para A4 Perfeito
     const opt = {
-        margin:       [10, 10, 10, 10], // Margem em mm (Cima, Esquerda, Baixo, Direita)
+        margin:       [15, 10, 15, 10], // Margens maiores no topo e fundo para respirar
         filename:     `Relatorio-Phishing-${status}-${new Date().toISOString().slice(0,10)}.pdf`,
-        image:        { type: 'jpeg', quality: 0.98 },
-        html2canvas:  { scale: 2, useCORS: true, logging: false },
-        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        image:        { type: 'jpeg', quality: 1.0 },
+        // windowWidth força o layout de Desktop (1200px) em vez de Mobile
+        html2canvas:  { scale: 2, useCORS: true, logging: false, windowWidth: 1200 },
+        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        // pagebreak diz à biblioteca para respeitar o CSS que acabámos de adicionar
+        pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
     };
 
-    // 3. Esconde o próprio botão de PDF para ele não sair na "fotografia" impressa
+    // Esconde o botão e ajusta estilos temporariamente para a foto
     const btnPdf = element.querySelector('button[onclick="gerarPDF()"]');
     if (btnPdf) btnPdf.style.display = 'none';
 
-    // 4. Mostra o alerta (Isto avisa o utilizador para não fechar a página)
     Swal.fire({
         title: 'Gerando Relatório...',
-        text: 'A processar as evidências em PDF.',
+        text: 'A formatar as páginas e a alinhar o layout.',
         allowOutsideClick: false,
         didOpen: () => { Swal.showLoading(); }
     });
 
-    // 5. Execução Imediata (Como não tem 'setTimeout', o Chrome não bloqueia o Download)
+    // Gera o PDF
     html2pdf().set(opt).from(element).save()
         .then(() => {
-            if (btnPdf) btnPdf.style.display = 'inline-block'; // Devolve o botão ao ecrã
-            Swal.fire('Sucesso!', 'O Relatório de Segurança foi descarregado!', 'success');
+            if (btnPdf) btnPdf.style.display = 'inline-block';
+            Swal.fire('Sucesso!', 'O Relatório de Segurança foi descarregado num formato perfeito!', 'success');
         })
         .catch(err => {
             if (btnPdf) btnPdf.style.display = 'inline-block';
             Swal.fire('Erro', 'Houve uma falha técnica ao criar o documento.', 'error');
-            console.error("Falha detalhada do PDF:", err);
+            console.error(err);
         });
 }
 
