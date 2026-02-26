@@ -202,7 +202,7 @@ REGRAS DE CLASSIFICAÇÃO (SIGA ESTRITAMENTE NESTA ORDEM):
 2. DOMÍNIOS DE MARKETING E TERCEIROS: Grandes empresas (Bancos, Companhias Aéreas, Fornecedores Aeroespaciais como Aircraft Spruce/Aviall, IRS, etc.) usam variações do seu nome e plataformas de disparo. Se a Regra 1 passou, ignore o fato dos links serem de terceiros ou estranhos.
 3. SITES DESCONHECIDOS/OCULTOS: Se a investigação do domínio retornar 'Idade oculta' ou 'Privado', isso é NORMAL. Não aumente o risco.
 4. CÓDIGO ESTRANHO: Ignore códigos como "=3D" ou tags HTML soltas.
-5. GOLPES COMUNS (B2B, BR e EUA): Apenas considere PERIGOSO e-mails ameaçadores ou financeiros (ex: Receita Federal, IRS, falsas faturas/invoices de peças de aviação, ordens de compra/PO urgentes, milhas aéreas, voos cancelados) SE falharem na Regra 1 (Autenticação inválida ou ausente).
+5. GOLPES COMUNS E QUISHING: Apenas considere PERIGOSO e-mails ameaçadores, financeiros (falsas faturas B2B) ou e-mails de "Novo Voicemail" que peçam para scannear um "Código QR" (Quishing) SE falharem na Regra 1.
 6. FALSIDADE IDEOLÓGICA (O GOLPE DO FROM): Compare o 'Nome de Exibição' com o 'Remetente Real'. Se o Nome de Exibição for uma entidade famosa (ex: Receita Federal, IRS, Delta, Aircraft Spruce, Aviall, Boeing) mas o 'Remetente Real (Return-Path)' for um domínio genérico (ex: gmail.com, run.app) ou ligeiramente alterado (ex: aircraft-spruce-support.com), isso é Falsificação Escancarada (Spoofing). O risco é 100% PERIGOSO.
 
 Retorne APENAS JSON válido com as chaves exatas:
@@ -323,10 +323,10 @@ module.exports = async function (context, req) {
         localScore += 40; evidenciasFortes.push(`URL em nuvem pública (${urlsCloud[0].dominio}) para órgão público`);
     }
 
-    // Evidência: Golpes conhecidos (Fisco, Companhias Aéreas, Fornecedores Aeroespaciais B2B)
-    const knownScams = /receita federal|irregularidade cpf|d[íi]vida ativa|irs tax|social security|milhas expirando|voo cancelado|flight cancelled|aircraft spruce|aviall|boeing distribution|aviation parts|aero parts|fatura de pe[çc]as|overdue invoice|purchase order.*parts|shipment document/i.test(cleanBodyProcessed);
+   // Evidência: Golpes conhecidos (Fisco, Voos, B2B e QUISHING/QR Codes)
+    const knownScams = /receita federal|irregularidade cpf|d[íi]vida ativa|irs tax|voicemail|voice message|qr code|scan the qr|milhas expirando|voo cancelado|aircraft spruce|aviall|fatura de pe[çc]as|purchase order/i.test(cleanBodyProcessed);
     if (knownScams) {
-        localScore += 30; evidenciasLeves.push('Conteúdo utiliza temas de golpes conhecidos (Fisco, Voos, Fornecedores B2B de Aviação/Peças ou Faturas falsas)');
+        localScore += 30; evidenciasLeves.push('Conteúdo utiliza temas de golpes conhecidos (Fisco, Voos, B2B, ou pedidos para scannear Códigos QR/Voicemails)');
     }
 
     // Evidência: Prazo urgente (Português e Inglês)
