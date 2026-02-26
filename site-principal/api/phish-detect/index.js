@@ -7,7 +7,8 @@ const CACHE_TTL = 5 * 60 * 1000;
 let cachedDb = null;
 const rateLimit = new Map();
 
-const CLOUD_PLATFORMS = ['run.app', 'cloudfunctions.net', 'azurewebsites.net', 'amazonaws.com', 'herokuapp.com', 'vercel.app', 'netlify.app', 'onmicrosoft.com', 'sharepoint.com'];
+// 🟢 Adicionados domínios muito abusados em B2B (Canva, DocuSign, Google Storage)
+const CLOUD_PLATFORMS = ['run.app', 'cloudfunctions.net', 'azurewebsites.net', 'amazonaws.com', 'herokuapp.com', 'vercel.app', 'netlify.app', 'onmicrosoft.com', 'sharepoint.com', 'canva.com', 'docusign.net', 'storage.googleapis.com'];
 
 setInterval(() => {
     const now = Date.now();
@@ -27,7 +28,7 @@ async function connectDb() {
 function checkRateLimit(ip) {
     const now = Date.now();
     const windowMs = 60000;
-    const maxRequests = 15; // Aumentado para evitar bloqueios nos seus testes
+    const maxRequests = 15; 
     const hashedIp = crypto.createHash('sha256').update(ip + (process.env.IP_SALT || 'default_salt')).digest('hex');
     const userRequests = rateLimit.get(hashedIp) || [];
     const recentRequests = userRequests.filter(time => now - time < windowMs);
@@ -37,16 +38,56 @@ function checkRateLimit(ip) {
     return true;
 }
 
+// 🟢 NOVO: Descodificador de E-mails (Quoted-Printable e Base64)
+function decodeEmailBody(text) {
+    if (!text) return '';
+    let decoded = text;
+    
+    // 1. Descodifica Quoted-Printable (Remove quebras de linha com "=")
+    decoded = decoded.replace(/=\r?\n/g, '');
+    decoded = decoded.replace(/=([0-9A-F]{2})/gi, (match, hex) => {
+        try { return String.fromCharCode(parseInt(hex, 16)); } catch(e) { return match; }
+    });
+
+    // 2. Extrai e Descodifica blocos Base64 ocultos
+    const b64Regex = /Content-Transfer-Encoding:\s*base64[\s\S]*?\r?\n\r?\n([a-zA-Z0-9+/=\r\n]+)/gi;
+    let match;
+    while ((match = b64Regex.exec(text)) !== null) {
+        let payload = match[1].replace(/[\r\n\s]+/g, '');
+        if (payload.length > 50) {
+            try { decoded += '\n' + Buffer.from(payload, 'base64').toString('utf-8'); } catch(e) {}
+        }
+    }
+    return decoded;
+}
+
+// 🟢 NOVO: Descasca links de proteção (Microsoft SafeLinks, etc.)
+function unwrapSafeLinks(url) {
+    try {
+        if (url.includes('safelinks.protection.outlook.com')) {
+            const parsed = new URL(url);
+            const actualUrl = parsed.searchParams.get('url');
+            if (actualUrl) return decodeURIComponent(actualUrl);
+        }
+    } catch(e) {}
+    return url;
+}
+
+// 🟢 ATUALIZADO: Extração de URLs com Desempacotamento
 function extractUrls(text) {
     if (!text) return [];
     const urls = new Set();
+    const decodedText = decodeEmailBody(text); // Transforma código num texto legível
+    
     const regexes = [ /(https?:\/\/[^\s"'>\]\)]+)/gi, /href=["']([^"']+)["']/gi ];
     regexes.forEach(regex => {
-        const matches = text.match(regex) || [];
+        const matches = decodedText.match(regex) || [];
         matches.forEach(m => {
             try {
                 let cleanUrl = m.replace(/^href=["']/, '').replace(/["']$/, '');
-                new URL(cleanUrl.startsWith('http') ? cleanUrl : 'http://' + cleanUrl);
+                cleanUrl = cleanUrl.startsWith('http') ? cleanUrl : 'http://' + cleanUrl;
+                cleanUrl = unwrapSafeLinks(cleanUrl); // Descasca a proteção
+                new URL(cleanUrl); // Valida se é URL
                 urls.add(cleanUrl);
             } catch {}
         });
@@ -54,12 +95,10 @@ function extractUrls(text) {
     return Array.from(urls).slice(0, 20);
 }
 
-// 🟢 NOVO MOTOR FORENSE: Lê corretamente cabeçalhos complexos da Microsoft (O365) e Google
 function extractAuthDetails(headers) {
     const authDetails = { spf: null, dkim: null, dmarc: null, autenticado: false, dominioAutenticado: null };
     if (!headers) return authDetails;
     
-    // Normaliza linhas dobradas
     const normHeaders = headers.replace(/\r?\n\s+/g, ' ');
     
     const spfMatch = normHeaders.match(/spf=(pass|fail|softfail|none|neutral|permerror|temperror)/i);
@@ -80,7 +119,6 @@ function extractAuthDetails(headers) {
     return authDetails;
 }
 
-// 🟢 CORREÇÃO DO NOME "=": Extrai o Nome e E-mail Real perfeitamente
 function extractSender(headers) {
     const senderInfo = { nome_exibicao: 'Não identificado', email_real: 'Não identificado' };
     if (!headers) return senderInfo;
@@ -89,11 +127,9 @@ function extractSender(headers) {
     const returnPathMatch = normHeaders.match(/Return-Path:\s*<([^>]+)>/i);
     if (returnPathMatch) senderInfo.email_real = returnPathMatch[1].trim();
 
-    // Impede que leia a palavra "from" dentro de Authentication-Results
     const fromMatch = normHeaders.match(/(?:^|\n)From:\s*(.*?)(?=\n[A-Z]|$)/i);
     if (fromMatch) {
         let fromRaw = fromMatch[1].trim();
-        // Remove os <email> para sobrar só o nome bonito
         senderInfo.nome_exibicao = fromRaw.replace(/<.*?>/g, '').trim() || fromRaw;
         
         if (senderInfo.email_real === 'Não identificado') {
@@ -104,7 +140,6 @@ function extractSender(headers) {
     return senderInfo;
 }
 
-// 🟢 LÊ IPV6 DA MICROSOFT ALÉM DOS ANTIGOS IPV4
 function extractSenderIP(headers) {
     if (!headers) return null;
     const normHeaders = headers.replace(/\r?\n\s+/g, ' ');
@@ -120,28 +155,40 @@ function detectarAnexoHTML(emailContent, headers) {
     return regexAnexoReal.test(bodyToCheck) || regexBase64HTML.test(bodyToCheck);
 }
 
-const systemPrompt = `Você é um Analista de Segurança Sênior (Nível 3). Sua missão é detectar PHISHING com precisão cirúrgica, evitando FALSOS POSITIVOS em e-mails reais.
+function analisarUrlsSuspeitas(urls) {
+    const evidencias = [];
+    const urlsDetalhadas = [];
+    for (const url of urls) {
+        try {
+            const parsed = new URL(url);
+            const hostname = parsed.hostname.toLowerCase();
+            const isCloud = CLOUD_PLATFORMS.some(p => hostname.includes(p));
+            urlsDetalhadas.push({ url: url.substring(0, 100), dominio: hostname, isCloud });
+            if (isCloud && hostname.includes('onmicrosoft.com')) {
+                evidencias.push(`URL hospedada em subdomínio Azure/O365 suspeito (${hostname})`);
+            }
+        } catch (e) {}
+    }
+    return { evidencias, urlsDetalhadas };
+}
+
+const systemPrompt = `Você é um Analista de Segurança Sênior (Nível 3). Sua missão é detectar PHISHING com precisão cirúrgica.
 
 REGRAS DE CLASSIFICAÇÃO:
-1. AUTENTICAÇÃO FORTE: Se 'Autenticação válida' for SIM (SPF ou DKIM pass), e o conteúdo for serviços conhecidos (SharePoint, Power Apps, Bancos), o 'Nivel_Risco' DEVE ser menor que 10.
-2. ABUSO DE NUVEM: Se o domínio for '.onmicrosoft.com' genérico mas fingir ser AAA Survey ou HR, o Risco é 90+.
-3. QUISHING: E-mails pedindo para scan de "Código QR" (VoiceMail falso) são 100% PERIGOSOS.
+1. AUTENTICAÇÃO FORTE: Se 'Autenticação válida' for SIM (SPF/DKIM pass), e o conteúdo for de serviços legítimos, Nivel_Risco < 15.
+2. ABUSO DE NUVEM (BEC): Se um e-mail com domínios gratuitos (ex: onmicrosoft.com) tentar passar-se por uma empresa legítima, o risco é PERIGOSO.
+3. QUISHING E B2B SCAM: E-mails sem autenticação contendo falsas faturas (DocuSign, Canva, SharePoint) são 100% PERIGOSOS.
 
-Retorne JSON: "Nivel_Risco" (0-100), "Veredito" (SEGURO, SUSPEITO, PERIGOSO), "Motivos" (array curto) e "Recomendacao" (texto direto).`;
+Retorne JSON: "Nivel_Risco" (0-100), "Veredito" (SEGURO, SUSPEITO, PERIGOSO), "Motivos" (array curto) e "Recomendacao".`;
 
 module.exports = async function (context, req) {
     const clientIp = req.headers['x-forwarded-for']?.split(',')[0] || 'unknown';
 
     context.res = { headers: { 'Content-Type': 'application/json', 'X-Content-Type-Options': 'nosniff' } };
 
-    // Se bater limite de acessos, envia resposta formatada corretamente
     if (!checkRateLimit(clientIp)) {
         context.res.status = 429;
-        context.res.body = { 
-            Nivel_Risco: 50, Veredito: 'SUSPEITO', Motivos: ['Sistema anti-spam ativado: Limite de análises excedido.'], Recomendacao: 'Aguarde 1 minuto.',
-            detalhes_autenticacao: { spf: 'nd', dkim: 'nd', dmarc: 'nd', dominio_autenticado: 'nd' },
-            remetente: 'Sistema Proteção', return_path: 'nd', ip_remetente: clientIp
-        };
+        context.res.body = { Nivel_Risco: 50, Veredito: 'SUSPEITO', Motivos: ['Limite de requisições excedido.'], Recomendacao: 'Aguarde 1 minuto.' };
         return;
     }
 
@@ -154,35 +201,43 @@ module.exports = async function (context, req) {
         return;
     }
 
-    // Cache Hash seguro
     const cacheKey = crypto.createHash('sha256').update((emailContent || '') + (headers || '')).digest('hex');
     const cachedItem = memoryCache.get(cacheKey);
     if (cachedItem && (Date.now() - cachedItem.timestamp < CACHE_TTL)) {
         context.res.status = 200; context.res.body = cachedItem.data; return;
     }
 
+    // 🟢 Extração com Desencriptação Integrada
     const foundUrls = extractUrls(emailContent || '');
     const authDetails = extractAuthDetails(headers);
     const senderData = extractSender(headers);
     const senderIP = extractSenderIP(headers);
     const temAnexoHTML = detectarAnexoHTML(emailContent, headers);
+    const analiseUrls = analisarUrlsSuspeitas(foundUrls);
 
-    let cleanBodyProcessed = (emailContent || '').replace(/<[^>]*>?/gm, ' ').substring(0, 4000);
+    // Desencriptamos também o corpo para análise Heurística Local
+    let cleanBodyProcessed = decodeEmailBody(emailContent || '').replace(/<[^>]*>?/gm, ' ').substring(0, 4000);
+    
     let localScore = 0;
     const evidenciasFortes = [];
     const evidenciasLeves = [];
 
     if (temAnexoHTML) { localScore += 50; evidenciasFortes.push('Anexo HTML detetado - técnica comum de clone de login'); }
     
+    // Alerta específico para links do Canva / DocuSign escondidos
+    const hasAbusedPlatform = foundUrls.some(u => u.includes('canva.com') || u.includes('docusign.net'));
+    if (hasAbusedPlatform) {
+        localScore += 40; evidenciasFortes.push('E-mail contém link para Canva / DocuSign (Muito usado em Phishing B2B)');
+    }
+
     const isCloudSpam = senderData.email_real.includes('.onmicrosoft.com') && authDetails.autenticado;
     if (isCloudSpam && !senderData.nome_exibicao.toLowerCase().includes('microsoft')) {
         localScore += 60; evidenciasFortes.push('Abuso de Nuvem: Enviado de conta O365 gratuita simulando empresa legítima');
     }
 
-    const knownScams = /receita federal|irregularidade cpf|voicemail|qr code|scan the qr|milhas expirando|car safety kit|survey reward/i.test(cleanBodyProcessed);
-    if (knownScams) { localScore += 40; evidenciasLeves.push('Conteúdo contém iscas clássicas de golpes (QR Codes, Pesquisas Falsas)'); }
+    const knownScams = /quotation|multilinesrvcs|canva|docusign|receita federal|voicemail|qr code|fatura de pe[çc]as/i.test(cleanBodyProcessed);
+    if (knownScams) { localScore += 40; evidenciasLeves.push('Conteúdo contém iscas clássicas de golpes (Faturas falsas, DocuSign)'); }
 
-    // Inteligência de Risco Dinâmico
     if (authDetails.autenticado && localScore === 0) localScore = 5;
     else if (!authDetails.autenticado && localScore < 50) localScore += 20;
 
@@ -195,6 +250,8 @@ module.exports = async function (context, req) {
     - IP: ${senderIP || 'Não identificado'}
     - SPF: ${authDetails.spf} | DKIM: ${authDetails.dkim}
     - Autenticação válida: ${authDetails.autenticado ? 'SIM' : 'NÃO'}
+    URLs ENCONTRADAS (${foundUrls.length}):
+    ${foundUrls.slice(0, 5).join('\n')}
     EVIDÊNCIAS LOCAIS: ${evidenciasFortes.join(' | ')}
     `;
 
@@ -216,7 +273,7 @@ module.exports = async function (context, req) {
         
         let riscoFinal = parseInt(analise.Nivel_Risco) || localScore;
         if (evidenciasFortes.length > 0) riscoFinal = Math.max(riscoFinal, 80);
-        if (authDetails.autenticado && evidenciasFortes.length === 0 && !knownScams) riscoFinal = Math.min(riscoFinal, 15);
+        if (authDetails.autenticado && evidenciasFortes.length === 0 && !knownScams && !hasAbusedPlatform) riscoFinal = Math.min(riscoFinal, 15);
 
         const respostaCompleta = {
             Nivel_Risco: riscoFinal,
@@ -224,22 +281,23 @@ module.exports = async function (context, req) {
             Motivos: analise.Motivos || evidenciasFortes,
             Recomendacao: analise.Recomendacao || 'Analise com cautela.',
             detalhes_autenticacao: { spf: authDetails.spf, dkim: authDetails.dkim, dmarc: authDetails.dmarc, dominio_autenticado: authDetails.dominioAutenticado },
-            remetente: senderData.nome_exibicao, return_path: senderData.email_real, ip_remetente: senderIP || 'Não identificado', anexo_html: temAnexoHTML
+            remetente: senderData.nome_exibicao, return_path: senderData.email_real, ip_remetente: senderIP || 'Não identificado', anexo_html: temAnexoHTML,
+            urls_encontradas: foundUrls // Vai mostrar os links extraídos no ecossistema
         };
 
         memoryCache.set(cacheKey, { data: respostaCompleta, timestamp: Date.now() });
         context.res.status = 200; context.res.body = respostaCompleta;
 
     } catch (error) {
-        // Fallback Seguro à prova de falhas (Garante que os dados do remetente vão para a UI)
         context.res.status = 200; 
         context.res.body = { 
             Nivel_Risco: localScore, 
             Veredito: localScore >= 80 ? 'PERIGOSO' : (localScore >= 40 ? 'SUSPEITO' : 'SEGURO'), 
-            Motivos: evidenciasFortes.length > 0 ? evidenciasFortes : ['Análise Heurística Rápida (IA Indisponível)'], 
+            Motivos: evidenciasFortes.length > 0 ? evidenciasFortes : ['Análise Heurística Rápida'], 
             Recomendacao: 'Análise gerada localmente.',
             detalhes_autenticacao: { spf: authDetails.spf, dkim: authDetails.dkim, dmarc: authDetails.dmarc, dominio_autenticado: authDetails.dominioAutenticado },
-            remetente: senderData.nome_exibicao, return_path: senderData.email_real, ip_remetente: senderIP || 'Não identificado', anexo_html: temAnexoHTML
+            remetente: senderData.nome_exibicao, return_path: senderData.email_real, ip_remetente: senderIP || 'Não identificado', anexo_html: temAnexoHTML,
+            urls_encontradas: foundUrls
         };
     }
 };
