@@ -212,21 +212,21 @@ function gerarPDF() {
     // 1. Aplica o "Modo Relatório Claro" para garantir leitura perfeita
     element.classList.add('pdf-mode');
     if (btnPdf) btnPdf.style.display = 'none';
-
-    // 2. Configurações do PDF (Força fundo branco e impede cortes)
+   
+    // 2. Configurações do PDF (Tamanho dinâmico)
     const opt = {
         margin:       [10, 10, 10, 10],
         filename:     `Relatorio-Phishing-${status}-${new Date().toISOString().slice(0,10)}.pdf`,
-        image:        { type: 'jpeg', quality: 0.98 },
+        image:        { type: 'jpeg', quality: 1.0 },
         html2canvas:  { 
             scale: 2, 
             useCORS: true, 
-            backgroundColor: '#ffffff', // Fundo forçado a branco
-            windowWidth: 1000 // Largura fixa para manter o layout intato
+            backgroundColor: '#ffffff'
+            // Removemos o windowWidth para não forçar larguras e evitar o achatamento
         },
+        // Se com o site largo preferir a folha deitada, mude 'portrait' para 'landscape'
         jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
-        // Comando nativo para NUNCA cortar estes blocos a meio da folha:
-        pagebreak:    { avoid: ['.result-header', '.detalhes-adicionais', '.list-group-item', '.alert-section', '.row'] }
+        pagebreak:    { avoid: ['.result-header', '.detalhes-adicionais', '.list-group-item', '.alert-section', '.row', '.auth-grid'] }
     };
 
     Swal.fire({
