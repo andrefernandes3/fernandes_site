@@ -201,53 +201,59 @@ function toggleHeaders() {
 // ==========================================
 function gerarPDF() {
     if (typeof html2pdf === 'undefined') {
-        Swal.fire('Erro Técnico', 'A biblioteca de PDF não foi carregada.', 'error');
+        Swal.fire('Erro', 'A biblioteca de PDF não carregou. Atualize a página.', 'error');
         return;
     }
 
     const element = document.getElementById('resultPanel');
     const status = document.getElementById('statusLabel').innerText || 'Analise';
-    const btnPdf = element.querySelector('button[onclick="gerarPDF()"]');
-    
-    // 1. Aplica o "Modo Relatório Claro" para garantir leitura perfeita
-    element.classList.add('pdf-mode');
-    if (btnPdf) btnPdf.style.display = 'none';   
-
-   // 2. Configurações do PDF (Fundo branco, Folha Deitada/Landscape e sem Zoom)
-    const opt = {
-        margin:       [10, 10, 10, 10], // Margem em mm
-        filename:     `Relatorio-Phishing-${status}-${new Date().toISOString().slice(0,10)}.pdf`,
-        image:        { type: 'jpeg', quality: 1.0 },
-        html2canvas:  { 
-            scale: 2, // Mantém a alta resolução
-            useCORS: true, 
-            backgroundColor: '#ffffff',
-            windowWidth: 1200, // Engana a biblioteca para achar que estamos num monitor gigante
-            scrollY: 0 // Impede que o PDF saia cortado se a pessoa tiver feito scroll para baixo
-        },
-        // MUDANÇA DE OURO: 'landscape' (Folha deitada) em vez de 'portrait' (em pé)
-        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'landscape' },
-        pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
-    };
 
     Swal.fire({
         title: 'Gerando Relatório...',
-        text: 'A criar documento corporativo...',
+        text: 'A formatar o documento forense perfeito...',
         allowOutsideClick: false,
         didOpen: () => { Swal.showLoading(); }
     });
 
-    // 3. Tira a foto, gera o PDF e depois restaura o site ao normal
+    // 1. Resolve o bug de cortes: Volta ao topo da página antes da foto
+    window.scrollTo(0, 0);
+
+    const opt = {
+        margin:       [10, 10, 10, 10],
+        filename:     `Relatorio-Phishing-${status}-${new Date().toISOString().slice(0,10)}.pdf`,
+        image:        { type: 'jpeg', quality: 1.0 },
+        html2canvas:  { 
+            scale: 2, 
+            useCORS: true,
+            backgroundColor: '#ffffff',
+            // 2. A MAGIA: Preparamos o clone fantasma só para o PDF
+            onclone: function(clonedDoc) {
+                const clonedPanel = clonedDoc.getElementById('resultPanel');
+                
+                // Força o tamanho exato de uma folha A4 em pé (Portrait)
+                clonedPanel.style.width = '800px'; 
+                clonedPanel.style.maxWidth = 'none';
+                clonedPanel.style.margin = '0 auto';
+                clonedPanel.style.padding = '25px';
+                
+                // Aplica as cores claras para impressão
+                clonedPanel.classList.add('pdf-mode');
+                
+                // Esconde o botão verde dentro do PDF
+                const btn = clonedPanel.querySelector('button[onclick="gerarPDF()"]');
+                if (btn) btn.style.display = 'none';
+            }
+        },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+
+    // Gera o PDF a partir do clone (o seu ecrã original não pisca nem muda)
     html2pdf().set(opt).from(element).save()
         .then(() => {
-            element.classList.remove('pdf-mode'); // Retira o modo claro
-            if (btnPdf) btnPdf.style.display = 'inline-block';
-            Swal.fire('Sucesso!', 'Relatório de Segurança gerado com sucesso!', 'success');
+            Swal.fire('Sucesso!', 'O Relatório foi gerado com perfeição.', 'success');
         })
         .catch(err => {
-            element.classList.remove('pdf-mode');
-            if (btnPdf) btnPdf.style.display = 'inline-block';
-            Swal.fire('Erro', 'Houve uma falha técnica ao criar o documento.', 'error');
+            Swal.fire('Erro', 'Falha técnica ao criar PDF.', 'error');
             console.error(err);
         });
 }
