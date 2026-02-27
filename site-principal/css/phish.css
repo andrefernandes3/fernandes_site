@@ -552,28 +552,49 @@ header p {
 }
 
 /* =========================================
-   REGRAS DE IMPRESSÃO / EXPORTAÇÃO PDF
-   Estas regras proíbem quebras de linha que estragam o documento
+   MODO DE EXPORTAÇÃO PDF (CLARO / PROFISSIONAL)
+   Transforma o Dark Mode num relatório legível
 ========================================= */
-.result-header,
-.detalhes-adicionais,
-.alert-section,
-.auth-grid,
-.sender-info,
-.row,
-ul.list-group {
-    page-break-inside: avoid !important;
-    break-inside: avoid !important;
+.pdf-mode {
+    background-color: #ffffff !important;
+    color: #333333 !important;
+    border: none !important;
+    box-shadow: none !important;
 }
 
-.list-group-item,
-.info-item {
-    page-break-inside: avoid !important;
-    break-inside: avoid !important;
-    word-break: break-all !important;
-    overflow-wrap: break-word !important;
+.pdf-mode * {
+    color: #333333 !important;
 }
 
-button[onclick="gerarPDF()"] {
-    margin-bottom: 0 !important;
+/* Ajuste das cores secundárias para o papel branco */
+.pdf-mode .auth-label, .pdf-mode .info-item, .pdf-mode .text-muted, .pdf-mode #recomendacao {
+    color: #555555 !important;
 }
+
+/* Manter Cores Vivas nos Alertas e Veredito */
+.pdf-mode .status-seguro, .pdf-mode .text-primary { color: #10b981 !important; }
+.pdf-mode .status-suspeito, .pdf-mode .text-warning { color: #f59e0b !important; }
+.pdf-mode .status-perigoso, .pdf-mode .text-danger { color: #dc2626 !important; }
+
+/* Manter as "Badges" coloridas */
+.pdf-mode .badge-success { background: #10b981 !important; color: #ffffff !important; }
+.pdf-mode .badge-danger { background: #dc2626 !important; color: #ffffff !important; }
+.pdf-mode .badge-warning { background: #f59e0b !important; color: #000000 !important; }
+.pdf-mode .badge-secondary, .pdf-mode .badge-neutral { background: #6b7280 !important; color: #ffffff !important; }
+
+/* Fundo das caixas secundárias (Motivos, URLs, Origem) */
+.pdf-mode #recomendacao, 
+.pdf-mode .detalhes-adicionais, 
+.pdf-mode .auth-item, 
+.pdf-mode .sender-info, 
+.pdf-mode .list-group-item {
+    background-color: #f8f9fa !important;
+    border-color: #e5e7eb !important;
+}
+
+/* Ajustes da Roda de Risco para fundo branco */
+.pdf-mode .circle-bg { stroke: #e5e7eb !important; }
+.pdf-mode .percentage { color: #111827 !important; }
+.pdf-mode .circle.seguro { stroke: #10b981 !important; }
+.pdf-mode .circle.suspeito { stroke: #f59e0b !important; }
+.pdf-mode .circle.perigoso { stroke: #dc2626 !important; }
