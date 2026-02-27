@@ -1,5 +1,6 @@
 .phish-container {
-    max-width: 800px;
+    max-width: 1200px; /* Aumentado de 800px para cobrir quase a tela toda */
+    width: 95%;
     margin: 0 auto;
     padding: 20px;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -167,6 +168,7 @@ header p {
     position: relative;
     width: 140px;
     height: 140px;
+    flex-shrink: 0; /* Impede absolutamente que o círculo seja esmagado ou achatado */
 }
 
 .circular-chart {
