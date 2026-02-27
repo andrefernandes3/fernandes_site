@@ -554,72 +554,72 @@ header p {
 }
 
 /* =========================================
-   MODO DE EXPORTAÇÃO PDF (CLARO / PROFISSIONAL)
-   Transforma o Dark Mode num relatório legível
+   MODO DE EXPORTAÇÃO PDF (CLONE)
+   Força cores clássicas e layout inquebrável
 ========================================= */
 .pdf-mode {
     background-color: #ffffff !important;
-    color: #333333 !important;
+    color: #000000 !important;
     border: none !important;
     box-shadow: none !important;
-    width: 1150px !important; /* Força a largura exata do monitor */
-    max-width: none !important; /* Ignora limites de telemóvel */
-    padding: 30px !important;
 }
 
+/* Força todo o texto a ficar preto no PDF */
 .pdf-mode * {
-    color: #333333 !important;
+    color: #000000 !important;
+    text-shadow: none !important;
 }
 
-/* Correção CRÍTICA: O conversor PDF odeia 'Grid'. Mudamos para 'Flex' na impressão */
-.pdf-mode .auth-grid {
-    display: flex !important;
-    flex-wrap: wrap !important;
-    gap: 15px !important;
-}
-.pdf-mode .auth-item {
-    flex: 1 1 150px !important;
-}
-
-/* Ajuste das cores secundárias para o papel branco */
-.pdf-mode .auth-label, .pdf-mode .info-item, .pdf-mode .text-muted, .pdf-mode #recomendacao {
-    color: #555555 !important;
-}
-
-/* Manter Cores Vivas nos Alertas e Veredito */
+/* Cores das Badges e Veredito */
 .pdf-mode .status-seguro, .pdf-mode .text-primary { color: #10b981 !important; }
 .pdf-mode .status-suspeito, .pdf-mode .text-warning { color: #f59e0b !important; }
 .pdf-mode .status-perigoso, .pdf-mode .text-danger { color: #dc2626 !important; }
 
-/* Manter as "Badges" coloridas */
-.pdf-mode .badge-success { background: #10b981 !important; color: #ffffff !important; }
-.pdf-mode .badge-danger { background: #dc2626 !important; color: #ffffff !important; }
-.pdf-mode .badge-warning { background: #f59e0b !important; color: #000000 !important; }
-.pdf-mode .badge-secondary, .pdf-mode .badge-neutral { background: #6b7280 !important; color: #ffffff !important; }
+.pdf-mode .badge-success { background: #10b981 !important; color: #fff !important; }
+.pdf-mode .badge-danger { background: #dc2626 !important; color: #fff !important; }
+.pdf-mode .badge-warning { background: #f59e0b !important; color: #000 !important; }
+.pdf-mode .badge-secondary, .pdf-mode .badge-neutral { background: #6b7280 !important; color: #fff !important; }
 
-/* Fundo das caixas secundárias */
+/* Fundo limpo para caixas de informação */
 .pdf-mode #recomendacao, 
 .pdf-mode .detalhes-adicionais, 
 .pdf-mode .auth-item, 
 .pdf-mode .sender-info, 
 .pdf-mode .list-group-item {
-    background-color: #f8f9fa !important;
-    border-color: #e5e7eb !important;
+    background-color: #f3f4f6 !important;
+    border: 1px solid #d1d5db !important;
+}
+
+/* Títulos secundários mais suaves */
+.pdf-mode .info-item, .pdf-mode .auth-label, .pdf-mode h4, .pdf-mode h5 {
+    color: #374151 !important;
+}
+.pdf-mode .info-item strong {
+    color: #111827 !important;
 }
 
 /* Ajustes da Roda de Risco */
 .pdf-mode .circle-bg { stroke: #e5e7eb !important; }
-.pdf-mode .percentage { color: #111827 !important; }
+.pdf-mode .percentage { color: #000000 !important; }
 .pdf-mode .circle.seguro { stroke: #10b981 !important; }
 .pdf-mode .circle.suspeito { stroke: #f59e0b !important; }
 .pdf-mode .circle.perigoso { stroke: #dc2626 !important; }
 
-/* Impedir cortes a meio */
+/* Transforma o Grid em Flexbox para o conversor PDF não apagar as caixas */
+.pdf-mode .auth-grid {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 10px !important;
+}
+.pdf-mode .auth-item {
+    flex: 1 1 120px !important;
+}
+
+/* Previne cortes a meio da folha */
 .pdf-mode .result-header,
 .pdf-mode .detalhes-adicionais,
 .pdf-mode .alert-section,
-.pdf-mode .row,
-.pdf-mode .auth-grid {
+.pdf-mode .list-group-item {
     page-break-inside: avoid !important;
     break-inside: avoid !important;
 }
