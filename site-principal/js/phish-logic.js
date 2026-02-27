@@ -201,43 +201,50 @@ function toggleHeaders() {
 // ==========================================
 function gerarPDF() {
     if (typeof html2pdf === 'undefined') {
-        Swal.fire('Erro Técnico', 'A biblioteca de PDF não foi carregada. Atualize a página.', 'error');
+        Swal.fire('Erro Técnico', 'A biblioteca de PDF não foi carregada.', 'error');
         return;
     }
 
     const element = document.getElementById('resultPanel');
     const status = document.getElementById('statusLabel').innerText || 'Analise';
-    
-    // Configurações avançadas para A4 Perfeito
-    const opt = {
-        margin:       [15, 10, 15, 10], // Margens maiores no topo e fundo para respirar
-        filename:     `Relatorio-Phishing-${status}-${new Date().toISOString().slice(0,10)}.pdf`,
-        image:        { type: 'jpeg', quality: 1.0 },
-        // windowWidth força o layout de Desktop (1200px) em vez de Mobile
-        html2canvas:  { scale: 2, useCORS: true, logging: false, windowWidth: 1200 },
-        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
-        // pagebreak diz à biblioteca para respeitar o CSS que acabámos de adicionar
-        pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
-    };
-
-    // Esconde o botão e ajusta estilos temporariamente para a foto
     const btnPdf = element.querySelector('button[onclick="gerarPDF()"]');
+    
+    // 1. Aplica o "Modo Relatório Claro" para garantir leitura perfeita
+    element.classList.add('pdf-mode');
     if (btnPdf) btnPdf.style.display = 'none';
+
+    // 2. Configurações do PDF (Força fundo branco e impede cortes)
+    const opt = {
+        margin:       [10, 10, 10, 10],
+        filename:     `Relatorio-Phishing-${status}-${new Date().toISOString().slice(0,10)}.pdf`,
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { 
+            scale: 2, 
+            useCORS: true, 
+            backgroundColor: '#ffffff', // Fundo forçado a branco
+            windowWidth: 1000 // Largura fixa para manter o layout intato
+        },
+        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        // Comando nativo para NUNCA cortar estes blocos a meio da folha:
+        pagebreak:    { avoid: ['.result-header', '.detalhes-adicionais', '.list-group-item', '.alert-section', '.row'] }
+    };
 
     Swal.fire({
         title: 'Gerando Relatório...',
-        text: 'A formatar as páginas e a alinhar o layout.',
+        text: 'A criar documento corporativo...',
         allowOutsideClick: false,
         didOpen: () => { Swal.showLoading(); }
     });
 
-    // Gera o PDF
+    // 3. Tira a foto, gera o PDF e depois restaura o site ao normal
     html2pdf().set(opt).from(element).save()
         .then(() => {
+            element.classList.remove('pdf-mode'); // Retira o modo claro
             if (btnPdf) btnPdf.style.display = 'inline-block';
-            Swal.fire('Sucesso!', 'O Relatório de Segurança foi descarregado num formato perfeito!', 'success');
+            Swal.fire('Sucesso!', 'Relatório de Segurança gerado com sucesso!', 'success');
         })
         .catch(err => {
+            element.classList.remove('pdf-mode');
             if (btnPdf) btnPdf.style.display = 'inline-block';
             Swal.fire('Erro', 'Houve uma falha técnica ao criar o documento.', 'error');
             console.error(err);
