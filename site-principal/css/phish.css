@@ -562,10 +562,23 @@ header p {
     color: #333333 !important;
     border: none !important;
     box-shadow: none !important;
+    width: 1150px !important; /* Força a largura exata do monitor */
+    max-width: none !important; /* Ignora limites de telemóvel */
+    padding: 30px !important;
 }
 
 .pdf-mode * {
     color: #333333 !important;
+}
+
+/* Correção CRÍTICA: O conversor PDF odeia 'Grid'. Mudamos para 'Flex' na impressão */
+.pdf-mode .auth-grid {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 15px !important;
+}
+.pdf-mode .auth-item {
+    flex: 1 1 150px !important;
 }
 
 /* Ajuste das cores secundárias para o papel branco */
@@ -584,7 +597,7 @@ header p {
 .pdf-mode .badge-warning { background: #f59e0b !important; color: #000000 !important; }
 .pdf-mode .badge-secondary, .pdf-mode .badge-neutral { background: #6b7280 !important; color: #ffffff !important; }
 
-/* Fundo das caixas secundárias (Motivos, URLs, Origem) */
+/* Fundo das caixas secundárias */
 .pdf-mode #recomendacao, 
 .pdf-mode .detalhes-adicionais, 
 .pdf-mode .auth-item, 
@@ -594,9 +607,19 @@ header p {
     border-color: #e5e7eb !important;
 }
 
-/* Ajustes da Roda de Risco para fundo branco */
+/* Ajustes da Roda de Risco */
 .pdf-mode .circle-bg { stroke: #e5e7eb !important; }
 .pdf-mode .percentage { color: #111827 !important; }
 .pdf-mode .circle.seguro { stroke: #10b981 !important; }
 .pdf-mode .circle.suspeito { stroke: #f59e0b !important; }
 .pdf-mode .circle.perigoso { stroke: #dc2626 !important; }
+
+/* Impedir cortes a meio */
+.pdf-mode .result-header,
+.pdf-mode .detalhes-adicionais,
+.pdf-mode .alert-section,
+.pdf-mode .row,
+.pdf-mode .auth-grid {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+}
