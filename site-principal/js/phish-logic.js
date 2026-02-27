@@ -211,22 +211,23 @@ function gerarPDF() {
     
     // 1. Aplica o "Modo Relatório Claro" para garantir leitura perfeita
     element.classList.add('pdf-mode');
-    if (btnPdf) btnPdf.style.display = 'none';
-   
-    // 2. Configurações do PDF (Tamanho dinâmico)
+    if (btnPdf) btnPdf.style.display = 'none';   
+
+   // 2. Configurações do PDF (Fundo branco, Folha Deitada/Landscape e sem Zoom)
     const opt = {
-        margin:       [10, 10, 10, 10],
+        margin:       [10, 10, 10, 10], // Margem em mm
         filename:     `Relatorio-Phishing-${status}-${new Date().toISOString().slice(0,10)}.pdf`,
         image:        { type: 'jpeg', quality: 1.0 },
         html2canvas:  { 
-            scale: 2, 
+            scale: 2, // Mantém a alta resolução
             useCORS: true, 
-            backgroundColor: '#ffffff'
-            // Removemos o windowWidth para não forçar larguras e evitar o achatamento
+            backgroundColor: '#ffffff',
+            windowWidth: 1200, // Engana a biblioteca para achar que estamos num monitor gigante
+            scrollY: 0 // Impede que o PDF saia cortado se a pessoa tiver feito scroll para baixo
         },
-        // Se com o site largo preferir a folha deitada, mude 'portrait' para 'landscape'
-        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
-        pagebreak:    { avoid: ['.result-header', '.detalhes-adicionais', '.list-group-item', '.alert-section', '.row', '.auth-grid'] }
+        // MUDANÇA DE OURO: 'landscape' (Folha deitada) em vez de 'portrait' (em pé)
+        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'landscape' },
+        pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
     };
 
     Swal.fire({
