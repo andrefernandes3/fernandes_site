@@ -250,7 +250,6 @@ function gerarPDF() {
     const resultPanel = document.getElementById('resultPanel');
     const status = document.getElementById('statusLabel').innerText || 'Analise';
 
-    // Verifica se há resultado para exportar
     if (resultPanel.classList.contains('hidden')) {
         Swal.fire('Atenção', 'Faça uma análise primeiro.', 'warning');
         return;
@@ -263,30 +262,34 @@ function gerarPDF() {
         didOpen: () => { Swal.showLoading(); }
     });
 
-    // Resolve cortes ao voltar para o topo do ecrã
     window.scrollTo(0, 0);
 
     const opt = {
-        margin: [10, 10, 10, 10],
+        margin: 10,
         filename: `Relatorio-Phishing-${status}-${new Date().toISOString().slice(0, 10)}.pdf`,
-        image: { type: 'jpeg', quality: 0.98 },
+        image: { type: 'jpeg', quality: 1 },
         html2canvas: {
             scale: 2,
             useCORS: true,
-            backgroundColor: '#0f0f0f', // Garante o fundo negro na folha inteira
+            backgroundColor: '#0f0f0f',
             logging: false,
-            // A MAGIA: Ativa o seu CSS Escuro sem atirar o painel para fora do ecrã
             onclone: function (clonedDoc) {
-                // Aplica a classe .pdf-mode ao body do clone para ativar TODAS as suas regras do phish.css
+
+                // 🔥 ATIVA O MODO PDF
                 clonedDoc.body.classList.add('pdf-mode');
-                
-                // Força a largura exata para impedir que as caixas amassem e quebrem o 100%
-                const panel = clonedDoc.getElementById('resultPanel');
-                if (panel) {
-                    panel.style.setProperty('width', '800px', 'important');
-                    panel.style.setProperty('max-width', '800px', 'important');
-                    panel.style.setProperty('margin', '0 auto', 'important');
-                }
+
+                // 🔥 REMOVE INPUTS, HEADER E QUALQUER COISA FORA DO RESULTADO
+                const container = clonedDoc.querySelector('.phish-container');
+                const main = container.querySelector('main');
+
+                // Remove tudo que não é o painel de resultado
+                main.innerHTML = '';
+                const clonedPanel = clonedDoc.getElementById('resultPanel');
+                main.appendChild(clonedPanel);
+
+                // 🔥 REMOVE BOTÃO PDF
+                const btnPdf = clonedDoc.querySelector('.btn-outline-success');
+                if (btnPdf) btnPdf.remove();
             }
         },
         jsPDF: {
@@ -297,7 +300,6 @@ function gerarPDF() {
         pagebreak: { mode: ['css', 'legacy'] }
     };
 
-    // Tira a foto diretamente do painel original, aplicando as regras no clone silenciosamente
     html2pdf().set(opt).from(resultPanel).save()
         .then(() => {
             Swal.fire('Sucesso!', 'Relatório gerado com sucesso.', 'success');
@@ -307,7 +309,6 @@ function gerarPDF() {
             console.error('Erro detalhado:', err);
         });
 }
-
 // ==========================================
 // LEITOR DE ARQUIVOS .EML
 // ==========================================
