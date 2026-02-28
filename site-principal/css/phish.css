@@ -296,7 +296,14 @@ header p {
 .text-success, .bi-check-circle              { color: #34d399 !important; }
 .text-primary                                { color: #00bcd4   !important; }
 
-/* PDF mode continua quase igual (já estava bom) */
+/* Adição para quebrar linhas longas (URLs, etc.) */
+.result-panel p, .result-panel div, .result-panel li, .urls-details, .urls-details * {
+    word-break: break-all;
+    overflow-wrap: break-word;
+    hyphens: auto;
+}
+
+/* PDF mode com melhoria para quebra de linhas */
 .pdf-mode {
     background-color: #0f0f0f !important;
     color: #ffffff !important;
@@ -321,6 +328,13 @@ header p {
 .pdf-mode .status-perigoso { color: #ff4d4d !important; }
 .pdf-mode .status-suspeito { color: #fbbf24 !important; }
 .pdf-mode .status-seguro   { color: #34d399 !important; }
+
+.pdf-mode p, .pdf-mode div, .pdf-mode li, .pdf-mode .urls-details, .pdf-mode .urls-details * {
+    word-break: break-all !important;
+    overflow-wrap: break-word !important;
+    hyphens: auto !important;
+    white-space: normal !important;
+}
 
 /* Scrollbar */
 ::-webkit-scrollbar {
