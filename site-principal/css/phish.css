@@ -174,45 +174,65 @@ header p {
     flex-wrap: wrap;
 }
 
-.risk-meter {
-    position: relative;
+/* =========================================
+   CARD MODERNO - SUBSTITUI O CÍRCULO ANTIGO
+========================================= */
+.risk-modern-card {
+    display: inline-block;
+    text-align: center;
+}
+
+.risk-gradient-circle {
     width: 140px;
     height: 140px;
-    flex-shrink: 0;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: conic-gradient(
+        from 0deg,
+        #dc2626 0deg,
+        #f59e0b 180deg,
+        #10b981 360deg
+    );
+    position: relative;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+    transition: all 0.3s ease;
 }
 
-.circular-chart {
-    width: 100%;
-    height: 100%;
-}
-
-.circle-bg {
-    stroke: #333;
-    stroke-width: 3;
-    fill: none;
-}
-
-.circle {
-    stroke: #00bcd4;
-    stroke-width: 3;
-    fill: none;
-    stroke-linecap: round;
-    transition: stroke-dasharray 0.8s ease;
-}
-
-.circle.seguro    { stroke: #10b981; }
-.circle.suspeito  { stroke: #f59e0b; }
-.circle.perigoso  { stroke: #dc2626; }
-
-.percentage {
+.risk-gradient-circle::before {
+    content: '';
     position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    font-size: 1.8em;
-    font-weight: bold;
-    color: #ffffff;
+    width: 110px;
+    height: 110px;
+    border-radius: 50%;
+    background: #1a1a1a;
+    box-shadow: inset 0 2px 10px rgba(0,0,0,0.8);
 }
+
+.risk-percentage {
+    position: relative;
+    z-index: 2;
+    font-size: 32px;
+    font-weight: bold;
+    color: white;
+    text-shadow: 0 2px 5px rgba(0,0,0,0.5);
+    line-height: 1;
+    white-space: nowrap;
+}
+
+.risk-label .badge {
+    font-size: 14px;
+    padding: 6px 12px;
+    background: #333;
+    color: white;
+    border-radius: 20px;
+}
+
+/* Cores do badge baseadas no nível de risco */
+.risk-label .badge.seguro { background: #10b981; }
+.risk-label .badge.suspeito { background: #f59e0b; }
+.risk-label .badge.perigoso { background: #dc2626; }
 
 .veredito-text h3 {
     margin: 0 0 15px 0;
@@ -303,7 +323,9 @@ header p {
     hyphens: auto;
 }
 
-/* PDF mode com melhoria para quebra de linhas */
+/* =========================================
+   MODO PDF - CARD MODERNO
+========================================= */
 .pdf-mode {
     background-color: #0f0f0f !important;
     color: #ffffff !important;
@@ -368,8 +390,6 @@ header p {
 .pdf-mode .status-seguro { color: #10b981 !important; }
 .pdf-mode .status-suspeito { color: #fbbf24 !important; }
 .pdf-mode .status-perigoso { color: #ff4d4d !important; }
-.pdf-mode .circle-bg { stroke: #333333 !important; }
-.pdf-mode .percentage { color: #ffffff !important; font-weight: bold !important; font-size: 1.5em !important; white-space: nowrap !important; }
 
 .pdf-mode .result-header,
 .pdf-mode .detalhes-adicionais,
@@ -386,6 +406,70 @@ header p {
     overflow-wrap: break-word !important;
     hyphens: auto !important;
     white-space: normal !important;
+}
+
+/* =========================================
+   MODO PDF - CARD MODERNO (SUBSTITUI O ANTIGO)
+========================================= */
+.pdf-mode .risk-modern-card {
+    display: inline-block !important;
+    text-align: center !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+}
+
+.pdf-mode .risk-gradient-circle {
+    width: 140px !important;
+    height: 140px !important;
+    border-radius: 50% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background: conic-gradient(
+        from 0deg,
+        #dc2626 0deg,
+        #f59e0b 180deg,
+        #10b981 360deg
+    ) !important;
+    position: relative !important;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.5) !important;
+}
+
+.pdf-mode .risk-gradient-circle::before {
+    content: '' !important;
+    position: absolute !important;
+    width: 110px !important;
+    height: 110px !important;
+    border-radius: 50% !important;
+    background: #1a1a1a !important;
+    box-shadow: inset 0 2px 10px rgba(0,0,0,0.8) !important;
+}
+
+.pdf-mode .risk-percentage {
+    position: relative !important;
+    z-index: 2 !important;
+    font-size: 36px !important;
+    font-weight: bold !important;
+    color: white !important;
+    text-shadow: 0 2px 5px rgba(0,0,0,0.5) !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
+    transform: none !important;
+    background: transparent !important;
+}
+
+.pdf-mode .risk-label .badge {
+    font-size: 14px !important;
+    padding: 6px 12px !important;
+    background: #333 !important;
+    color: white !important;
+    border-radius: 20px !important;
+    display: inline-block !important;
+}
+
+/* Esconde o círculo antigo no PDF */
+.pdf-mode .risk-meter {
+    display: none !important;
 }
 
 /* Scrollbar */
@@ -405,58 +489,4 @@ header p {
 
 ::-webkit-scrollbar-thumb:hover {
     background: #00bcd4;
-}
-
-/* =========================================
-   CORREÇÃO DEFINITIVA DO CÍRCULO NO PDF - 100% INTEIRO
-========================================= */
-
-.pdf-mode .risk-meter {
-    position: relative !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    width: 140px !important;
-    height: 140px !important;
-    margin: 0 auto !important;
-}
-
-.pdf-mode .circular-chart {
-    position: absolute !important;
-    top: 0 !important;
-    left: 0 !important;
-    width: 100% !important;
-    height: 100% !important;
-    z-index: 1 !important;
-}
-
-.pdf-mode .percentage {
-    position: absolute !important;
-    top: 0 !important;
-    left: 0 !important;
-    width: 140px !important;
-    height: 140px !important;
-    line-height: 140px !important;
-    text-align: center !important;
-    transform: none !important;
-    font-size: 42px !important; /* Tamanho base maior */
-    font-weight: bold !important;
-    color: #ffffff !important;
-    white-space: nowrap !important;
-    word-break: keep-all !important;
-    z-index: 2 !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    
-    /* MAGIC: Escala o texto que é muito largo */
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    line-height: 1 !important;
-}
-
-.pdf-mode .percentage span {
-    display: inline-block !important;
-    white-space: nowrap !important;
-    transform: scale(0.8) !important; /* Reduz o texto em 20% */
 }

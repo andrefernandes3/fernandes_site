@@ -61,13 +61,24 @@
             <section id="resultPanel" class="result-panel hidden">
                 <div class="result-header row align-items-center mb-4">
                     <div class="col-md-4 text-center">
-                        <div class="risk-meter position-relative d-inline-block">
+                        <!-- NOVO: Card moderno com gradiente -->
+                        <div class="risk-modern-card">
+                            <div class="risk-gradient-circle" id="riskGradient">
+                                <div class="risk-percentage" id="riskValue">0%</div>
+                            </div>
+                            <div class="risk-label mt-2">
+                                <span class="badge" id="riskBadge">Analisando...</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Círculo antigo (escondido no CSS do PDF) -->
+                        <div class="risk-meter position-relative d-inline-block d-none d-md-inline-block">
                             <svg viewBox="0 0 42 42" class="circular-chart">
                                 <path class="circle-bg" d="M21 3.5 a 17.5 17.5 0 0 1 0 35 a 17.5 17.5 0 0 1 0 -35" />
                                 <path id="riskCircle" class="circle" stroke-dasharray="0, 100"
                                     d="M21 3.5 a 17.5 17.5 0 0 1 0 35 a 17.5 17.5 0 0 1 0 -35" />
                             </svg>
-                            <div class="percentage" id="riskValue"><span>0%</span></div>
+                            <div class="percentage" id="riskValueOld">0%</div>
                         </div>
                     </div>
                     <div class="col-md-8">

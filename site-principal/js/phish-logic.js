@@ -52,31 +52,85 @@ function exibirResultados(res) {
     const panel = document.getElementById('resultPanel');
     panel.classList.remove('hidden');
 
-    // Medidor de Risco
-    document.getElementById('riskValue').textContent = `${res.Nivel_Risco}%`;
-    const riskCircle = document.getElementById('riskCircle');
-    riskCircle.setAttribute('stroke-dasharray', `${res.Nivel_Risco * 1.1}, 110`);
+    // ===== NOVO CARD MODERNO =====
+    const percentual = res.Nivel_Risco || 0;
+    
+    // Atualizar o percentual no card moderno
+    const riskValue = document.getElementById('riskValue');
+    if (riskValue) {
+        riskValue.textContent = percentual + '%';
+    }
+    
+    // Atualizar o gradiente do card moderno
+    const riskGradient = document.getElementById('riskGradient');
+    if (riskGradient) {
+        const angle = (percentual / 100) * 360;
+        
+        // Definir cor baseada no nível de risco
+        let color;
+        if (percentual < 30) {
+            color = '#10b981'; // verde - seguro
+        } else if (percentual <= 70) {
+            color = '#f59e0b'; // amarelo - suspeito
+        } else {
+            color = '#dc2626'; // vermelho - perigoso
+        }
+        
+        riskGradient.style.background = `conic-gradient(from 0deg, ${color} 0deg, ${color} ${angle}deg, #333 ${angle}deg, #333 360deg)`;
+    }
+    
+    // Atualizar o badge do card moderno
+    const riskBadge = document.getElementById('riskBadge');
+    if (riskBadge) {
+        let classeBadge = '';
+        if (percentual < 30) classeBadge = 'seguro';
+        else if (percentual <= 70) classeBadge = 'suspeito';
+        else classeBadge = 'perigoso';
+        
+        riskBadge.textContent = res.Veredito || 'ANALISADO';
+        riskBadge.className = `badge ${classeBadge}`;
+    }
+    // ===== FIM NOVO CARD MODERNO =====
 
-    let circleClass = 'suspeito';
-    if (res.Nivel_Risco < 30) circleClass = 'seguro';
-    else if (res.Nivel_Risco > 70) circleClass = 'perigoso';
-    riskCircle.className.baseVal = `circle ${circleClass}`;
+    // Medidor de Risco ANTIGO (mantido para compatibilidade)
+    document.getElementById('riskValueOld').textContent = `${percentual}%`;
+    const riskCircle = document.getElementById('riskCircle');
+    if (riskCircle) {
+        riskCircle.setAttribute('stroke-dasharray', `${percentual * 1.1}, 110`);
+
+        let circleClass = 'suspeito';
+        if (percentual < 30) circleClass = 'seguro';
+        else if (percentual > 70) circleClass = 'perigoso';
+        riskCircle.className.baseVal = `circle ${circleClass}`;
+    }
 
     // Veredito
     const statusLabel = document.getElementById('statusLabel');
-    statusLabel.textContent = res.Veredito;
-    statusLabel.className = `badge fs-3 ${circleClass === 'seguro' ? 'badge-success' : circleClass === 'perigoso' ? 'badge-danger' : 'badge-warning'}`;
-    document.getElementById('recomendacao').innerHTML = res.Recomendacao.replace(/\n/g, '<br>');
+    let statusClasse = '';
+    if (percentual < 30) statusClasse = 'badge-success';
+    else if (percentual <= 70) statusClasse = 'badge-warning';
+    else statusClasse = 'badge-danger';
+    
+    statusLabel.textContent = res.Veredito || 'ANALISADO';
+    statusLabel.className = `badge fs-3 ${statusClasse}`;
+    document.getElementById('recomendacao').innerHTML = (res.Recomendacao || 'Nenhuma recomendação específica.').replace(/\n/g, '<br>');
 
     // Motivos
     const listaMotivos = document.getElementById('listaMotivos');
     listaMotivos.innerHTML = '';
-    res.Motivos.forEach(m => {
+    if (res.Motivos && res.Motivos.length > 0) {
+        res.Motivos.forEach(m => {
+            const li = document.createElement('li');
+            li.className = 'list-group-item';
+            li.innerHTML = `<i class="bi bi-check-circle text-primary me-2"></i>${m}`;
+            listaMotivos.appendChild(li);
+        });
+    } else {
         const li = document.createElement('li');
         li.className = 'list-group-item';
-        li.innerHTML = `<i class="bi bi-check-circle text-primary me-2"></i>${m}`;
+        li.innerHTML = `<i class="bi bi-check-circle text-primary me-2"></i>Nenhum motivo específico identificado.`;
         listaMotivos.appendChild(li);
-    });
+    }
 
     // Alertas Especiais
     const alertasContainer = document.getElementById('alertasExtras');
@@ -104,7 +158,7 @@ function criarDetalhesAdicionais(res) {
     const container = document.createElement('div');
     container.className = 'detalhes-adicionais mt-4 card shadow-sm';
 
-    const auth = res.detalhes_autenticacao;
+    const auth = res.detalhes_autenticacao || {};
 
     // Constrói a lista de URLs (se existirem)
     let urlsHtml = '';
@@ -218,55 +272,48 @@ function gerarPDF() {
     // Volta ao topo para evitar cortes
     window.scrollTo(0, 0);
 
+    // Adiciona classe pdf-mode ao body
+    document.body.classList.add('pdf-mode');
+
     const opt = {
-        margin: [10, 10, 10, 10],  // Reduzido para caber mais conteúdo
+        margin: [10, 10, 10, 10],
         filename: `Relatorio-Phishing-${status}-${new Date().toISOString().slice(0, 10)}.pdf`,
-        image: { type: 'jpeg', quality: 0.98 },  // Qualidade alta, mas otimizada
+        image: { type: 'jpeg', quality: 0.98 },
         html2canvas: {
-            scale: 2,  // Aumentado para melhor resolução (SVG aparece melhor)
+            scale: 2,
             useCORS: true,
-            backgroundColor: '#ffffff',
+            backgroundColor: '#0f0f0f',
             scrollX: 0,
             scrollY: 0,
-            windowWidth: document.documentElement.clientWidth,  // Usa largura real da janela
-            windowHeight: document.documentElement.scrollHeight,  // Captura altura full para evitar cortes
+            windowWidth: document.documentElement.clientWidth,
+            windowHeight: document.documentElement.scrollHeight,
             onclone: function(clonedDoc) {
                 const clonedPanel = clonedDoc.getElementById('resultPanel');
-
-                // Copia todos os estilos (CSS links e styles) do original para o clone
-                const styles = document.querySelectorAll('link[rel="stylesheet"], style');
-                styles.forEach(style => {
-                    clonedDoc.head.appendChild(style.cloneNode(true));
-                });
-
-                // Ajustes para A4 (largura ~595pt / 210mm)
-                clonedPanel.style.width = '595px';  // Largura exata A4 em portrait (sem margens)
-                clonedPanel.style.maxWidth = 'none';
-                clonedPanel.style.margin = '0 auto';
-                clonedPanel.style.padding = '20px';
-                clonedPanel.style.boxSizing = 'border-box';
-                clonedPanel.style.position = 'relative';  // Muda para relative para evitar offsets
-                clonedPanel.style.height = 'auto';  // Deixa altura automática para full capture
-                clonedPanel.style.overflow = 'visible';  // Evita hidden content
-
-                // Aplica modo PDF (tema claro)
-                clonedPanel.classList.add('pdf-mode');
-                clonedDoc.body.style.backgroundColor = '#ffffff';
-                clonedDoc.body.style.margin = '0';
-                clonedDoc.body.style.padding = '0';
-
-                // Esconde botão de PDF no clone
-                const btn = clonedPanel.querySelector('button[onclick="gerarPDF()"]');
-                if (btn) btn.style.display = 'none';
-
-                // Força visibilidade de elementos (ex: SVG)
-                const svgs = clonedPanel.querySelectorAll('svg');
-                svgs.forEach(svg => {
-                    svg.style.overflow = 'visible';
-                });
-
-                // Debug: Veja o clone no console (remova depois)
-                // console.log(clonedDoc.body.innerHTML);
+                
+                if (clonedPanel) {
+                    // Aplica classe pdf-mode no clone
+                    clonedPanel.classList.add('pdf-mode');
+                    
+                    // Remove o círculo antigo no clone para evitar conflitos
+                    const oldMeter = clonedPanel.querySelector('.risk-meter');
+                    if (oldMeter) oldMeter.style.display = 'none';
+                    
+                    // Garante que o card moderno apareça corretamente
+                    const modernCard = clonedPanel.querySelector('.risk-modern-card');
+                    if (modernCard) {
+                        modernCard.style.display = 'inline-block';
+                    }
+                    
+                    // Ajustes de largura
+                    clonedPanel.style.width = '100%';
+                    clonedPanel.style.maxWidth = '800px';
+                    clonedPanel.style.margin = '0 auto';
+                    clonedPanel.style.padding = '20px';
+                    
+                    // Esconde botões
+                    const buttons = clonedPanel.querySelectorAll('button');
+                    buttons.forEach(btn => btn.style.display = 'none');
+                }
             }
         },
         jsPDF: {
@@ -274,19 +321,20 @@ function gerarPDF() {
             format: 'a4',
             orientation: 'portrait'
         },
-        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }  // Melhora quebras de página
+        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
     };
 
     html2pdf().set(opt).from(element).save()
         .then(() => {
+            document.body.classList.remove('pdf-mode');
             Swal.fire('Sucesso!', 'O Relatório foi gerado com perfeição.', 'success');
         })
         .catch(err => {
+            document.body.classList.remove('pdf-mode');
             Swal.fire('Erro', 'Falha técnica ao criar PDF. Tente atualizar a página.', 'error');
             console.error(err);
         });
 }
-
 
 // ==========================================
 // LEITOR DE ARQUIVOS .EML
@@ -303,7 +351,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const text = this.value;
             const links = text.match(/https?:\/\/[^\s<>"']+/g);
             if (links && links.length > 0) {
-                this.value += `\n\n🔗 LINKS DETECTADOS:\n${links.slice(0, 3).join('\n')}`;
+                // Não modifica automaticamente, apenas mostra no console
+                console.log('Links detectados:', links);
             }
         }, 100);
     });
@@ -335,4 +384,15 @@ document.addEventListener('DOMContentLoaded', () => {
         };
         reader.readAsText(file, 'UTF-8');
     });
+});
+
+// ==========================================
+// INICIALIZAÇÃO
+// ==========================================
+document.addEventListener('DOMContentLoaded', function() {
+    // Garantir que o card moderno tenha um valor inicial
+    const riskValue = document.getElementById('riskValue');
+    if (riskValue && riskValue.textContent === '') {
+        riskValue.textContent = '0%';
+    }
 });
