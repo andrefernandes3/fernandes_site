@@ -146,11 +146,11 @@ function exibirResultados(res) {
 
 function criarDetalhesAdicionais(res) {
     const container = document.createElement('div');
-    container.className = 'detalhes-adicionais mt-5'; // Mais espaço do topo
+    container.className = 'detalhes-adicionais mt-5';
 
     const auth = res.detalhes_autenticacao || {};
 
-    // Constrói a lista de URLs
+    // 1. Constrói a lista de URLs
     let urlsHtml = '';
     if (res.urls_encontradas && res.urls_encontradas.length > 0) {
         const listaUrls = res.urls_encontradas.map(u => 
@@ -178,10 +178,45 @@ function criarDetalhesAdicionais(res) {
         `;
     }
 
+    // 2. 🟢 O NOVO VISUALIZADOR DO URLSCAN (SANDBOX)
+    let sandboxHtml = '';
+    if (res.urlscan_uuid) {
+        const printUrl = `https://urlscan.io/screenshots/${res.urlscan_uuid}.png`;
+        const linkRelatorio = `https://urlscan.io/result/${res.urlscan_uuid}/`;
+
+        sandboxHtml = `
+            <div class="row mt-5">
+                <div class="col-12">
+                    <h4><i class="bi bi-camera text-primary"></i> Sandbox: Evidência Visual da Ameaça</h4>
+                    <p class="text-muted mb-3"><small>Captura de ecrã segura gerada em ambiente isolado (urlscan.io).</small></p>
+                    <div class="sandbox-container" style="background: #111; border: 1px solid #444; border-radius: 8px; overflow: hidden; position: relative; min-height: 350px; display: flex; align-items: center; justify-content: center;">
+                        
+                        <div id="loadingPrint" style="position: absolute; text-align: center; color: #00bcd4; z-index: 1;">
+                            <div class="spinner-border mb-3" role="status" style="width: 3rem; height: 3rem;"></div>
+                            <h5>A processar captura de ecrã remota...</h5>
+                            <small class="text-muted">(Pode demorar entre 10 a 15 segundos)</small>
+                        </div>
+
+                        <img src="${printUrl}" style="width: 100%; height: auto; position: relative; z-index: 2; display: none;" 
+                             onload="this.style.display='block'; document.getElementById('loadingPrint').style.display='none';" 
+                             onerror="setTimeout(() => this.src='${printUrl}?t=' + new Date().getTime(), 5000);">
+                    </div>
+                    <div class="mt-3 text-end">
+                        <a href="${linkRelatorio}" target="_blank" class="btn btn-outline-info">
+                            <i class="bi bi-box-arrow-up-right"></i> Ver Relatório Técnico no urlscan.io
+                        </a>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    // 3. Junta as 3 secções (Origem/Autenticação, URLs e Sandbox) no contentor final
     container.innerHTML = `
         <div class="card">
             <div class="card-body p-0">
-                <div class="row g-4"> <div class="col-md-5">
+                <div class="row g-4">
+                    <div class="col-md-5">
                         <h4><i class="bi bi-shield-lock"></i> Autenticação</h4>
                         <div class="auth-grid">
                             <div class="auth-item mb-3">
@@ -209,6 +244,7 @@ function criarDetalhesAdicionais(res) {
                     </div>
                 </div>
                 ${urlsHtml}
+                ${sandboxHtml}
             </div>
         </div>
     `;
