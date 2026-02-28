@@ -119,6 +119,26 @@ function extractAuthDetails(headers) {
     return authDetails;
 }
 
+// 🟢 NOVO: Tradutor de Nomes de E-mail (Descodifica RFC 2047 como =?utf-8?q?...)
+function decodeRFC2047(text) {
+    if (!text) return text;
+    return text.replace(/=\?([^?]+)\?([qb])\?([^?]*)\?=/gi, (match, charset, encoding, data) => {
+        try {
+            if (encoding.toLowerCase() === 'b') {
+                return Buffer.from(data, 'base64').toString('utf-8');
+            } else if (encoding.toLowerCase() === 'q') {
+                // Limpa o Quoted-Printable e converte de volta para UTF-8
+                let qText = data.replace(/_/g, ' ').replace(/=([0-9A-F]{2})/gi, (m, hex) => {
+                    return String.fromCharCode(parseInt(hex, 16));
+                });
+                return Buffer.from(qText, 'binary').toString('utf-8');
+            }
+        } catch (e) {}
+        return match;
+    });
+}
+
+// 🟢 ATUALIZADO: Extrai o remetente e passa pelo tradutor
 function extractSender(headers) {
     const senderInfo = { nome_exibicao: 'Não identificado', email_real: 'Não identificado' };
     if (!headers) return senderInfo;
@@ -130,7 +150,10 @@ function extractSender(headers) {
     const fromMatch = normHeaders.match(/(?:^|\n)From:\s*(.*?)(?=\n[A-Z]|$)/i);
     if (fromMatch) {
         let fromRaw = fromMatch[1].trim();
-        senderInfo.nome_exibicao = fromRaw.replace(/<.*?>/g, '').trim() || fromRaw;
+        let nameRaw = fromRaw.replace(/<.*?>/g, '').trim() || fromRaw;
+        
+        // Aplica o nosso novo tradutor para limpar o nome!
+        senderInfo.nome_exibicao = decodeRFC2047(nameRaw);
         
         if (senderInfo.email_real === 'Não identificado') {
             const emailMatch = fromRaw.match(/<([^>]+)>/);
