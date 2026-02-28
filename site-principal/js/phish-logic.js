@@ -265,16 +265,14 @@ function gerarPDF() {
         didOpen: () => { Swal.showLoading(); }
     });
 
-    // 2. Volta ao topo da página para evitar cortes pelo scroll
+    // 2. Volta ao topo
     window.scrollTo(0, 0);
 
-    // 3. A VERSÃO INFALÍVEL (O Truque da Moldura)
-    // Guardamos o tamanho atual do seu painel panorâmico
+    // 3. O Truque da Moldura
     const widthOriginal = resultPanel.style.width;
     const maxWidthOriginal = resultPanel.style.maxWidth;
     const marginOriginal = resultPanel.style.margin;
 
-    // Forçamos o painel a encolher para 800px (o tamanho perfeito de uma folha A4 em pé)
     resultPanel.style.width = '800px';
     resultPanel.style.maxWidth = '800px';
     resultPanel.style.margin = '0 auto';
@@ -286,17 +284,19 @@ function gerarPDF() {
         html2canvas: {
             scale: 2,
             useCORS: true,
-            backgroundColor: '#0f0f0f', // Mantém o seu fundo preto elegante
-            scrollY: 0
+            backgroundColor: '#0f0f0f',
+            scrollY: 0,
+            scrollX: 0,
+            windowWidth: 800 // 🔥 A PEÇA QUE FALTAVA: Avisa a câmara para fotografar os 800px inteiros!
         },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
         pagebreak: { mode: ['css', 'legacy'] }
     };
 
-    // 4. Tira a fotografia à página já redimensionada para A4
+    // 4. Dispara a captura
     html2pdf().set(opt).from(resultPanel).save()
         .then(() => {
-            // Restaura o botão e as dimensões originais num milissegundo!
+            // Restaura tudo num instante
             if (btnPdf) btnPdf.style.display = 'inline-block';
             resultPanel.style.width = widthOriginal;
             resultPanel.style.maxWidth = maxWidthOriginal;
@@ -305,7 +305,6 @@ function gerarPDF() {
             Swal.fire('Sucesso!', 'Relatório PDF gerado com sucesso.', 'success');
         })
         .catch(err => {
-            // Se houver erro, restaura o painel também
             if (btnPdf) btnPdf.style.display = 'inline-block';
             resultPanel.style.width = widthOriginal;
             resultPanel.style.maxWidth = maxWidthOriginal;
@@ -315,6 +314,7 @@ function gerarPDF() {
             console.error('Erro:', err);
         });
 }
+
 // ==========================================
 // LEITOR DE ARQUIVOS .EML
 // ==========================================
