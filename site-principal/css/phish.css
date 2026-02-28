@@ -554,60 +554,64 @@ header p {
 }
 
 /* =========================================
-   MODO DE EXPORTAÇÃO PDF (LEGIBILIDADE TOTAL)
-   Fundo branco, texto preto, esconde os botões
+   MODO DE EXPORTAÇÃO PDF (TEMA ESCURO)
+   Fundo preto, letras brancas e botão invisível
 ========================================= */
+/* 1. O Fundo principal da página no PDF */
 .pdf-mode {
-    background-color: #ffffff !important;
-    color: #000000 !important;
+    background-color: #121212 !important;
+    color: #ffffff !important;
     padding: 20px !important;
 }
 
-/* 1. Esconder os botões durante a foto do PDF */
-.pdf-mode button {
-    display: none !important;
-}
-
-/* 2. Forçar todos os textos principais a serem PRETOS */
+/* 2. Forçar ABSOLUTAMENTE TODOS os textos a serem brancos */
 .pdf-mode * {
     color: #ffffff !important;
     text-shadow: none !important;
 }
 
-/* 3. Caixas de informação e listas com fundo Cinza muito claro */
+/* 3. Esconder o botão verde de Gerar PDF */
+.pdf-mode button {
+    display: none !important;
+}
+
+/* 4. Caixas (Motivos, Recomendação, Autenticação) com fundo cinza escuro para destacar */
 .pdf-mode .list-group-item,
 .pdf-mode .auth-item,
 .pdf-mode .detalhes-adicionais,
 .pdf-mode #recomendacao,
 .pdf-mode .sender-info,
 .pdf-mode .alert-section {
-    background-color: #f8f9fa !important;
-    border: 1px solid #dee2e6 !important;
-    color: #ffffff !important;
+    background-color: #1e1e1e !important;
+    border: 1px solid #333333 !important;
 }
 
-/* 4. Títulos coloridos de alerta (O texto "ALERTA GOVERNO" fica visível) */
-.pdf-mode h5, .pdf-mode h4 { color: #ffffff !important; }
-.pdf-mode .text-danger { color: #dc2626 !important; } /* Vermelho escuro */
-.pdf-mode .text-warning { color: #d97706 !important; } /* Laranja escuro */
-.pdf-mode .text-primary { color: #0284c7 !important; } /* Azul escuro */
+/* 5. Textos específicos destacados (Garante que Títulos e Labels ficam bem visíveis) */
+.pdf-mode h1, .pdf-mode h2, .pdf-mode h3, .pdf-mode h4, .pdf-mode h5,
+.pdf-mode .auth-label, .pdf-mode .info-item strong, .pdf-mode .url-domain {
+    color: #ffffff !important;
+    font-weight: bold !important;
+}
 
-/* 5. Cores das Badges (Autenticação) */
+/* 6. Cores de Alerta (Tons vivos adaptados para fundo preto) */
+.pdf-mode .text-danger, .pdf-mode .bi-exclamation-triangle-fill { color: #ff4d4d !important; }
+.pdf-mode .text-warning { color: #fbbf24 !important; }
+.pdf-mode .text-primary, .pdf-mode .bi-check-circle { color: #00bcd4 !important; }
+
+/* 7. As Badges mantêm as cores, mas a letra dentro delas fica sempre BRANCA */
 .pdf-mode .badge-success { background-color: #10b981 !important; color: #ffffff !important; }
 .pdf-mode .badge-danger { background-color: #dc2626 !important; color: #ffffff !important; }
-.pdf-mode .badge-warning { background-color: #f59e0b !important; color: #000000 !important; }
-.pdf-mode .badge-secondary { background-color: #6b7280 !important; color: #ffffff !important; }
+.pdf-mode .badge-warning { background-color: #f59e0b !important; color: #ffffff !important; }
+.pdf-mode .badge-secondary { background-color: #4b5563 !important; color: #ffffff !important; }
 
-/* 6. Cores do Veredito ao lado da roda */
+/* 8. Cores do Veredito (Roda e texto) */
 .pdf-mode .status-seguro { color: #10b981 !important; }
-.pdf-mode .status-suspeito { color: #d97706 !important; }
-.pdf-mode .status-perigoso { color: #dc2626 !important; }
+.pdf-mode .status-suspeito { color: #fbbf24 !important; }
+.pdf-mode .status-perigoso { color: #ff4d4d !important; }
+.pdf-mode .circle-bg { stroke: #333333 !important; }
+.pdf-mode .percentage { color: #ffffff !important; font-weight: bold !important; }
 
-/* 7. Ajuste da roda de percentagem */
-.pdf-mode .circle-bg { stroke: #e5e7eb !important; }
-.pdf-mode .percentage { color: #000000 !important; font-weight: 900 !important; }
-
-/* 8. Evitar cortes de página a meio dos blocos */
+/* 9. Impedir que as caixas sejam cortadas a meio da folha */
 .pdf-mode .result-header,
 .pdf-mode .detalhes-adicionais,
 .pdf-mode .alert-section,
