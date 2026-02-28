@@ -431,28 +431,32 @@ header p {
 }
 
 .pdf-mode .percentage {
-    position: relative !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 140px !important;
+    height: 140px !important;
+    line-height: 140px !important;
+    text-align: center !important;
+    transform: none !important;
+    font-size: 42px !important; /* Tamanho base maior */
+    font-weight: bold !important;
+    color: #ffffff !important;
+    white-space: nowrap !important;
+    word-break: keep-all !important;
+    z-index: 2 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    
+    /* MAGIC: Escala o texto que é muito largo */
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
-    width: 100% !important;
-    height: 100% !important;
-    font-size: 36px !important; /* Aumentei para ficar mais visível */
-    font-weight: bold !important;
-    color: #ffffff !important;
-    background: transparent !important;
-    z-index: 2 !important;
-    line-height: normal !important; /* Remove o line-height fixo */
-    transform: none !important;
-    text-align: center !important;
-    white-space: nowrap !important;
-    word-break: keep-all !important;
-    margin: 0 !important;
-    padding: 0 !important;
+    line-height: 1 !important;
 }
 
-/* Garantir que o texto nunca quebre */
 .pdf-mode .percentage span {
     display: inline-block !important;
     white-space: nowrap !important;
+    transform: scale(0.8) !important; /* Reduz o texto em 20% */
 }
