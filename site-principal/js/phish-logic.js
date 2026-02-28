@@ -215,37 +215,74 @@ function gerarPDF() {
         didOpen: () => { Swal.showLoading(); }
     });
 
-    // 1. Resolve o bug de cortes: Volta ao topo da página antes da foto
+    // Volta ao topo para evitar cortes
     window.scrollTo(0, 0);
 
     const opt = {
-        margin: [15, 15, 15, 15],  // Aumentado para mais espaço (evita cortes laterais)
+        margin: [10, 10, 10, 10],  // Reduzido para caber mais conteúdo
         filename: `Relatorio-Phishing-${status}-${new Date().toISOString().slice(0, 10)}.pdf`,
-        image: { type: 'jpeg', quality: 1.0 },
+        image: { type: 'jpeg', quality: 0.98 },  // Qualidade alta, mas otimizada
         html2canvas: {
-            scale: 1.5,  // Reduzido para melhor renderização
+            scale: 2,  // Aumentado para melhor resolução (SVG aparece melhor)
             useCORS: true,
             backgroundColor: '#ffffff',
-            scrollX: 0,  // Novo: força scroll para topo
+            scrollX: 0,
             scrollY: 0,
-            windowWidth: 700,  // Novo: sincroniza com a width do panel
-            onclone: function (clonedDoc) { /* o código acima */ }
+            windowWidth: document.documentElement.clientWidth,  // Usa largura real da janela
+            windowHeight: document.documentElement.scrollHeight,  // Captura altura full para evitar cortes
+            onclone: function(clonedDoc) {
+                const clonedPanel = clonedDoc.getElementById('resultPanel');
+
+                // Copia todos os estilos (CSS links e styles) do original para o clone
+                const styles = document.querySelectorAll('link[rel="stylesheet"], style');
+                styles.forEach(style => {
+                    clonedDoc.head.appendChild(style.cloneNode(true));
+                });
+
+                // Ajustes para A4 (largura ~595pt / 210mm)
+                clonedPanel.style.width = '595px';  // Largura exata A4 em portrait (sem margens)
+                clonedPanel.style.maxWidth = 'none';
+                clonedPanel.style.margin = '0 auto';
+                clonedPanel.style.padding = '20px';
+                clonedPanel.style.boxSizing = 'border-box';
+                clonedPanel.style.position = 'relative';  // Muda para relative para evitar offsets
+                clonedPanel.style.height = 'auto';  // Deixa altura automática para full capture
+                clonedPanel.style.overflow = 'visible';  // Evita hidden content
+
+                // Aplica modo PDF (tema claro)
+                clonedPanel.classList.add('pdf-mode');
+                clonedDoc.body.style.backgroundColor = '#ffffff';
+                clonedDoc.body.style.margin = '0';
+                clonedDoc.body.style.padding = '0';
+
+                // Esconde botão de PDF no clone
+                const btn = clonedPanel.querySelector('button[onclick="gerarPDF()"]');
+                if (btn) btn.style.display = 'none';
+
+                // Força visibilidade de elementos (ex: SVG)
+                const svgs = clonedPanel.querySelectorAll('svg');
+                svgs.forEach(svg => {
+                    svg.style.overflow = 'visible';
+                });
+
+                // Debug: Veja o clone no console (remova depois)
+                // console.log(clonedDoc.body.innerHTML);
+            }
         },
         jsPDF: {
             unit: 'mm',
             format: 'a4',
             orientation: 'portrait'
         },
-        pagebreak: { mode: ['avoid-all', 'css'] }  // Novo: usa as regras de page-break do CSS
+        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }  // Melhora quebras de página
     };
 
-    // Gera o PDF a partir do clone (o seu ecrã original não pisca nem muda)
     html2pdf().set(opt).from(element).save()
         .then(() => {
             Swal.fire('Sucesso!', 'O Relatório foi gerado com perfeição.', 'success');
         })
         .catch(err => {
-            Swal.fire('Erro', 'Falha técnica ao criar PDF.', 'error');
+            Swal.fire('Erro', 'Falha técnica ao criar PDF. Tente atualizar a página.', 'error');
             console.error(err);
         });
 }
