@@ -136,18 +136,26 @@ function exibirResultados(res) {
         alertasContainer.appendChild(alertDiv);
     }
 
-    function criarDetalhesAdicionais(res) {
-        const container = document.createElement('div');
-        container.className = 'detalhes-adicionais mt-4';
+    if (res.detalhes_autenticacao) {
+        const detalhes = criarDetalhesAdicionais(res);
+        panel.appendChild(detalhes);
+    }
 
-        const auth = res.detalhes_autenticacao || {};
+    panel.scrollIntoView({ behavior: 'smooth' });
+}
 
-        // Constrói a lista de URLs
-        let urlsHtml = '';
-        if (res.urls_encontradas && res.urls_encontradas.length > 0) {
-            const listaUrls = res.urls_encontradas.map(u => `<li class="list-group-item py-2" style="word-break: break-all;">${escapeHtml(u)}</li>`).join('');
+function criarDetalhesAdicionais(res) {
+    const container = document.createElement('div');
+    container.className = 'detalhes-adicionais mt-4';
 
-            urlsHtml = `
+    const auth = res.detalhes_autenticacao || {};
+
+    // Constrói a lista de URLs
+    let urlsHtml = '';
+    if (res.urls_encontradas && res.urls_encontradas.length > 0) {
+        const listaUrls = res.urls_encontradas.map(u => `<li class="list-group-item py-2" style="word-break: break-all;">${escapeHtml(u)}</li>`).join('');
+
+        urlsHtml = `
             <div class="row mt-4 border-top pt-4">
                 <div class="col-12">
                     <h4><i class="bi bi-link-45deg text-primary"></i> URLs e Links Detetados Forensicamente</h4>
@@ -157,8 +165,8 @@ function exibirResultados(res) {
                 </div>
             </div>
         `;
-        } else {
-            urlsHtml = `
+    } else {
+        urlsHtml = `
             <div class="row mt-4 border-top pt-4">
                 <div class="col-12">
                     <h4><i class="bi bi-link-45deg text-secondary"></i> URLs e Links Detetados</h4>
@@ -166,9 +174,9 @@ function exibirResultados(res) {
                 </div>
             </div>
         `;
-        }
+    }
 
-        container.innerHTML = `
+    container.innerHTML = `
         <div class="card">
             <div class="card-body">
                 <div class="row">
@@ -203,153 +211,153 @@ function exibirResultados(res) {
             </div>
         </div>
     `;
-        return container;
+    return container;
+}
+
+// ==========================================
+// FUNÇÕES AUXILIARES
+// ==========================================
+
+function getStatusClass(value) {
+    if (!value) return 'badge-secondary';
+    const val = value.toLowerCase();
+    if (val.includes('pass') || val.includes('success')) return 'badge-success';
+    if (val.includes('fail') || val.includes('hardfail')) return 'badge-danger';
+    if (val.includes('softfail') || val.includes('neutral')) return 'badge-warning';
+    return 'badge-secondary';
+}
+
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function toggleHeaders() {
+    const headers = document.getElementById('emailHeaders');
+    headers.classList.toggle('hidden');
+}
+
+// ==========================================
+// EXPORTAÇÃO DE RELATÓRIO FORENSE (PDF)
+// ==========================================
+function gerarPDF() {
+    if (typeof html2pdf === 'undefined') {
+        Swal.fire('Erro', 'A biblioteca de PDF não carregou. Atualize a página.', 'error');
+        return;
     }
 
-    // ==========================================
-    // FUNÇÕES AUXILIARES
-    // ==========================================
+    const resultPanel = document.getElementById('resultPanel');
+    const status = document.getElementById('statusLabel').innerText || 'Analise';
 
-    function getStatusClass(value) {
-        if (!value) return 'badge-secondary';
-        const val = value.toLowerCase();
-        if (val.includes('pass') || val.includes('success')) return 'badge-success';
-        if (val.includes('fail') || val.includes('hardfail')) return 'badge-danger';
-        if (val.includes('softfail') || val.includes('neutral')) return 'badge-warning';
-        return 'badge-secondary';
+    if (resultPanel.classList.contains('hidden')) {
+        Swal.fire('Atenção', 'Faça uma análise primeiro.', 'warning');
+        return;
     }
 
-    function escapeHtml(text) {
-        if (!text) return '';
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
-    }
+    // 1. Esconde o botão verde temporariamente
+    const btnPdf = resultPanel.querySelector('button[onclick="gerarPDF()"]');
+    if (btnPdf) btnPdf.style.display = 'none';
 
-    function toggleHeaders() {
-        const headers = document.getElementById('emailHeaders');
-        headers.classList.toggle('hidden');
-    }
+    Swal.fire({
+        title: 'Gerando Relatório...',
+        allowOutsideClick: false,
+        didOpen: () => { Swal.showLoading(); }
+    });
 
-    // ==========================================
-    // EXPORTAÇÃO DE RELATÓRIO FORENSE (PDF)
-    // ==========================================
-    function gerarPDF() {
-        if (typeof html2pdf === 'undefined') {
-            Swal.fire('Erro', 'A biblioteca de PDF não carregou. Atualize a página.', 'error');
-            return;
-        }
+    // 2. Volta ao topo da página para evitar cortes pelo scroll
+    window.scrollTo(0, 0);
 
-        const resultPanel = document.getElementById('resultPanel');
-        const status = document.getElementById('statusLabel').innerText || 'Analise';
+    // 3. A VERSÃO INFALÍVEL (O Truque da Moldura)
+    // Guardamos o tamanho atual do seu painel panorâmico
+    const widthOriginal = resultPanel.style.width;
+    const maxWidthOriginal = resultPanel.style.maxWidth;
+    const marginOriginal = resultPanel.style.margin;
 
-        if (resultPanel.classList.contains('hidden')) {
-            Swal.fire('Atenção', 'Faça uma análise primeiro.', 'warning');
-            return;
-        }
+    // Forçamos o painel a encolher para 800px (o tamanho perfeito de uma folha A4 em pé)
+    resultPanel.style.width = '800px';
+    resultPanel.style.maxWidth = '800px';
+    resultPanel.style.margin = '0 auto';
 
-        // 1. Esconde o botão verde temporariamente
-        const btnPdf = resultPanel.querySelector('button[onclick="gerarPDF()"]');
-        if (btnPdf) btnPdf.style.display = 'none';
+    const opt = {
+        margin: [10, 10, 10, 10],
+        filename: `Relatorio-Phishing-${status}-${new Date().toISOString().slice(0, 10)}.pdf`,
+        image: { type: 'jpeg', quality: 1.0 },
+        html2canvas: {
+            scale: 2,
+            useCORS: true,
+            backgroundColor: '#0f0f0f', // Mantém o seu fundo preto elegante
+            scrollY: 0
+        },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        pagebreak: { mode: ['css', 'legacy'] }
+    };
 
-        Swal.fire({
-            title: 'Gerando Relatório...',
-            allowOutsideClick: false,
-            didOpen: () => { Swal.showLoading(); }
+    // 4. Tira a fotografia à página já redimensionada para A4
+    html2pdf().set(opt).from(resultPanel).save()
+        .then(() => {
+            // Restaura o botão e as dimensões originais num milissegundo!
+            if (btnPdf) btnPdf.style.display = 'inline-block';
+            resultPanel.style.width = widthOriginal;
+            resultPanel.style.maxWidth = maxWidthOriginal;
+            resultPanel.style.margin = marginOriginal;
+            
+            Swal.fire('Sucesso!', 'Relatório PDF gerado com sucesso.', 'success');
+        })
+        .catch(err => {
+            // Se houver erro, restaura o painel também
+            if (btnPdf) btnPdf.style.display = 'inline-block';
+            resultPanel.style.width = widthOriginal;
+            resultPanel.style.maxWidth = maxWidthOriginal;
+            resultPanel.style.margin = marginOriginal;
+            
+            Swal.fire('Erro', 'Falha ao criar PDF.', 'error');
+            console.error('Erro:', err);
         });
+}
+// ==========================================
+// LEITOR DE ARQUIVOS .EML
+// ==========================================
 
-        // 2. Volta ao topo da página para evitar cortes pelo scroll
-        window.scrollTo(0, 0);
+document.addEventListener('DOMContentLoaded', () => {
+    const emlInput = document.getElementById('emlFileInput');
+    const emailBody = document.getElementById('emailBody');
+    const emailHeaders = document.getElementById('emailHeaders');
 
-        // 3. A VERSÃO INFALÍVEL (O Truque da Moldura)
-        // Guardamos o tamanho atual do seu painel panorâmico
-        const widthOriginal = resultPanel.style.width;
-        const maxWidthOriginal = resultPanel.style.maxWidth;
-        const marginOriginal = resultPanel.style.margin;
+    // Leitor .eml
+    emlInput.addEventListener('change', function (e) {
+        const file = e.target.files[0];
+        if (!file) return;
 
-        // Forçamos o painel a encolher para 800px (o tamanho perfeito de uma folha A4 em pé)
-        resultPanel.style.width = '800px';
-        resultPanel.style.maxWidth = '800px';
-        resultPanel.style.margin = '0 auto';
+        emailBody.value = '';
+        emailHeaders.value = '';
+        document.getElementById('resultPanel').classList.add('hidden');
 
-        const opt = {
-            margin: [10, 10, 10, 10],
-            filename: `Relatorio-Phishing-${status}-${new Date().toISOString().slice(0, 10)}.pdf`,
-            image: { type: 'jpeg', quality: 1.0 },
-            html2canvas: {
-                scale: 2,
-                useCORS: true,
-                backgroundColor: '#0f0f0f', // Mantém o seu fundo preto elegante
-                scrollY: 0
-            },
-            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-            pagebreak: { mode: ['css', 'legacy'] }
+        const reader = new FileReader();
+        reader.onload = function (event) {
+            const text = event.target.result;
+            const separator = text.indexOf('\n\n') > 0 ? '\n\n' : '\r\n\r\n';
+            const parts = text.split(separator);
+
+            if (parts.length > 1) {
+                emailHeaders.value = parts[0].trim();
+                emailBody.value = parts.slice(1).join(separator).trim();
+                emailHeaders.classList.remove('hidden');
+                Swal.fire({ icon: 'success', title: '✅ Carregado', text: 'Headers extraídos!', timer: 2000 });
+            } else {
+                Swal.fire({ icon: 'error', title: 'Formato inválido', text: 'Não foi possível separar headers.' });
+            }
+            emlInput.value = '';
         };
+        reader.readAsText(file, 'UTF-8');
+    });
+});
 
-        // 4. Tira a fotografia à página já redimensionada para A4
-        html2pdf().set(opt).from(resultPanel).save()
-            .then(() => {
-                // Restaura o botão e as dimensões originais num milissegundo!
-                if (btnPdf) btnPdf.style.display = 'inline-block';
-                resultPanel.style.width = widthOriginal;
-                resultPanel.style.maxWidth = maxWidthOriginal;
-                resultPanel.style.margin = marginOriginal;
-
-                Swal.fire('Sucesso!', 'Relatório PDF gerado com sucesso.', 'success');
-            })
-            .catch(err => {
-                // Se houver erro, restaura o painel também
-                if (btnPdf) btnPdf.style.display = 'inline-block';
-                resultPanel.style.width = widthOriginal;
-                resultPanel.style.maxWidth = maxWidthOriginal;
-                resultPanel.style.margin = marginOriginal;
-
-                Swal.fire('Erro', 'Falha ao criar PDF.', 'error');
-                console.error('Erro:', err);
-            });
+// Inicialização
+document.addEventListener('DOMContentLoaded', function () {
+    const riskValue = document.getElementById('riskValue');
+    if (riskValue && riskValue.textContent === '') {
+        riskValue.textContent = '0%';
     }
-    // ==========================================
-    // LEITOR DE ARQUIVOS .EML
-    // ==========================================
-
-    document.addEventListener('DOMContentLoaded', () => {
-        const emlInput = document.getElementById('emlFileInput');
-        const emailBody = document.getElementById('emailBody');
-        const emailHeaders = document.getElementById('emailHeaders');
-
-        // Leitor .eml
-        emlInput.addEventListener('change', function (e) {
-            const file = e.target.files[0];
-            if (!file) return;
-
-            emailBody.value = '';
-            emailHeaders.value = '';
-            document.getElementById('resultPanel').classList.add('hidden');
-
-            const reader = new FileReader();
-            reader.onload = function (event) {
-                const text = event.target.result;
-                const separator = text.indexOf('\n\n') > 0 ? '\n\n' : '\r\n\r\n';
-                const parts = text.split(separator);
-
-                if (parts.length > 1) {
-                    emailHeaders.value = parts[0].trim();
-                    emailBody.value = parts.slice(1).join(separator).trim();
-                    emailHeaders.classList.remove('hidden');
-                    Swal.fire({ icon: 'success', title: '✅ Carregado', text: 'Headers extraídos!', timer: 2000 });
-                } else {
-                    Swal.fire({ icon: 'error', title: 'Formato inválido', text: 'Não foi possível separar headers.' });
-                }
-                emlInput.value = '';
-            };
-            reader.readAsText(file, 'UTF-8');
-        });
-    });
-
-    // Inicialização
-    document.addEventListener('DOMContentLoaded', function () {
-        const riskValue = document.getElementById('riskValue');
-        if (riskValue && riskValue.textContent === '') {
-            riskValue.textContent = '0%';
-        }
-    });
+});
