@@ -1,5 +1,6 @@
 .phish-container {
-    max-width: 800px;
+    max-width: 1200px; /* Aumentado de 800px para cobrir quase a tela toda */
+    width: 95%;
     margin: 0 auto;
     padding: 20px;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -167,6 +168,7 @@ header p {
     position: relative;
     width: 140px;
     height: 140px;
+    flex-shrink: 0; /* Impede absolutamente que o círculo seja esmagado ou achatado */
 }
 
 .circular-chart {
@@ -362,38 +364,6 @@ header p {
     color: #00bcd4 !important;
 }
 
-/* Responsividade */
-@media (max-width: 600px) {
-    .phish-container {
-        padding: 10px;
-    }
-    
-    header h1 {
-        font-size: 2em;
-    }
-    
-    .result-header {
-        flex-direction: column;
-        text-align: center;
-        gap: 20px;
-    }
-    
-    .btn-outline-secondary,
-    #btnAnalisar {
-        width: 100%;
-        margin: 5px 0;
-    }
-    
-    .risk-meter {
-        width: 120px;
-        height: 120px;
-    }
-    
-    .percentage {
-        font-size: 1.5em;
-    }
-}
-
 /* Scrollbar personalizada */
 ::-webkit-scrollbar {
     width: 10px;
@@ -443,33 +413,6 @@ header p {
     visibility: visible;
     opacity: 1;
 }
-
-/* Badge para anexos perigosos */
-.attachment-badge {
-    display: inline-block;
-    padding: 3px 8px;
-    border-radius: 4px;
-    font-size: 0.8em;
-    font-weight: bold;
-    margin-left: 8px;
-}
-
-.attachment-badge.danger {
-    background: #dc2626;
-    color: white;
-}
-
-.attachment-badge.warning {
-    background: #f59e0b;
-    color: black;
-}
-
-.attachment-badge.safe {
-    background: #10b981;
-    color: white;
-}
-
-/* Adicione isso ao final do arquivo phish.css */
 
 /* Detalhes de Autenticação */
 .detalhes-adicionais {
@@ -551,28 +494,6 @@ header p {
     color: #fff;
 }
 
-.auth-raw {
-    margin-top: 10px;
-}
-
-.auth-raw summary {
-    color: #00bcd4;
-    cursor: pointer;
-    font-size: 0.9em;
-}
-
-.auth-raw pre {
-    background: #1a1a1a;
-    padding: 10px;
-    border-radius: 4px;
-    color: #ccc;
-    font-size: 0.85em;
-    overflow-x: auto;
-    white-space: pre-wrap;
-    word-wrap: break-word;
-    margin-top: 10px;
-}
-
 /* Informações do Remetente */
 .sender-info {
     background: #1e1e1e;
@@ -590,91 +511,117 @@ header p {
     margin-right: 10px;
 }
 
-/* URLs e Domínios */
-.urls-list, .dominios-list {
-    list-style: none;
-    padding: 0;
-}
-
-.urls-list li, .dominios-list li {
-    background: #1e1e1e;
-    padding: 10px 15px;
-    margin-bottom: 8px;
-    border-radius: 6px;
-    color: #fff;
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 10px;
-}
-
-.url-domain {
-    color: #00bcd4;
-    font-weight: bold;
-    font-size: 0.95em;
-}
-
-.url-full {
-    color: #999;
-    font-size: 0.85em;
-    word-break: break-all;
-    flex: 1;
-}
-
-.url-suspeita {
-    border-left: 4px solid #f59e0b;
-}
-
-.domain-name {
-    color: #00bcd4;
-    font-weight: bold;
-    min-width: 150px;
-}
-
-.domain-age {
-    color: #999;
-    font-size: 0.9em;
-}
-
-.domain-age.recente {
-    color: #f59e0b;
-    font-weight: bold;
-}
-
-.dominio-recente {
-    border-left: 4px solid #f59e0b;
-}
-
-/* Tooltips e badges extras */
-.badge.danger {
-    background: #dc2626;
-    color: white;
-}
-
-.badge.warning {
-    background: #f59e0b;
-    color: black;
-}
-
-/* Responsividade para os novos elementos */
-@media (max-width: 600px) {
-    .auth-grid {
-        grid-template-columns: 1fr;
-    }
-    
-    .urls-list li, .dominios-list li {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-    
-    .domain-name {
-        min-width: auto;
-    }
-}
 .warning {
     color: #f59e0b;
     font-weight: bold;
     margin-bottom: 10px;
+}
+
+/* Responsividade Movel */
+@media (max-width: 600px) {
+    .phish-container {
+        padding: 10px;
+    }
+    
+    header h1 {
+        font-size: 2em;
+    }
+    
+    .result-header {
+        flex-direction: column;
+        text-align: center;
+        gap: 20px;
+    }
+    
+    .btn-outline-secondary,
+    #btnAnalisar {
+        width: 100%;
+        margin: 5px 0;
+    }
+    
+    .risk-meter {
+        width: 120px;
+        height: 120px;
+    }
+    
+    .percentage {
+        font-size: 1.5em;
+    }
+
+    .auth-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* =========================================
+   MODO DE EXPORTAÇÃO PDF (CLONE)
+   Força cores clássicas e layout inquebrável
+========================================= */
+.pdf-mode {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+/* Força todo o texto a ficar preto no PDF */
+.pdf-mode * {
+    color: #000000 !important;
+    text-shadow: none !important;
+}
+
+/* Cores das Badges e Veredito */
+.pdf-mode .status-seguro, .pdf-mode .text-primary { color: #10b981 !important; }
+.pdf-mode .status-suspeito, .pdf-mode .text-warning { color: #f59e0b !important; }
+.pdf-mode .status-perigoso, .pdf-mode .text-danger { color: #dc2626 !important; }
+
+.pdf-mode .badge-success { background: #10b981 !important; color: #fff !important; }
+.pdf-mode .badge-danger { background: #dc2626 !important; color: #fff !important; }
+.pdf-mode .badge-warning { background: #f59e0b !important; color: #000 !important; }
+.pdf-mode .badge-secondary, .pdf-mode .badge-neutral { background: #6b7280 !important; color: #fff !important; }
+
+/* Fundo limpo para caixas de informação */
+.pdf-mode #recomendacao, 
+.pdf-mode .detalhes-adicionais, 
+.pdf-mode .auth-item, 
+.pdf-mode .sender-info, 
+.pdf-mode .list-group-item {
+    background-color: #f3f4f6 !important;
+    border: 1px solid #d1d5db !important;
+}
+
+/* Títulos secundários mais suaves */
+.pdf-mode .info-item, .pdf-mode .auth-label, .pdf-mode h4, .pdf-mode h5 {
+    color: #374151 !important;
+}
+.pdf-mode .info-item strong {
+    color: #111827 !important;
+}
+
+/* Ajustes da Roda de Risco */
+.pdf-mode .circle-bg { stroke: #e5e7eb !important; }
+.pdf-mode .percentage { color: #000000 !important; }
+.pdf-mode .circle.seguro { stroke: #10b981 !important; }
+.pdf-mode .circle.suspeito { stroke: #f59e0b !important; }
+.pdf-mode .circle.perigoso { stroke: #dc2626 !important; }
+
+/* Transforma o Grid em Flexbox para o conversor PDF não apagar as caixas */
+.pdf-mode .auth-grid {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 10px !important;
+}
+.pdf-mode .auth-item {
+    flex: 1 1 120px !important;
+}
+
+/* Previne cortes a meio da folha */
+.pdf-mode .result-header,
+.pdf-mode .detalhes-adicionais,
+.pdf-mode .alert-section,
+.pdf-mode .list-group-item {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
 }
 
 /* =========================================
