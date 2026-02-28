@@ -496,7 +496,7 @@ header p {
 
 /* Informações do Remetente */
 .sender-info {
-    background: #1e1e1e;
+    background: #fff;
     padding: 15px;
     border-radius: 6px;
 }
