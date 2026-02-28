@@ -185,35 +185,66 @@ function toggleHeaders() {
     h.classList.toggle('hidden');
 }
 
-// Função para gerar PDF do Relatório
+// ==========================================
+// EXPORTAÇÃO DE RELATÓRIO FORENSE (PDF)
+// ==========================================
 function gerarPDF() {
     if (typeof html2pdf === 'undefined') {
-        alert('A biblioteca de PDF ainda não foi carregada. Verifique o seu phish.html.');
+        Swal.fire('Erro', 'A biblioteca de PDF não carregou. Atualize a página.', 'error');
         return;
     }
-    
+
     const element = document.getElementById('resultPanel');
-    const status = document.getElementById('statusLabel').innerText;
-    
+    const status = document.getElementById('statusLabel').innerText || 'Analise';
+
+    Swal.fire({
+        title: 'Gerando Relatório...',
+        text: 'A formatar o documento forense perfeito...',
+        allowOutsideClick: false,
+        didOpen: () => { Swal.showLoading(); }
+    });
+
+    // 1. Resolve o bug de cortes: Volta ao topo da página antes da foto
+    window.scrollTo(0, 0);
+
     const opt = {
-        margin:       10,
-        filename:     `Relatorio-Phishing-${status}-${new Date().getTime()}.pdf`,
-        image:        { type: 'jpeg', quality: 0.98 },
-        html2canvas:  { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
-        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        margin:       [10, 10, 10, 10],
+        filename:     `Relatorio-Phishing-${status}-${new Date().toISOString().slice(0,10)}.pdf`,
+        image:        { type: 'jpeg', quality: 1.0 },
+        html2canvas:  { 
+            scale: 2, 
+            useCORS: true,
+            backgroundColor: '#ffffff',
+            // 2. A MAGIA: Preparamos o clone fantasma só para o PDF
+            onclone: function(clonedDoc) {
+                const clonedPanel = clonedDoc.getElementById('resultPanel');
+                
+                // Força o tamanho exato de uma folha A4 em pé (Portrait)
+                clonedPanel.style.width = '800px'; 
+                clonedPanel.style.maxWidth = 'none';
+                clonedPanel.style.margin = '0 auto';
+                clonedPanel.style.padding = '25px';
+                
+                // Aplica as cores claras para impressão
+                clonedPanel.classList.add('pdf-mode');
+                
+                // Esconde o botão verde dentro do PDF
+                const btn = clonedPanel.querySelector('button[onclick="gerarPDF()"]');
+                if (btn) btn.style.display = 'none';
+            }
+        },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
 
-    const btn = document.querySelector('button[onclick="gerarPDF()"]');
-    if(btn) {
-        const originalText = btn.innerHTML;
-        btn.innerHTML = 'A gerar PDF...';
-        btn.disabled = true;
-
-        html2pdf().set(opt).from(element).save().then(() => {
-            btn.innerHTML = originalText;
-            btn.disabled = false;
+    // Gera o PDF a partir do clone (o seu ecrã original não pisca nem muda)
+    html2pdf().set(opt).from(element).save()
+        .then(() => {
+            Swal.fire('Sucesso!', 'O Relatório foi gerado com perfeição.', 'success');
+        })
+        .catch(err => {
+            Swal.fire('Erro', 'Falha técnica ao criar PDF.', 'error');
+            console.error(err);
         });
-    }
 }
 
 // ==========================================
