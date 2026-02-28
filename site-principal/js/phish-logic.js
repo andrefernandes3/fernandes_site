@@ -5,7 +5,7 @@
 async function processarAnalise() {
     const btn = document.getElementById('btnAnalisar');
     const originalText = btn.innerHTML;
-    
+
     const emailContent = document.getElementById('emailBody').value.trim();
     const headers = document.getElementById('emailHeaders').value.trim();
 
@@ -36,9 +36,9 @@ async function processarAnalise() {
 
     } catch (error) {
         console.error('Erro:', error);
-        Swal.fire({ 
-            icon: 'error', 
-            title: 'Erro de Conexão', 
+        Swal.fire({
+            icon: 'error',
+            title: 'Erro de Conexão',
             text: 'Verifique se o servidor está online. ' + error.message,
             footer: '<small>Tente novamente em alguns segundos</small>'
         });
@@ -81,7 +81,7 @@ function exibirResultados(res) {
     // Alertas Especiais
     const alertasContainer = document.getElementById('alertasExtras');
     alertasContainer.innerHTML = '';
-    
+
     if (res.Veredito !== 'SEGURO' && res.remetente && res.remetente.toLowerCase().includes('receita')) {
         const alertDiv = document.createElement('div');
         alertDiv.className = 'alert-section';
@@ -103,16 +103,16 @@ function exibirResultados(res) {
 function criarDetalhesAdicionais(res) {
     const container = document.createElement('div');
     container.className = 'detalhes-adicionais mt-4 card shadow-sm';
-    
+
     const auth = res.detalhes_autenticacao;
-    
+
     // Constrói a lista de URLs (se existirem)
     let urlsHtml = '';
     if (res.urls_encontradas && res.urls_encontradas.length > 0) {
         // Limita a 10 URLs no ecrã para não desformatar o PDF
         const urlsMostrar = res.urls_encontradas.slice(0, 10);
         const listaUrls = urlsMostrar.map(u => `<li class="list-group-item py-1 text-muted small" style="word-break: break-all;">${escapeHtml(u)}</li>`).join('');
-        
+
         urlsHtml = `
             <div class="row mt-3 border-top pt-3">
                 <div class="col-12">
@@ -219,32 +219,24 @@ function gerarPDF() {
     window.scrollTo(0, 0);
 
     const opt = {
-        margin:       [10, 10, 10, 10],
-        filename:     `Relatorio-Phishing-${status}-${new Date().toISOString().slice(0,10)}.pdf`,
-        image:        { type: 'jpeg', quality: 1.0 },
-        html2canvas:  { 
-            scale: 2, 
+        margin: [15, 15, 15, 15],  // Aumentado para mais espaço (evita cortes laterais)
+        filename: `Relatorio-Phishing-${status}-${new Date().toISOString().slice(0, 10)}.pdf`,
+        image: { type: 'jpeg', quality: 1.0 },
+        html2canvas: {
+            scale: 1.5,  // Reduzido para melhor renderização
             useCORS: true,
             backgroundColor: '#ffffff',
-            // 2. A MAGIA: Preparamos o clone fantasma só para o PDF
-            onclone: function(clonedDoc) {
-                const clonedPanel = clonedDoc.getElementById('resultPanel');
-                
-                // Força o tamanho exato de uma folha A4 em pé (Portrait)
-                clonedPanel.style.width = '800px'; 
-                clonedPanel.style.maxWidth = 'none';
-                clonedPanel.style.margin = '0 auto';
-                clonedPanel.style.padding = '25px';
-                
-                // Aplica as cores claras para impressão
-                clonedPanel.classList.add('pdf-mode');
-                
-                // Esconde o botão verde dentro do PDF
-                const btn = clonedPanel.querySelector('button[onclick="gerarPDF()"]');
-                if (btn) btn.style.display = 'none';
-            }
+            scrollX: 0,  // Novo: força scroll para topo
+            scrollY: 0,
+            windowWidth: 700,  // Novo: sincroniza com a width do panel
+            onclone: function (clonedDoc) { /* o código acima */ }
         },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        jsPDF: {
+            unit: 'mm',
+            format: 'a4',
+            orientation: 'portrait'
+        },
+        pagebreak: { mode: ['avoid-all', 'css'] }  // Novo: usa as regras de page-break do CSS
     };
 
     // Gera o PDF a partir do clone (o seu ecrã original não pisca nem muda)
@@ -266,33 +258,33 @@ document.addEventListener('DOMContentLoaded', () => {
     const emlInput = document.getElementById('emlFileInput');
     const emailBody = document.getElementById('emailBody');
     const emailHeaders = document.getElementById('emailHeaders');
-    
+
     // Detecta links ocultos na colagem
-    emailBody.addEventListener('paste', function(e) {
+    emailBody.addEventListener('paste', function (e) {
         setTimeout(() => {
             const text = this.value;
             const links = text.match(/https?:\/\/[^\s<>"']+/g);
             if (links && links.length > 0) {
-                this.value += `\n\n🔗 LINKS DETECTADOS:\n${links.slice(0,3).join('\n')}`;
+                this.value += `\n\n🔗 LINKS DETECTADOS:\n${links.slice(0, 3).join('\n')}`;
             }
         }, 100);
     });
 
     // Leitor .eml
-    emlInput.addEventListener('change', function(e) {
+    emlInput.addEventListener('change', function (e) {
         const file = e.target.files[0];
         if (!file) return;
 
         emailBody.value = '';
         emailHeaders.value = '';
         document.getElementById('resultPanel').classList.add('hidden');
-        
+
         const reader = new FileReader();
-        reader.onload = function(event) {
+        reader.onload = function (event) {
             const text = event.target.result;
             const separator = text.indexOf('\n\n') > 0 ? '\n\n' : '\r\n\r\n';
             const parts = text.split(separator);
-            
+
             if (parts.length > 1) {
                 emailHeaders.value = parts[0].trim();
                 emailBody.value = parts.slice(1).join(separator).trim();
