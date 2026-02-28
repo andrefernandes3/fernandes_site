@@ -146,20 +146,22 @@ function exibirResultados(res) {
 
 function criarDetalhesAdicionais(res) {
     const container = document.createElement('div');
-    container.className = 'detalhes-adicionais mt-4';
+    container.className = 'detalhes-adicionais mt-5'; // Mais espaço do topo
 
     const auth = res.detalhes_autenticacao || {};
 
     // Constrói a lista de URLs
     let urlsHtml = '';
     if (res.urls_encontradas && res.urls_encontradas.length > 0) {
-        const listaUrls = res.urls_encontradas.map(u => `<li class="list-group-item py-2" style="word-break: break-all;">${escapeHtml(u)}</li>`).join('');
+        const listaUrls = res.urls_encontradas.map(u => 
+            `<li class="list-group-item py-3"><i class="bi bi-link-45deg me-2 text-primary fs-5"></i>${escapeHtml(u)}</li>`
+        ).join('');
 
         urlsHtml = `
-            <div class="row mt-4 border-top pt-4">
+            <div class="row mt-5">
                 <div class="col-12">
-                    <h4><i class="bi bi-link-45deg text-primary"></i> URLs e Links Detetados Forensicamente</h4>
-                    <ul class="list-group list-group-flush border rounded">
+                    <h4><i class="bi bi-globe"></i> URLs e Links Detetados</h4>
+                    <ul class="list-group list-group-flush border border-secondary rounded overflow-hidden">
                         ${listaUrls}
                     </ul>
                 </div>
@@ -167,10 +169,10 @@ function criarDetalhesAdicionais(res) {
         `;
     } else {
         urlsHtml = `
-            <div class="row mt-4 border-top pt-4">
+            <div class="row mt-5">
                 <div class="col-12">
-                    <h4><i class="bi bi-link-45deg text-secondary"></i> URLs e Links Detetados</h4>
-                    <p class="text-muted">Nenhum link web encontrado no corpo do e-mail.</p>
+                    <h4><i class="bi bi-globe text-secondary"></i> URLs e Links Detetados</h4>
+                    <p class="text-muted"><i class="bi bi-info-circle me-2"></i>Nenhum link web encontrado no corpo do e-mail.</p>
                 </div>
             </div>
         `;
@@ -178,32 +180,31 @@ function criarDetalhesAdicionais(res) {
 
     container.innerHTML = `
         <div class="card">
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-5">
-                        <h4><i class="bi bi-shield-lock"></i> Autenticação Email</h4>
-                        <div class="auth-grid mt-3">
+            <div class="card-body p-0">
+                <div class="row g-4"> <div class="col-md-5">
+                        <h4><i class="bi bi-shield-lock"></i> Autenticação</h4>
+                        <div class="auth-grid">
                             <div class="auth-item mb-3">
-                                <span class="auth-label fw-bold me-2">SPF:</span>
-                                <span class="auth-value badge ${getStatusClass(auth.spf)}">${escapeHtml(auth.spf || 'não verificado')}</span>
+                                <span class="auth-label">SPF</span>
+                                <span class="auth-value badge ${getStatusClass(auth.spf)}">${escapeHtml(auth.spf || 'N/A')}</span>
                             </div>
                             <div class="auth-item mb-3">
-                                <span class="auth-label fw-bold me-2">DKIM:</span>
-                                <span class="auth-value badge ${getStatusClass(auth.dkim)}">${escapeHtml(auth.dkim || 'não verificado')}</span>
+                                <span class="auth-label">DKIM</span>
+                                <span class="auth-value badge ${getStatusClass(auth.dkim)}">${escapeHtml(auth.dkim || 'N/A')}</span>
                             </div>
-                            <div class="auth-item mb-3">
-                                <span class="auth-label fw-bold me-2">DMARC:</span>
-                                <span class="auth-value badge ${getStatusClass(auth.dmarc)}">${escapeHtml(auth.dmarc || 'não verificado')}</span>
+                            <div class="auth-item mb-0">
+                                <span class="auth-label">DMARC</span>
+                                <span class="auth-value badge ${getStatusClass(auth.dmarc)}">${escapeHtml(auth.dmarc || 'N/A')}</span>
                             </div>
                         </div>
                     </div>
                     <div class="col-md-7">
-                        <h4><i class="bi bi-person-lines-fill"></i> Origem do Email</h4>
-                        <div class="mt-3">
-                            <div class="mb-3"><strong>Nome:</strong> ${escapeHtml(res.remetente || 'Não identificado')}</div>
-                            <div class="mb-3"><strong>SMTP:</strong> ${escapeHtml(res.return_path || 'Não identificado')}</div>
-                            <div class="mb-3"><strong>IP:</strong> ${escapeHtml(res.ip_remetente || 'Não identificado')}</div>
-                            <div class="mb-3"><strong>Domínio:</strong> ${escapeHtml(auth.dominio_autenticado || 'Não identificado')}</div>
+                        <h4><i class="bi bi-person-bounding-box"></i> Origem do Email</h4>
+                        <div class="origem-box d-flex flex-column justify-content-center">
+                            <div><strong>Nome:</strong> <span class="fw-bold">${escapeHtml(res.remetente || 'Não identificado')}</span></div>
+                            <div><strong>SMTP:</strong> ${escapeHtml(res.return_path || 'Não identificado')}</div>
+                            <div><strong>IP:</strong> ${escapeHtml(res.ip_remetente || 'Não identificado')}</div>
+                            <div><strong>Domínio:</strong> ${escapeHtml(auth.dominio_autenticado || 'Não identificado')}</div>
                         </div>
                     </div>
                 </div>
