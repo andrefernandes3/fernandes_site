@@ -333,9 +333,21 @@ module.exports = async function (context, req) {
             Recomendacao: analise.Recomendacao || 'Analise com cautela.',
             detalhes_autenticacao: { spf: authDetails.spf, dkim: authDetails.dkim, dmarc: authDetails.dmarc, dominio_autenticado: authDetails.dominioAutenticado },
             remetente: senderData.nome_exibicao, return_path: senderData.email_real, ip_remetente: senderIP || 'Não identificado', anexo_html: temAnexoHTML,
-            urls_encontradas: foundUrls, // Vai mostrar os links extraídos no ecossistema
-            urlscan_uuid: urlscanUuid    // 🟢 Enviamos a "foto" para o Frontend!
+            urls_encontradas: foundUrls, 
+            urlscan_uuid: urlscanUuid    
         };
+
+        // 🟢 SALVA NO BANCO DE DADOS (SUCESSO COM IA)
+        try {
+            const db = await connectDb();
+            await db.collection('analises_phishing').insertOne({
+                data_analise: new Date(),
+                ip_cliente: clientIp,
+                remetente_analisado: senderData.email_real,
+                resultado: respostaCompleta,
+                ia_utilizada: true
+            });
+        } catch (dbErr) { console.error('Erro ao salvar no MongoDB (Sucesso):', dbErr); }
 
         memoryCache.set(cacheKey, { data: respostaCompleta, timestamp: Date.now() });
         context.res.status = 200; context.res.body = respostaCompleta;
@@ -346,12 +358,26 @@ module.exports = async function (context, req) {
             Nivel_Risco: localScore, 
             Veredito: localScore >= 80 ? 'PERIGOSO' : (localScore >= 40 ? 'SUSPEITO' : 'SEGURO'), 
             Motivos: evidenciasFortes.length > 0 ? evidenciasFortes : ['Análise Heurística Rápida'], 
-            Recomendacao: 'Análise gerada localmente.',
+            Recomendacao: 'Análise gerada localmente. O motor de IA excedeu o tempo de resposta.',
             detalhes_autenticacao: { spf: authDetails.spf, dkim: authDetails.dkim, dmarc: authDetails.dmarc, dominio_autenticado: authDetails.dominioAutenticado },
             remetente: senderData.nome_exibicao, return_path: senderData.email_real, ip_remetente: senderIP || 'Não identificado', anexo_html: temAnexoHTML,
             urls_encontradas: foundUrls,
-            urlscan_uuid: urlscanUuid // 🟢 Enviamos a foto mesmo se a Inteligência Artificial falhar
+            urlscan_uuid: urlscanUuid 
         };
+
+        // 🟢 SALVA NO BANCO DE DADOS MESMO SE O GROQ FALHAR (FALLBACK)
+        try {
+            const db = await connectDb();
+            await db.collection('analises_phishing').insertOne({
+                data_analise: new Date(),
+                ip_cliente: clientIp,
+                remetente_analisado: senderData.email_real,
+                resultado: falhaCompleta,
+                ia_utilizada: false, // Regista no BD que esta análise foi feita sem a ajuda do Groq
+                erro_gerado: error.message
+            });
+        } catch (dbErr) { console.error('Erro ao salvar no MongoDB (Falha):', dbErr); }
+
         context.res.body = falhaCompleta;
     }
 };
