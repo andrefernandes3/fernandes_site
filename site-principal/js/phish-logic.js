@@ -52,7 +52,7 @@ function exibirResultados(res) {
     const panel = document.getElementById('resultPanel');
     panel.classList.remove('hidden');
 
-    // ===== CARD MODERNO (ÚNICO) =====
+    // ===== CARD MODERNO =====
     const percentual = res.Nivel_Risco || 0;
     
     // Atualizar o percentual
@@ -90,7 +90,6 @@ function exibirResultados(res) {
         riskBadge.textContent = res.Veredito || 'ANALISADO';
         riskBadge.className = `badge ${classeBadge}`;
     }
-    // ===== FIM CARD MODERNO =====
 
     // Veredito
     const statusLabel = document.getElementById('statusLabel');
@@ -126,7 +125,7 @@ function exibirResultados(res) {
 
     if (res.Veredito !== 'SEGURO' && res.remetente && res.remetente.toLowerCase().includes('receita')) {
         const alertDiv = document.createElement('div');
-        alertDiv.className = 'alert-section';
+        alertDiv.className = 'alert-section mb-3';
         alertDiv.innerHTML = `
             <div class="alert alert-danger">
                 <h5><i class="bi bi-exclamation-triangle-fill"></i> 🚨 ALERTA GOVERNO</h5>
@@ -146,7 +145,7 @@ function exibirResultados(res) {
 
 function criarDetalhesAdicionais(res) {
     const container = document.createElement('div');
-    container.className = 'detalhes-adicionais mt-4 card shadow-sm';
+    container.className = 'detalhes-adicionais mt-4';
 
     const auth = res.detalhes_autenticacao || {};
 
@@ -156,9 +155,9 @@ function criarDetalhesAdicionais(res) {
         const listaUrls = res.urls_encontradas.map(u => `<li class="list-group-item py-2" style="word-break: break-all;">${escapeHtml(u)}</li>`).join('');
 
         urlsHtml = `
-            <div class="row mt-3 border-top pt-3">
+            <div class="row mt-4 border-top pt-4">
                 <div class="col-12">
-                    <h5><i class="bi bi-link-45deg text-primary"></i> URLs e Links Detetados Forensicamente</h5>
+                    <h4><i class="bi bi-link-45deg text-primary"></i> URLs e Links Detetados Forensicamente</h4>
                     <ul class="list-group list-group-flush border rounded">
                         ${listaUrls}
                     </ul>
@@ -167,46 +166,48 @@ function criarDetalhesAdicionais(res) {
         `;
     } else {
         urlsHtml = `
-            <div class="row mt-3 border-top pt-3">
+            <div class="row mt-4 border-top pt-4">
                 <div class="col-12">
-                    <h5><i class="bi bi-link-45deg text-secondary"></i> URLs e Links Detetados</h5>
-                    <p class="text-muted small">Nenhum link web encontrado no corpo do e-mail.</p>
+                    <h4><i class="bi bi-link-45deg text-secondary"></i> URLs e Links Detetados</h4>
+                    <p class="text-muted">Nenhum link web encontrado no corpo do e-mail.</p>
                 </div>
             </div>
         `;
     }
 
     container.innerHTML = `
-        <div class="card-body">
-            <div class="row">
-                <div class="col-md-4">
-                    <h5><i class="bi bi-shield-lock"></i> Autenticação Email</h5>
-                    <div class="auth-grid mt-2">
-                        <div class="auth-item mb-2">
-                            <span class="auth-label fw-bold me-2">SPF:</span>
-                            <span class="auth-value badge ${getStatusClass(auth.spf)}">${escapeHtml(auth.spf || 'não verificado')}</span>
+        <div class="card">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-5">
+                        <h4><i class="bi bi-shield-lock"></i> Autenticação Email</h4>
+                        <div class="auth-grid mt-3">
+                            <div class="auth-item mb-3">
+                                <span class="auth-label fw-bold me-2">SPF:</span>
+                                <span class="auth-value badge ${getStatusClass(auth.spf)}">${escapeHtml(auth.spf || 'não verificado')}</span>
+                            </div>
+                            <div class="auth-item mb-3">
+                                <span class="auth-label fw-bold me-2">DKIM:</span>
+                                <span class="auth-value badge ${getStatusClass(auth.dkim)}">${escapeHtml(auth.dkim || 'não verificado')}</span>
+                            </div>
+                            <div class="auth-item mb-3">
+                                <span class="auth-label fw-bold me-2">DMARC:</span>
+                                <span class="auth-value badge ${getStatusClass(auth.dmarc)}">${escapeHtml(auth.dmarc || 'não verificado')}</span>
+                            </div>
                         </div>
-                        <div class="auth-item mb-2">
-                            <span class="auth-label fw-bold me-2">DKIM:</span>
-                            <span class="auth-value badge ${getStatusClass(auth.dkim)}">${escapeHtml(auth.dkim || 'não verificado')}</span>
-                        </div>
-                        <div class="auth-item mb-2">
-                            <span class="auth-label fw-bold me-2">DMARC:</span>
-                            <span class="auth-value badge ${getStatusClass(auth.dmarc)}">${escapeHtml(auth.dmarc || 'não verificado')}</span>
+                    </div>
+                    <div class="col-md-7">
+                        <h4><i class="bi bi-person-lines-fill"></i> Origem do Email</h4>
+                        <div class="mt-3">
+                            <div class="mb-3"><strong>Nome:</strong> ${escapeHtml(res.remetente || 'Não identificado')}</div>
+                            <div class="mb-3"><strong>SMTP:</strong> ${escapeHtml(res.return_path || 'Não identificado')}</div>
+                            <div class="mb-3"><strong>IP:</strong> ${escapeHtml(res.ip_remetente || 'Não identificado')}</div>
+                            <div class="mb-3"><strong>Domínio:</strong> ${escapeHtml(auth.dominio_autenticado || 'Não identificado')}</div>
                         </div>
                     </div>
                 </div>
-                <div class="col-md-8">
-                    <h5><i class="bi bi-person-lines-fill"></i> Origem do Email</h5>
-                    <div class="row mt-2">
-                        <div class="col-12 mb-2"><strong>Nome:</strong> ${escapeHtml(res.remetente || 'Não identificado')}</div>
-                        <div class="col-12 mb-2"><strong>SMTP:</strong> ${escapeHtml(res.return_path || 'Não identificado')}</div>
-                        <div class="col-6 mb-2"><strong>IP:</strong> ${escapeHtml(res.ip_remetente || 'Não identificado')}</div>
-                        <div class="col-6 mb-2"><strong>Domínio:</strong> ${escapeHtml(auth.dominio_autenticado || 'Não identificado')}</div>
-                    </div>
-                </div>
+                ${urlsHtml}
             </div>
-            ${urlsHtml}
         </div>
     `;
     return container;
@@ -246,8 +247,14 @@ function gerarPDF() {
         return;
     }
 
-    const element = document.querySelector('.phish-container');
+    const resultPanel = document.getElementById('resultPanel');
     const status = document.getElementById('statusLabel').innerText || 'Analise';
+
+    // Verifica se há resultado para exportar
+    if (resultPanel.classList.contains('hidden')) {
+        Swal.fire('Atenção', 'Faça uma análise primeiro.', 'warning');
+        return;
+    }
 
     Swal.fire({
         title: 'Gerando Relatório...',
@@ -257,7 +264,31 @@ function gerarPDF() {
     });
 
     window.scrollTo(0, 0);
-    document.body.classList.add('pdf-mode');
+
+    // Cria um clone do resultPanel para não afetar a página
+    const clonePanel = resultPanel.cloneNode(true);
+    clonePanel.id = 'clone-for-pdf';
+    clonePanel.classList.add('pdf-mode');
+    
+    // Remove o botão de gerar PDF do clone
+    const btnClone = clonePanel.querySelector('button[onclick="gerarPDF()"]');
+    if (btnClone) btnClone.remove();
+    
+    // Garante que o card moderno está visível
+    const modernCard = clonePanel.querySelector('.risk-modern-card');
+    if (modernCard) {
+        modernCard.style.display = 'inline-block';
+    }
+    
+    // Adiciona ao body temporariamente
+    clonePanel.style.position = 'absolute';
+    clonePanel.style.left = '-9999px';
+    clonePanel.style.top = '0';
+    clonePanel.style.width = '800px';
+    clonePanel.style.maxWidth = '100%';
+    clonePanel.style.backgroundColor = '#0f0f0f';
+    clonePanel.style.padding = '30px';
+    document.body.appendChild(clonePanel);
 
     const opt = {
         margin: [10, 10, 10, 10],
@@ -276,13 +307,13 @@ function gerarPDF() {
         }
     };
 
-    html2pdf().set(opt).from(element).save()
+    html2pdf().set(opt).from(clonePanel).save()
         .then(() => {
-            document.body.classList.remove('pdf-mode');
+            document.body.removeChild(clonePanel);
             Swal.fire('Sucesso!', 'Relatório gerado com sucesso.', 'success');
         })
         .catch(err => {
-            document.body.classList.remove('pdf-mode');
+            document.body.removeChild(clonePanel);
             Swal.fire('Erro', 'Falha ao criar PDF.', 'error');
             console.error(err);
         });
