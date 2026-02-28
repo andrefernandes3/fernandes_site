@@ -243,7 +243,7 @@ function toggleHeaders() {
 // ==========================================
 function gerarPDF() {
     if (typeof html2pdf === 'undefined') {
-        Swal.fire('Erro', 'A biblioteca de PDF não carregou. Atualize a página.', 'error');
+        Swal.fire('Erro', 'A biblioteca de PDF não carregou.', 'error');
         return;
     }
 
@@ -257,12 +257,21 @@ function gerarPDF() {
 
     Swal.fire({
         title: 'Gerando Relatório...',
-        text: 'A formatar o documento forense...',
         allowOutsideClick: false,
-        didOpen: () => { Swal.showLoading(); }
+        didOpen: () => Swal.showLoading()
     });
 
-    window.scrollTo(0, 0);
+    // 🔥 CLONA APENAS O RESULTADO
+    const clone = resultPanel.cloneNode(true);
+
+    // 🔥 CRIA CONTAINER TEMPORÁRIO
+    const tempContainer = document.createElement('div');
+    tempContainer.style.background = '#0f0f0f';
+    tempContainer.style.padding = '30px';
+    tempContainer.style.width = '100%';
+    tempContainer.appendChild(clone);
+
+    document.body.appendChild(tempContainer);
 
     const opt = {
         margin: 10,
@@ -270,43 +279,24 @@ function gerarPDF() {
         image: { type: 'jpeg', quality: 1 },
         html2canvas: {
             scale: 2,
-            useCORS: true,
-            backgroundColor: '#0f0f0f',
-            logging: false,
-            onclone: function (clonedDoc) {
-
-                // 🔥 ATIVA O MODO PDF
-                clonedDoc.body.classList.add('pdf-mode');
-
-                // 🔥 REMOVE INPUTS, HEADER E QUALQUER COISA FORA DO RESULTADO
-                const container = clonedDoc.querySelector('.phish-container');
-                const main = container.querySelector('main');
-
-                // Remove tudo que não é o painel de resultado
-                main.innerHTML = '';
-                const clonedPanel = clonedDoc.getElementById('resultPanel');
-                main.appendChild(clonedPanel);
-
-                // 🔥 REMOVE BOTÃO PDF
-                const btnPdf = clonedDoc.querySelector('.btn-outline-success');
-                if (btnPdf) btnPdf.remove();
-            }
+            backgroundColor: '#0f0f0f'
         },
         jsPDF: {
             unit: 'mm',
             format: 'a4',
             orientation: 'portrait'
-        },
-        pagebreak: { mode: ['css', 'legacy'] }
+        }
     };
 
-    html2pdf().set(opt).from(resultPanel).save()
+    html2pdf().set(opt).from(tempContainer).save()
         .then(() => {
+            document.body.removeChild(tempContainer);
             Swal.fire('Sucesso!', 'Relatório gerado com sucesso.', 'success');
         })
         .catch(err => {
+            document.body.removeChild(tempContainer);
             Swal.fire('Erro', 'Falha ao criar PDF.', 'error');
-            console.error('Erro detalhado:', err);
+            console.error(err);
         });
 }
 // ==========================================
