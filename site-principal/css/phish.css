@@ -408,13 +408,12 @@ header p {
 }
 
 /* =========================================
-   CORREÇÃO DO CÍRCULO E PERCENTAGEM NO PDF
-   Impede que os números se separem e centraliza perfeitamente
+   CORREÇÃO DEFINITIVA DO CÍRCULO NO PDF
+   Centra com line-height e bloqueia cortes
 ========================================= */
 .pdf-mode .risk-meter {
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
+    position: relative !important;
+    display: block !important;
     width: 140px !important;
     height: 140px !important;
 }
@@ -423,18 +422,26 @@ header p {
     position: absolute !important;
     top: 0 !important;
     left: 0 !important;
-    width: 100% !important;
-    height: 100% !important;
+    width: 140px !important;
+    height: 140px !important;
     z-index: 1 !important;
 }
 
 .pdf-mode .percentage {
-    position: relative !important;
-    transform: none !important;
-    top: auto !important;
-    left: auto !important;
-    font-size: 28px !important;
-    white-space: nowrap !important; /* A MÁGICA: Impede o número de quebrar em duas linhas */
-    z-index: 2 !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 140px !important;
+    height: 140px !important;
+    line-height: 140px !important; /* MÁGICA: Centra na vertical perfeitamente */
+    text-align: center !important; /* MÁGICA: Centra na horizontal */
+    transform: none !important; /* Desliga o cálculo matemático que estava a partir o texto */
+    font-size: 32px !important;
+    font-weight: bold !important;
     color: #ffffff !important;
+    white-space: nowrap !important;
+    word-break: keep-all !important; /* Proíbe terminantemente que o 10 separe do 0% */
+    z-index: 2 !important;
+    margin: 0 !important;
+    padding: 0 !important;
 }
