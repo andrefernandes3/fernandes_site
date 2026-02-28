@@ -555,110 +555,122 @@ header p {
 
 /* =========================================
    MODO DE EXPORTAÇÃO PDF (CLONE)
-   Força cores clássicas e layout inquebrável
+   Força legibilidade: fundos escuros + texto branco nos títulos e labels
 ========================================= */
 .pdf-mode,
 .pdf-mode .result-panel {
-    background-color: #ffffff !important;
-    color: #000000 !important;
+    background-color: #0f0f0f !important;  /* Fundo bem escuro para contraste */
+    color: #ffffff !important;
     border: none !important;
     box-shadow: none !important;
-    padding: 20px !important; /* Reduz padding para caber mais */
+    padding: 15px !important;  /* Menos padding para caber melhor em A4 */
     overflow: visible !important;
 }
 
-/* Força texto preto em tudo e fundo transparente/branco */
-.pdf-mode *,
-.pdf-mode h4,
-.pdf-mode p,
-.pdf-mode li,
+/* Texto principal e títulos em branco */
+.pdf-mode h1, 
+.pdf-mode h2, 
+.pdf-mode h3, 
+.pdf-mode h4, 
+.pdf-mode h5, 
 .pdf-mode strong,
 .pdf-mode .auth-label,
-.pdf-mode .auth-value,
-.pdf-mode .info-item,
+.pdf-mode .info-item strong,
 .pdf-mode .warning,
-.pdf-mode .percentage,
-.pdf-mode #recomendacao,
-.pdf-mode #listaMotivos li {
-    color: #000000 !important;
-    background-color: #ffffff !important;
-    text-shadow: none !important;
-    border-color: #d1d5db !important; /* Bordas cinza claro */
+.pdf-mode #statusLabel,
+.pdf-mode .alert-section h5,
+.pdf-mode .detalhes-adicionais h5,
+.pdf-mode .auth-details h4,
+.pdf-mode .sender-details h4,
+.pdf-mode .urls-details h4,
+.pdf-mode .dominios-details h4 {
+    color: #ffffff !important;
 }
 
-/* Fundos claros para caixas específicas */
+/* Texto geral (parágrafos, listas, recomendações) */
+.pdf-mode p,
+.pdf-mode li,
+.pdf-mode #recomendacao,
+.pdf-mode #listaMotivos li,
+.pdf-mode .info-item,
+.pdf-mode .percentage {
+    color: #e0e0e0 !important;  /* Cinza claro para legibilidade sem ser puro branco */
+}
+
+/* Fundos das caixas (mantém dark theme, mas com bordas visíveis) */
 .pdf-mode #recomendacao,
 .pdf-mode .detalhes-adicionais,
 .pdf-mode .auth-item,
 .pdf-mode .sender-info,
 .pdf-mode .list-group-item,
 .pdf-mode .alert-section,
-.pdf-mode #listaMotivos li {
-    background-color: #f9fafb !important;
-    border: 1px solid #e5e7eb !important;
-    color: #000000 !important;
+.pdf-mode #listaMotivos li,
+.pdf-mode .auth-grid .auth-item {
+    background-color: #1a1a1a !important;
+    border: 1px solid #444 !important;
+    color: #e0e0e0 !important;
 }
 
-/* Cores específicas para badges e círculos (mantém visíveis) */
-.pdf-mode .badge-success, .pdf-mode .circle.seguro { 
+/* Badges e veredito (mantém cores vivas + texto legível) */
+.pdf-mode .badge-success,
+.pdf-mode .circle.seguro { 
     background: #10b981 !important; 
-    color: #000000 !important; /* Texto preto para contraste */
+    color: #000000 !important; 
     stroke: #10b981 !important; 
 }
-.pdf-mode .badge-warning, .pdf-mode .circle.suspeito { 
+.pdf-mode .badge-warning,
+.pdf-mode .circle.suspeito { 
     background: #f59e0b !important; 
     color: #000000 !important; 
     stroke: #f59e0b !important; 
 }
-.pdf-mode .badge-danger, .pdf-mode .circle.perigoso { 
+.pdf-mode .badge-danger,
+.pdf-mode .circle.perigoso { 
     background: #dc2626 !important; 
     color: #ffffff !important; 
     stroke: #dc2626 !important; 
 }
-.pdf-mode .badge-secondary, .pdf-mode .badge-neutral { 
+.pdf-mode .badge-secondary,
+.pdf-mode .badge-neutral { 
     background: #6b7280 !important; 
     color: #ffffff !important; 
 }
 
 /* Medidor de risco */
 .pdf-mode .circle-bg { 
-    stroke: #d1d5db !important; 
+    stroke: #444 !important; 
 }
 .pdf-mode .percentage { 
-    color: #000000 !important; 
+    color: #ffffff !important; 
 }
-.pdf-mode .risk-meter, 
+.pdf-mode .risk-meter,
 .pdf-mode .circular-chart { 
     overflow: visible !important; 
-    fill: none !important; 
 }
 
-/* Evita cortes e melhora layout */
-.pdf-mode .row, 
+/* Ícones e alertas */
+.pdf-mode .bi,
+.pdf-mode .alert-section i {
+    color: #ffffff !important;
+}
+
+/* Evita cortes e melhora paginação */
+.pdf-mode .row,
 .pdf-mode .result-header,
-.pdf-mode .details { 
+.pdf-mode .details,
+.pdf-mode .detalhes-adicionais {
     flex-wrap: wrap !important;
     page-break-inside: avoid !important;
     break-inside: avoid !important;
-    margin: 0 !important; /* Reduz margens para menos branco */
-}
-.pdf-mode .detalhes-adicionais {
-    page-break-inside: avoid !important;
-    break-inside: avoid !important;
+    margin: 10px 0 !important;
 }
 
-/* Ícones Bootstrap (bi-) */
-.pdf-mode .bi {
-    color: #000000 !important;
-}
-
-/* Tooltip no PDF (torna visível como texto normal) */
+/* Tooltip (torna visível como texto normal no PDF) */
 .pdf-mode .tooltip .tooltiptext {
     visibility: visible !important;
     opacity: 1 !important;
     position: static !important;
-    margin: 0 !important;
-    background: #f9fafb !important;
-    color: #000000 !important;
-    border: none !important;
+    background: #1a1a1a !important;
+    color: #e0e0e0 !important;
+    border: 1px solid #444 !important;
 }
