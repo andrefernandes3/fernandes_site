@@ -175,7 +175,7 @@ header p {
 }
 
 /* =========================================
-   CARD MODERNO - SUBSTITUI O CÍRCULO ANTIGO
+   CARD MODERNO - ÚNICO CÍRCULO DA APLICAÇÃO
 ========================================= */
 .risk-modern-card {
     display: inline-block;
@@ -213,7 +213,7 @@ header p {
 .risk-percentage {
     position: relative;
     z-index: 2;
-    font-size: 32px;
+    font-size: 36px;
     font-weight: bold;
     color: white;
     text-shadow: 0 2px 5px rgba(0,0,0,0.5);
@@ -324,19 +324,18 @@ header p {
 }
 
 /* =========================================
-   MODO PDF - CARD MODERNO
+   MODO PDF - MESMA FORMATAÇÃO DO SITE
 ========================================= */
 .pdf-mode {
     background-color: #0f0f0f !important;
     color: #ffffff !important;
-    -webkit-hyphens: auto !important;
-    hyphens: auto !important;
 }
 
 .pdf-mode .phish-container {
     max-width: none !important;
     width: 100% !important;
     padding: 10px !important;
+    background: #0f0f0f !important;
 }
 
 .pdf-mode * {
@@ -357,40 +356,6 @@ header p {
     border: 1px solid #333333 !important;
 }
 
-.pdf-mode h1, .pdf-mode h2, .pdf-mode h3, .pdf-mode h4, .pdf-mode h5,
-.pdf-mode .auth-label, .pdf-mode .info-item strong, .pdf-mode .url-domain {
-    color: #ffffff !important;
-    font-weight: bold !important;
-}
-
-.pdf-mode h4 {
-    font-size: 1em !important;
-    white-space: nowrap !important;
-    word-break: normal !important;
-    hyphens: none !important;
-}
-
-.pdf-mode .auth-details h4,
-.pdf-mode .sender-details h4,
-.pdf-mode .urls-details h4,
-.pdf-mode .dominios-details h4 {
-    white-space: nowrap !important;
-    font-size: 0.95em !important;
-}
-
-.pdf-mode .text-danger, .pdf-mode .bi-exclamation-triangle-fill { color: #ff4d4d !important; }
-.pdf-mode .text-warning { color: #fbbf24 !important; }
-.pdf-mode .text-primary, .pdf-mode .bi-check-circle { color: #00bcd4 !important; }
-
-.pdf-mode .badge-success { background-color: #10b981 !important; color: #ffffff !important; }
-.pdf-mode .badge-danger { background-color: #dc2626 !important; color: #ffffff !important; }
-.pdf-mode .badge-warning { background-color: #f59e0b !important; color: #ffffff !important; }
-.pdf-mode .badge-secondary { background-color: #4b5563 !important; color: #ffffff !important; }
-
-.pdf-mode .status-seguro { color: #10b981 !important; }
-.pdf-mode .status-suspeito { color: #fbbf24 !important; }
-.pdf-mode .status-perigoso { color: #ff4d4d !important; }
-
 .pdf-mode .result-header,
 .pdf-mode .detalhes-adicionais,
 .pdf-mode .alert-section,
@@ -401,16 +366,7 @@ header p {
     break-inside: avoid !important;
 }
 
-.pdf-mode p, .pdf-mode div, .pdf-mode li, .pdf-mode .urls-details, .pdf-mode .urls-details * {
-    word-break: break-all !important;
-    overflow-wrap: break-word !important;
-    hyphens: auto !important;
-    white-space: normal !important;
-}
-
-/* =========================================
-   MODO PDF - CARD MODERNO (SUBSTITUI O ANTIGO)
-========================================= */
+/* Card moderno no PDF - IDÊNTICO AO SITE */
 .pdf-mode .risk-modern-card {
     display: inline-block !important;
     text-align: center !important;
@@ -454,8 +410,6 @@ header p {
     text-shadow: 0 2px 5px rgba(0,0,0,0.5) !important;
     line-height: 1 !important;
     white-space: nowrap !important;
-    transform: none !important;
-    background: transparent !important;
 }
 
 .pdf-mode .risk-label .badge {
@@ -464,12 +418,6 @@ header p {
     background: #333 !important;
     color: white !important;
     border-radius: 20px !important;
-    display: inline-block !important;
-}
-
-/* Esconde o círculo antigo no PDF */
-.pdf-mode .risk-meter {
-    display: none !important;
 }
 
 /* Scrollbar */

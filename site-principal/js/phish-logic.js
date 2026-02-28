@@ -52,16 +52,16 @@ function exibirResultados(res) {
     const panel = document.getElementById('resultPanel');
     panel.classList.remove('hidden');
 
-    // ===== NOVO CARD MODERNO =====
+    // ===== CARD MODERNO (ÚNICO) =====
     const percentual = res.Nivel_Risco || 0;
     
-    // Atualizar o percentual no card moderno
+    // Atualizar o percentual
     const riskValue = document.getElementById('riskValue');
     if (riskValue) {
         riskValue.textContent = percentual + '%';
     }
     
-    // Atualizar o gradiente do card moderno
+    // Atualizar o gradiente
     const riskGradient = document.getElementById('riskGradient');
     if (riskGradient) {
         const angle = (percentual / 100) * 360;
@@ -79,7 +79,7 @@ function exibirResultados(res) {
         riskGradient.style.background = `conic-gradient(from 0deg, ${color} 0deg, ${color} ${angle}deg, #333 ${angle}deg, #333 360deg)`;
     }
     
-    // Atualizar o badge do card moderno
+    // Atualizar o badge
     const riskBadge = document.getElementById('riskBadge');
     if (riskBadge) {
         let classeBadge = '';
@@ -90,19 +90,7 @@ function exibirResultados(res) {
         riskBadge.textContent = res.Veredito || 'ANALISADO';
         riskBadge.className = `badge ${classeBadge}`;
     }
-    // ===== FIM NOVO CARD MODERNO =====
-
-    // Medidor de Risco ANTIGO (mantido para compatibilidade)
-    document.getElementById('riskValueOld').textContent = `${percentual}%`;
-    const riskCircle = document.getElementById('riskCircle');
-    if (riskCircle) {
-        riskCircle.setAttribute('stroke-dasharray', `${percentual * 1.1}, 110`);
-
-        let circleClass = 'suspeito';
-        if (percentual < 30) circleClass = 'seguro';
-        else if (percentual > 70) circleClass = 'perigoso';
-        riskCircle.className.baseVal = `circle ${circleClass}`;
-    }
+    // ===== FIM CARD MODERNO =====
 
     // Veredito
     const statusLabel = document.getElementById('statusLabel');
@@ -140,8 +128,10 @@ function exibirResultados(res) {
         const alertDiv = document.createElement('div');
         alertDiv.className = 'alert-section';
         alertDiv.innerHTML = `
-            <h5><i class="bi bi-exclamation-triangle-fill text-danger"></i> 🚨 ALERTA GOVERNO</h5>
-            <p class="mb-0"><strong>Receita Federal NUNCA</strong> pede regularização por e-mail com links.</p>
+            <div class="alert alert-danger">
+                <h5><i class="bi bi-exclamation-triangle-fill"></i> 🚨 ALERTA GOVERNO</h5>
+                <p class="mb-0"><strong>Receita Federal NUNCA</strong> pede regularização por e-mail com links.</p>
+            </div>
         `;
         alertasContainer.appendChild(alertDiv);
     }
@@ -160,12 +150,10 @@ function criarDetalhesAdicionais(res) {
 
     const auth = res.detalhes_autenticacao || {};
 
-    // Constrói a lista de URLs (se existirem)
+    // Constrói a lista de URLs
     let urlsHtml = '';
     if (res.urls_encontradas && res.urls_encontradas.length > 0) {
-        // Limita a 10 URLs no ecrã para não desformatar o PDF
-        const urlsMostrar = res.urls_encontradas.slice(0, 10);
-        const listaUrls = urlsMostrar.map(u => `<li class="list-group-item py-1 text-muted small" style="word-break: break-all;">${escapeHtml(u)}</li>`).join('');
+        const listaUrls = res.urls_encontradas.map(u => `<li class="list-group-item py-2" style="word-break: break-all;">${escapeHtml(u)}</li>`).join('');
 
         urlsHtml = `
             <div class="row mt-3 border-top pt-3">
@@ -174,7 +162,6 @@ function criarDetalhesAdicionais(res) {
                     <ul class="list-group list-group-flush border rounded">
                         ${listaUrls}
                     </ul>
-                    ${res.urls_encontradas.length > 10 ? `<div class="text-muted small mt-1">+ ${res.urls_encontradas.length - 10} links ocultados.</div>` : ''}
                 </div>
             </div>
         `;
@@ -195,15 +182,15 @@ function criarDetalhesAdicionais(res) {
                 <div class="col-md-4">
                     <h5><i class="bi bi-shield-lock"></i> Autenticação Email</h5>
                     <div class="auth-grid mt-2">
-                        <div class="auth-item mb-1">
+                        <div class="auth-item mb-2">
                             <span class="auth-label fw-bold me-2">SPF:</span>
                             <span class="auth-value badge ${getStatusClass(auth.spf)}">${escapeHtml(auth.spf || 'não verificado')}</span>
                         </div>
-                        <div class="auth-item mb-1">
+                        <div class="auth-item mb-2">
                             <span class="auth-label fw-bold me-2">DKIM:</span>
                             <span class="auth-value badge ${getStatusClass(auth.dkim)}">${escapeHtml(auth.dkim || 'não verificado')}</span>
                         </div>
-                        <div class="auth-item mb-1">
+                        <div class="auth-item mb-2">
                             <span class="auth-label fw-bold me-2">DMARC:</span>
                             <span class="auth-value badge ${getStatusClass(auth.dmarc)}">${escapeHtml(auth.dmarc || 'não verificado')}</span>
                         </div>
@@ -211,11 +198,11 @@ function criarDetalhesAdicionais(res) {
                 </div>
                 <div class="col-md-8">
                     <h5><i class="bi bi-person-lines-fill"></i> Origem do Email</h5>
-                    <div class="row mt-2 text-break">
-                        <div class="col-12 mb-1"><strong>Nome:</strong> ${escapeHtml(res.remetente || 'Não identificado')}</div>
-                        <div class="col-12 mb-1"><strong>SMTP:</strong> ${escapeHtml(res.return_path || 'Não identificado')}</div>
-                        <div class="col-6 mb-1"><strong>IP:</strong> ${escapeHtml(res.ip_remetente || 'Não identificado')}</div>
-                        <div class="col-6 mb-1"><strong>Domínio:</strong> ${escapeHtml(auth.dominio_autenticado || 'Não identificado')}</div>
+                    <div class="row mt-2">
+                        <div class="col-12 mb-2"><strong>Nome:</strong> ${escapeHtml(res.remetente || 'Não identificado')}</div>
+                        <div class="col-12 mb-2"><strong>SMTP:</strong> ${escapeHtml(res.return_path || 'Não identificado')}</div>
+                        <div class="col-6 mb-2"><strong>IP:</strong> ${escapeHtml(res.ip_remetente || 'Não identificado')}</div>
+                        <div class="col-6 mb-2"><strong>Domínio:</strong> ${escapeHtml(auth.dominio_autenticado || 'Não identificado')}</div>
                     </div>
                 </div>
             </div>
@@ -259,20 +246,17 @@ function gerarPDF() {
         return;
     }
 
-    const element = document.getElementById('resultPanel');
+    const element = document.querySelector('.phish-container');
     const status = document.getElementById('statusLabel').innerText || 'Analise';
 
     Swal.fire({
         title: 'Gerando Relatório...',
-        text: 'A formatar o documento forense perfeito...',
+        text: 'A formatar o documento forense...',
         allowOutsideClick: false,
         didOpen: () => { Swal.showLoading(); }
     });
 
-    // Volta ao topo para evitar cortes
     window.scrollTo(0, 0);
-
-    // Adiciona classe pdf-mode ao body
     document.body.classList.add('pdf-mode');
 
     const opt = {
@@ -283,55 +267,23 @@ function gerarPDF() {
             scale: 2,
             useCORS: true,
             backgroundColor: '#0f0f0f',
-            scrollX: 0,
-            scrollY: 0,
-            windowWidth: document.documentElement.clientWidth,
-            windowHeight: document.documentElement.scrollHeight,
-            onclone: function(clonedDoc) {
-                const clonedPanel = clonedDoc.getElementById('resultPanel');
-                
-                if (clonedPanel) {
-                    // Aplica classe pdf-mode no clone
-                    clonedPanel.classList.add('pdf-mode');
-                    
-                    // Remove o círculo antigo no clone para evitar conflitos
-                    const oldMeter = clonedPanel.querySelector('.risk-meter');
-                    if (oldMeter) oldMeter.style.display = 'none';
-                    
-                    // Garante que o card moderno apareça corretamente
-                    const modernCard = clonedPanel.querySelector('.risk-modern-card');
-                    if (modernCard) {
-                        modernCard.style.display = 'inline-block';
-                    }
-                    
-                    // Ajustes de largura
-                    clonedPanel.style.width = '100%';
-                    clonedPanel.style.maxWidth = '800px';
-                    clonedPanel.style.margin = '0 auto';
-                    clonedPanel.style.padding = '20px';
-                    
-                    // Esconde botões
-                    const buttons = clonedPanel.querySelectorAll('button');
-                    buttons.forEach(btn => btn.style.display = 'none');
-                }
-            }
+            logging: false
         },
         jsPDF: {
             unit: 'mm',
             format: 'a4',
             orientation: 'portrait'
-        },
-        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+        }
     };
 
     html2pdf().set(opt).from(element).save()
         .then(() => {
             document.body.classList.remove('pdf-mode');
-            Swal.fire('Sucesso!', 'O Relatório foi gerado com perfeição.', 'success');
+            Swal.fire('Sucesso!', 'Relatório gerado com sucesso.', 'success');
         })
         .catch(err => {
             document.body.classList.remove('pdf-mode');
-            Swal.fire('Erro', 'Falha técnica ao criar PDF. Tente atualizar a página.', 'error');
+            Swal.fire('Erro', 'Falha ao criar PDF.', 'error');
             console.error(err);
         });
 }
@@ -344,18 +296,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const emlInput = document.getElementById('emlFileInput');
     const emailBody = document.getElementById('emailBody');
     const emailHeaders = document.getElementById('emailHeaders');
-
-    // Detecta links ocultos na colagem
-    emailBody.addEventListener('paste', function (e) {
-        setTimeout(() => {
-            const text = this.value;
-            const links = text.match(/https?:\/\/[^\s<>"']+/g);
-            if (links && links.length > 0) {
-                // Não modifica automaticamente, apenas mostra no console
-                console.log('Links detectados:', links);
-            }
-        }, 100);
-    });
 
     // Leitor .eml
     emlInput.addEventListener('change', function (e) {
@@ -376,7 +316,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 emailHeaders.value = parts[0].trim();
                 emailBody.value = parts.slice(1).join(separator).trim();
                 emailHeaders.classList.remove('hidden');
-                Swal.fire({ icon: 'success', title: '✅ Carregado', text: 'Headers extraídos! Clique Analisar.', timer: 2000 });
+                Swal.fire({ icon: 'success', title: '✅ Carregado', text: 'Headers extraídos!', timer: 2000 });
             } else {
                 Swal.fire({ icon: 'error', title: 'Formato inválido', text: 'Não foi possível separar headers.' });
             }
@@ -386,11 +326,8 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-// ==========================================
-// INICIALIZAÇÃO
-// ==========================================
+// Inicialização
 document.addEventListener('DOMContentLoaded', function() {
-    // Garantir que o card moderno tenha um valor inicial
     const riskValue = document.getElementById('riskValue');
     if (riskValue && riskValue.textContent === '') {
         riskValue.textContent = '0%';
