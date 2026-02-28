@@ -243,7 +243,7 @@ function toggleHeaders() {
 // ==========================================
 function gerarPDF() {
     if (typeof html2pdf === 'undefined') {
-        Swal.fire('Erro', 'A biblioteca de PDF não carregou.', 'error');
+        Swal.fire('Erro', 'A biblioteca de PDF não carregou. Atualize a página.', 'error');
         return;
     }
 
@@ -255,48 +255,64 @@ function gerarPDF() {
         return;
     }
 
+    // 1. Esconde o botão verde temporariamente
+    const btnPdf = resultPanel.querySelector('button[onclick="gerarPDF()"]');
+    if (btnPdf) btnPdf.style.display = 'none';
+
     Swal.fire({
         title: 'Gerando Relatório...',
         allowOutsideClick: false,
-        didOpen: () => Swal.showLoading()
+        didOpen: () => { Swal.showLoading(); }
     });
 
-    // 🔥 CLONA APENAS O RESULTADO
-    const clone = resultPanel.cloneNode(true);
+    // 2. Volta ao topo da página para evitar cortes pelo scroll
+    window.scrollTo(0, 0);
 
-    // 🔥 CRIA CONTAINER TEMPORÁRIO
-    const tempContainer = document.createElement('div');
-    tempContainer.style.background = '#0f0f0f';
-    tempContainer.style.padding = '30px';
-    tempContainer.style.width = '100%';
-    tempContainer.appendChild(clone);
+    // 3. A VERSÃO INFALÍVEL (O Truque da Moldura)
+    // Guardamos o tamanho atual do seu painel panorâmico
+    const widthOriginal = resultPanel.style.width;
+    const maxWidthOriginal = resultPanel.style.maxWidth;
+    const marginOriginal = resultPanel.style.margin;
 
-    document.body.appendChild(tempContainer);
+    // Forçamos o painel a encolher para 800px (o tamanho perfeito de uma folha A4 em pé)
+    resultPanel.style.width = '800px';
+    resultPanel.style.maxWidth = '800px';
+    resultPanel.style.margin = '0 auto';
 
     const opt = {
-        margin: 10,
+        margin: [10, 10, 10, 10],
         filename: `Relatorio-Phishing-${status}-${new Date().toISOString().slice(0, 10)}.pdf`,
-        image: { type: 'jpeg', quality: 1 },
+        image: { type: 'jpeg', quality: 1.0 },
         html2canvas: {
             scale: 2,
-            backgroundColor: '#0f0f0f'
+            useCORS: true,
+            backgroundColor: '#0f0f0f', // Mantém o seu fundo preto elegante
+            scrollY: 0
         },
-        jsPDF: {
-            unit: 'mm',
-            format: 'a4',
-            orientation: 'portrait'
-        }
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        pagebreak: { mode: ['css', 'legacy'] }
     };
 
-    html2pdf().set(opt).from(tempContainer).save()
+    // 4. Tira a fotografia à página já redimensionada para A4
+    html2pdf().set(opt).from(resultPanel).save()
         .then(() => {
-            document.body.removeChild(tempContainer);
-            Swal.fire('Sucesso!', 'Relatório gerado com sucesso.', 'success');
+            // Restaura o botão e as dimensões originais num milissegundo!
+            if (btnPdf) btnPdf.style.display = 'inline-block';
+            resultPanel.style.width = widthOriginal;
+            resultPanel.style.maxWidth = maxWidthOriginal;
+            resultPanel.style.margin = marginOriginal;
+            
+            Swal.fire('Sucesso!', 'Relatório PDF gerado com sucesso.', 'success');
         })
         .catch(err => {
-            document.body.removeChild(tempContainer);
+            // Se houver erro, restaura o painel também
+            if (btnPdf) btnPdf.style.display = 'inline-block';
+            resultPanel.style.width = widthOriginal;
+            resultPanel.style.maxWidth = maxWidthOriginal;
+            resultPanel.style.margin = marginOriginal;
+            
             Swal.fire('Erro', 'Falha ao criar PDF.', 'error');
-            console.error(err);
+            console.error('Erro:', err);
         });
 }
 // ==========================================
