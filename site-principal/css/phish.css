@@ -1,9 +1,16 @@
 .phish-container {
-    max-width: 1200px; /* Aumentado de 800px para cobrir quase a tela toda */
+    max-width: 1200px;
     width: 95%;
     margin: 0 auto;
     padding: 20px;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #0f0f0f;
+    color: #e0e0e0;
+}
+
+body {
+    background: #0a0a0a;
+    color: #e0e0e0;
 }
 
 header {
@@ -30,16 +37,17 @@ header h1 span {
 }
 
 header p {
-    color: #ccc;
+    color: #aaa;
     font-size: 1.1em;
 }
 
 .input-area {
-    background: #1e1e1e;
+    background: #1a1a1a;
     padding: 25px;
     border-radius: 10px;
     margin-bottom: 20px;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.6);
+    border: 1px solid #333;
 }
 
 .input-area label {
@@ -54,10 +62,10 @@ header p {
     width: 100%;
     min-height: 150px;
     padding: 15px;
-    background: #2d2d2d;
+    background: #222;
     border: 2px solid #444;
     border-radius: 8px;
-    color: #fff;
+    color: #eee;
     font-family: 'Consolas', 'Monaco', monospace;
     font-size: 14px;
     line-height: 1.5;
@@ -69,6 +77,7 @@ header p {
 .input-area textarea:focus {
     outline: none;
     border-color: #00bcd4;
+    box-shadow: 0 0 0 3px rgba(0, 188, 212, 0.15);
 }
 
 .advanced-toggle {
@@ -88,26 +97,26 @@ header p {
 }
 
 #btnHeaders:hover {
-    text-decoration: underline;
-    color: #00acc1;
+    color: #00e0ff;
 }
 
 #emailHeaders {
     margin-top: 10px;
     font-family: 'Consolas', 'Monaco', monospace;
     font-size: 12px;
-    background: #1a1a1a;
+    background: #111;
+    color: #ccc;
+    border: 1px solid #444;
 }
 
 .btn-outline-secondary {
-    background: #333;
+    background: #222;
     border: 2px solid #00bcd4;
     color: #00bcd4;
     padding: 12px 24px;
     border-radius: 8px;
     cursor: pointer;
     font-weight: 600;
-    font-size: 1em;
     transition: all 0.3s;
     margin-right: 10px;
 }
@@ -115,7 +124,7 @@ header p {
 .btn-outline-secondary:hover {
     background: #00bcd4;
     color: #000;
-    transform: translateY(-2px);
+    transform: translateY(-1px);
 }
 
 #btnAnalisar {
@@ -133,13 +142,13 @@ header p {
 }
 
 #btnAnalisar:hover:not(:disabled) {
-    background: #00acc1;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0,188,212,0.3);
+    background: #00e0ff;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(0,188,212,0.4);
 }
 
 #btnAnalisar:disabled {
-    opacity: 0.6;
+    opacity: 0.5;
     cursor: not-allowed;
 }
 
@@ -148,12 +157,13 @@ header p {
 }
 
 .result-panel {
-    background: #1e1e1e;
+    background: #1a1a1a;
     padding: 30px;
     border-radius: 12px;
     margin-top: 30px;
     border-left: 5px solid #00bcd4;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.7);
+    color: #e0e0e0;
 }
 
 .result-header {
@@ -168,7 +178,7 @@ header p {
     position: relative;
     width: 140px;
     height: 140px;
-    flex-shrink: 0; /* Impede absolutamente que o círculo seja esmagado ou achatado */
+    flex-shrink: 0;
 }
 
 .circular-chart {
@@ -190,17 +200,9 @@ header p {
     transition: stroke-dasharray 0.8s ease;
 }
 
-.circle.seguro {
-    stroke: #10b981;
-}
-
-.circle.suspeito {
-    stroke: #f59e0b;
-}
-
-.circle.perigoso {
-    stroke: #dc2626;
-}
+.circle.seguro    { stroke: #10b981; }
+.circle.suspeito  { stroke: #f59e0b; }
+.circle.perigoso  { stroke: #dc2626; }
 
 .percentage {
     position: absolute;
@@ -209,50 +211,32 @@ header p {
     transform: translate(-50%, -50%);
     font-size: 1.8em;
     font-weight: bold;
-    color: #fff;
-}
-
-.veredito-text {
-    flex: 1;
+    color: #ffffff;
 }
 
 .veredito-text h3 {
     margin: 0 0 15px 0;
-    color: #fff;
+    color: #ffffff;
     font-size: 1.5em;
 }
 
-.status-seguro {
-    color: #10b981 !important;
-    font-weight: bold;
-    font-size: 1.3em;
-}
-
-.status-suspeito {
-    color: #f59e0b !important;
-    font-weight: bold;
-    font-size: 1.3em;
-}
-
-.status-perigoso {
-    color: #dc2626 !important;
-    font-weight: bold;
-    font-size: 1.3em;
-}
+.status-seguro    { color: #10b981 !important; font-weight: bold; font-size: 1.3em; }
+.status-suspeito  { color: #f59e0b   !important; font-weight: bold; font-size: 1.3em; }
+.status-perigoso  { color: #dc2626   !important; font-weight: bold; font-size: 1.3em; }
 
 #recomendacao {
-    color: #ccc;
+    color: #ddd;
     line-height: 1.6;
     font-size: 1.1em;
     margin: 10px 0 0 0;
     padding: 15px;
-    background: #2d2d2d;
+    background: #222;
     border-radius: 8px;
-    border-left: 3px solid #00bcd4;
+    border-left: 4px solid #00bcd4;
 }
 
 .details {
-    border-top: 1px solid #333;
+    border-top: 1px solid #444;
     padding-top: 25px;
 }
 
@@ -269,355 +253,90 @@ header p {
 }
 
 #listaMotivos li {
-    background: #2d2d2d;
-    padding: 12px 18px;
-    margin-bottom: 10px;
-    border-left: 4px solid #00bcd4;
-    color: #fff;
-    border-radius: 0 8px 8px 0;
+    background: #222;
+    padding: 14px 18px;
+    margin-bottom: 12px;
+    border-left: 5px solid #00bcd4;
+    color: #f0f0f0;
+    border-radius: 0 10px 10px 0;
     font-size: 1em;
-    transition: transform 0.2s;
+    transition: all 0.2s;
 }
 
 #listaMotivos li:hover {
-    transform: translateX(5px);
-    background: #333;
+    transform: translateX(4px);
+    background: #2a2a2a;
 }
 
-.cta-security {
-    text-align: center;
-    margin-top: 30px;
-    padding-top: 20px;
-    border-top: 1px solid #333;
+.detalhes-adicionais,
+.sender-info,
+.auth-item {
+    background: #1e1e1e;
+    border: 1px solid #333;
+    color: #e0e0e0;
 }
 
-.cta-security p {
-    color: #ccc;
-    font-size: 1em;
+.auth-label {
+    color: #aaa;
 }
 
-.cta-security a {
-    color: #00bcd4;
-    text-decoration: none;
+.auth-value {
+    color: #ffffff;
     font-weight: bold;
-    transition: color 0.3s;
 }
 
-.cta-security a:hover {
-    color: #00acc1;
-    text-decoration: underline;
+.badge-success    { background: #10b981; color: #000; }
+.badge-danger     { background: #dc2626; color: #fff; }
+.badge-warning    { background: #f59e0b; color: #000; }
+.badge-secondary  { background: #4b5563; color: #fff; }
+
+/* Mantém as cores de alerta vivas */
+.text-danger, .bi-exclamation-triangle-fill { color: #ff4d4d !important; }
+.text-warning                                { color: #fbbf24 !important; }
+.text-success, .bi-check-circle              { color: #34d399 !important; }
+.text-primary                                { color: #00bcd4   !important; }
+
+/* PDF mode continua quase igual (já estava bom) */
+.pdf-mode {
+    background-color: #0f0f0f !important;
+    color: #ffffff !important;
 }
 
-/* Spinner */
-.spinner-border {
-    display: inline-block;
-    width: 1.2rem;
-    height: 1.2rem;
-    vertical-align: text-bottom;
-    border: 0.2em solid currentColor;
-    border-right-color: transparent;
-    border-radius: 50%;
-    animation: spinner-border .75s linear infinite;
-    margin-right: 8px;
+.pdf-mode * {
+    color: #ffffff !important;
 }
 
-@keyframes spinner-border {
-    to { transform: rotate(360deg); }
+.pdf-mode button {
+    display: none !important;
 }
 
-/* SweetAlert customizações */
-.swal2-popup {
-    background: #1e1e1e !important;
-    color: #fff !important;
-    border-radius: 12px !important;
+.pdf-mode .list-group-item,
+.pdf-mode .auth-item,
+.pdf-mode #recomendacao,
+.pdf-mode .sender-info {
+    background-color: #1e1e1e !important;
+    border: 1px solid #444 !important;
 }
 
-.swal2-title {
-    color: #00bcd4 !important;
-}
+.pdf-mode .status-perigoso { color: #ff4d4d !important; }
+.pdf-mode .status-suspeito { color: #fbbf24 !important; }
+.pdf-mode .status-seguro   { color: #34d399 !important; }
 
-.swal2-html-container {
-    color: #ccc !important;
-}
-
-.swal2-timer-progress-bar {
-    background: #00bcd4 !important;
-}
-
-.swal2-icon.swal2-success {
-    border-color: #10b981 !important;
-    color: #10b981 !important;
-}
-
-.swal2-icon.swal2-error {
-    border-color: #dc2626 !important;
-    color: #dc2626 !important;
-}
-
-.swal2-icon.swal2-warning {
-    border-color: #f59e0b !important;
-    color: #f59e0b !important;
-}
-
-.swal2-icon.swal2-info {
-    border-color: #00bcd4 !important;
-    color: #00bcd4 !important;
-}
-
-/* Scrollbar personalizada */
+/* Scrollbar */
 ::-webkit-scrollbar {
     width: 10px;
     height: 10px;
 }
 
 ::-webkit-scrollbar-track {
-    background: #1e1e1e;
+    background: #111;
 }
 
 ::-webkit-scrollbar-thumb {
-    background: #444;
+    background: #555;
     border-radius: 5px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
     background: #00bcd4;
-}
-
-/* Tooltip para informações extras */
-.tooltip {
-    position: relative;
-    display: inline-block;
-    cursor: help;
-}
-
-.tooltip .tooltiptext {
-    visibility: hidden;
-    width: 200px;
-    background-color: #fff;
-    color: #fff;
-    text-align: center;
-    padding: 8px;
-    border-radius: 6px;
-    position: absolute;
-    z-index: 1;
-    bottom: 125%;
-    left: 50%;
-    margin-left: -100px;
-    opacity: 0;
-    transition: opacity 0.3s;
-    font-size: 0.9em;
-    border: 1px solid #00bcd4;
-}
-
-.tooltip:hover .tooltiptext {
-    visibility: visible;
-    opacity: 1;
-}
-
-/* Detalhes de Autenticação */
-.detalhes-adicionais {
-    margin-top: 30px;
-    padding: 20px;
-    background: #fff;
-    border-radius: 8px;
-    border-left: 4px solid #00bcd4;
-}
-
-.auth-details, .sender-details, .urls-details, .dominios-details {
-    margin-bottom: 25px;
-}
-
-.auth-details h4, .sender-details h4, .urls-details h4, .dominios-details h4 {
-    color: #00bcd4;
-    margin-bottom: 15px;
-    font-size: 1.1em;
-    border-bottom: 1px solid #fff;
-    padding-bottom: 8px;
-}
-
-.auth-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 15px;
-    margin-bottom: 15px;
-}
-
-.auth-item {
-    background: #1e1e1e;
-    padding: 10px;
-    border-radius: 6px;
-    text-align: center;
-}
-
-.auth-label {
-    display: block;
-    color: #999;
-    font-size: 0.9em;
-    margin-bottom: 5px;
-}
-
-.auth-value {
-    font-weight: bold;
-    font-size: 1.1em;
-}
-
-.badge {
-    display: inline-block;
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 0.85em;
-    font-weight: bold;
-}
-
-.badge-success {
-    background: #10b981;
-    color: #000; /* Melhor contraste */
-}
-
-.badge-danger {
-    background: #dc2626;
-    color: #fff;
-}
-
-.badge-warning {
-    background: #f59e0b;
-    color: #000;
-}
-
-.badge-neutral {
-    background: #6b7280;
-    color: #fff;
-}
-
-.badge-secondary {
-    background: #4b5563;
-    color: #fff;
-}
-
-/* Informações do Remetente */
-.sender-info {
-    background: #fff;
-    padding: 15px;
-    border-radius: 6px;
-}
-
-.info-item {
-    margin-bottom: 8px;
-    color: #fff;
-}
-
-.info-item strong {
-    color: #00bcd4;
-    margin-right: 10px;
-}
-
-.warning {
-    color: #f59e0b;
-    font-weight: bold;
-    margin-bottom: 10px;
-}
-
-/* Responsividade Movel */
-@media (max-width: 600px) {
-    .phish-container {
-        padding: 10px;
-    }
-    
-    header h1 {
-        font-size: 2em;
-    }
-    
-    .result-header {
-        flex-direction: column;
-        text-align: center;
-        gap: 20px;
-    }
-    
-    .btn-outline-secondary,
-    #btnAnalisar {
-        width: 100%;
-        margin: 5px 0;
-    }
-    
-    .risk-meter {
-        width: 120px;
-        height: 120px;
-    }
-    
-    .percentage {
-        font-size: 1.5em;
-    }
-
-    .auth-grid {
-        grid-template-columns: 1fr;
-    }
-}
-
-/* =========================================
-   MODO DE EXPORTAÇÃO PDF (TEMA ESCURO)
-   Fundo preto, letras brancas e botão invisível
-========================================= */
-/* 1. O Fundo principal da página no PDF */
-.pdf-mode {
-    background-color: #121212 !important;
-    color: #ffffff !important;
-    padding: 20px !important;
-}
-
-/* 2. Forçar ABSOLUTAMENTE TODOS os textos a serem brancos */
-.pdf-mode * {
-    color: #ffffff !important;
-    text-shadow: none !important;
-}
-
-/* 3. Esconder o botão verde de Gerar PDF */
-.pdf-mode button {
-    display: none !important;
-}
-
-/* 4. Caixas (Motivos, Recomendação, Autenticação) com fundo cinza escuro para destacar */
-.pdf-mode .list-group-item,
-.pdf-mode .auth-item,
-.pdf-mode .detalhes-adicionais,
-.pdf-mode #recomendacao,
-.pdf-mode .sender-info,
-.pdf-mode .alert-section {
-    background-color: #1e1e1e !important;
-    border: 1px solid #333333 !important;
-}
-
-/* 5. Textos específicos destacados (Garante que Títulos e Labels ficam bem visíveis) */
-.pdf-mode h1, .pdf-mode h2, .pdf-mode h3, .pdf-mode h4, .pdf-mode h5,
-.pdf-mode .auth-label, .pdf-mode .info-item strong, .pdf-mode .url-domain {
-    color: #ffffff !important;
-    font-weight: bold !important;
-}
-
-/* 6. Cores de Alerta (Tons vivos adaptados para fundo preto) */
-.pdf-mode .text-danger, .pdf-mode .bi-exclamation-triangle-fill { color: #ff4d4d !important; }
-.pdf-mode .text-warning { color: #fbbf24 !important; }
-.pdf-mode .text-primary, .pdf-mode .bi-check-circle { color: #00bcd4 !important; }
-
-/* 7. As Badges mantêm as cores, mas a letra dentro delas fica sempre BRANCA */
-.pdf-mode .badge-success { background-color: #10b981 !important; color: #ffffff !important; }
-.pdf-mode .badge-danger { background-color: #dc2626 !important; color: #ffffff !important; }
-.pdf-mode .badge-warning { background-color: #f59e0b !important; color: #ffffff !important; }
-.pdf-mode .badge-secondary { background-color: #4b5563 !important; color: #ffffff !important; }
-
-/* 8. Cores do Veredito (Roda e texto) */
-.pdf-mode .status-seguro { color: #10b981 !important; }
-.pdf-mode .status-suspeito { color: #fbbf24 !important; }
-.pdf-mode .status-perigoso { color: #ff4d4d !important; }
-.pdf-mode .circle-bg { stroke: #333333 !important; }
-.pdf-mode .percentage { color: #ffffff !important; font-weight: bold !important; }
-
-/* 9. Impedir que as caixas sejam cortadas a meio da folha */
-.pdf-mode .result-header,
-.pdf-mode .detalhes-adicionais,
-.pdf-mode .alert-section,
-.pdf-mode .auth-grid,
-.pdf-mode .row,
-.pdf-mode .list-group-item {
-    page-break-inside: avoid !important;
-    break-inside: avoid !important;
 }
