@@ -238,7 +238,7 @@ function toggleHeaders() {
     headers.classList.toggle('hidden');
 }
 
-/// ==========================================
+// ==========================================
 // EXPORTAÇÃO DE RELATÓRIO FORENSE (PDF)
 // ==========================================
 function gerarPDF() {
@@ -263,78 +263,8 @@ function gerarPDF() {
         didOpen: () => { Swal.showLoading(); }
     });
 
+    // Resolve cortes ao voltar para o topo do ecrã
     window.scrollTo(0, 0);
-
-    // Cria um container completo para o PDF com todos os estilos
-    const pdfContainer = document.createElement('div');
-    pdfContainer.id = 'pdf-container';
-    pdfContainer.className = 'pdf-mode';
-    pdfContainer.style.backgroundColor = '#0f0f0f';
-    pdfContainer.style.padding = '20px';
-    pdfContainer.style.width = '800px';
-    pdfContainer.style.margin = '0 auto';
-    pdfContainer.style.fontFamily = "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif";
-
-    // Clona o resultPanel
-    const clonePanel = resultPanel.cloneNode(true);
-    clonePanel.id = 'clone-for-pdf';
-    clonePanel.classList.add('pdf-mode');
-    clonePanel.style.backgroundColor = '#0f0f0f';
-    clonePanel.style.color = '#ffffff';
-    clonePanel.style.borderLeft = '5px solid #00bcd4';
-    clonePanel.style.padding = '30px';
-    clonePanel.style.margin = '0';
-
-    // Remove o botão de gerar PDF do clone
-    const btnClone = clonePanel.querySelector('button[onclick="gerarPDF()"]');
-    if (btnClone) btnClone.remove();
-
-    // Garante que o card moderno está visível
-    const modernCard = clonePanel.querySelector('.risk-modern-card');
-    if (modernCard) {
-        modernCard.style.display = 'inline-block';
-    }
-
-    // Garante que os cards de autenticação tenham fundo escuro
-    const cards = clonePanel.querySelectorAll('.card');
-    cards.forEach(card => {
-        card.style.backgroundColor = '#1a1a1a';
-        card.style.border = '1px solid #333';
-    });
-
-    const listItems = clonePanel.querySelectorAll('.list-group-item');
-    listItems.forEach(item => {
-        item.style.backgroundColor = '#222';
-        item.style.color = '#fff';
-        item.style.borderLeft = '5px solid #00bcd4';
-    });
-
-    const alerts = clonePanel.querySelectorAll('.alert');
-    alerts.forEach(alert => {
-        alert.style.backgroundColor = '#222';
-        alert.style.border = '1px solid #dc2626';
-        alert.style.color = '#fff';
-    });
-
-    // Adiciona o clone ao container
-    pdfContainer.appendChild(clonePanel);
-
-    // Adiciona ao body temporariamente
-    pdfContainer.style.position = 'absolute';
-    pdfContainer.style.left = '-9999px';
-    pdfContainer.style.top = '0';
-    document.body.appendChild(pdfContainer);
-
-    // Inclui todos os estilos necessários
-    const styles = document.querySelectorAll('link[rel="stylesheet"], style');
-    let stylesHTML = '';
-    styles.forEach(style => {
-        if (style.tagName === 'LINK') {
-            stylesHTML += `<link rel="stylesheet" href="${style.href}">`;
-        } else {
-            stylesHTML += `<style>${style.innerHTML}</style>`;
-        }
-    });
 
     const opt = {
         margin: [10, 10, 10, 10],
@@ -343,10 +273,21 @@ function gerarPDF() {
         html2canvas: {
             scale: 2,
             useCORS: true,
-            backgroundColor: '#0f0f0f',
+            backgroundColor: '#0f0f0f', // Garante o fundo negro na folha inteira
             logging: false,
-            allowTaint: false,
-            foreignObjectRendering: false
+            // A MAGIA: Ativa o seu CSS Escuro sem atirar o painel para fora do ecrã
+            onclone: function (clonedDoc) {
+                // Aplica a classe .pdf-mode ao body do clone para ativar TODAS as suas regras do phish.css
+                clonedDoc.body.classList.add('pdf-mode');
+                
+                // Força a largura exata para impedir que as caixas amassem e quebrem o 100%
+                const panel = clonedDoc.getElementById('resultPanel');
+                if (panel) {
+                    panel.style.setProperty('width', '800px', 'important');
+                    panel.style.setProperty('max-width', '800px', 'important');
+                    panel.style.setProperty('margin', '0 auto', 'important');
+                }
+            }
         },
         jsPDF: {
             unit: 'mm',
@@ -356,75 +297,12 @@ function gerarPDF() {
         pagebreak: { mode: ['css', 'legacy'] }
     };
 
-    // Injeta estilos no clone via onclone
-    opt.html2canvas.onclone = function (clonedDoc) {
-        const container = clonedDoc.getElementById('pdf-container');
-        if (container) {
-            // Aplica estilos adicionais garantindo fundo escuro
-            container.style.backgroundColor = '#0f0f0f';
-
-            const panel = clonedDoc.getElementById('clone-for-pdf');
-            if (panel) {
-                panel.style.backgroundColor = '#0f0f0f';
-                panel.style.color = '#ffffff';
-
-                // Força fundo escuro em todos os elementos
-                const allElements = panel.querySelectorAll('*');
-                allElements.forEach(el => {
-                    if (el.tagName !== 'svg' && el.tagName !== 'path') {
-                        // Mantém textos brancos
-                        if (window.getComputedStyle(el).color === 'rgb(0, 0, 0)') {
-                            el.style.color = '#ffffff';
-                        }
-                    }
-                });
-
-                // Cards
-                const cards = panel.querySelectorAll('.card');
-                cards.forEach(card => {
-                    card.style.backgroundColor = '#1a1a1a';
-                    card.style.border = '1px solid #333';
-                });
-
-                // List items
-                const items = panel.querySelectorAll('.list-group-item');
-                items.forEach(item => {
-                    item.style.backgroundColor = '#222';
-                    item.style.color = '#ffffff';
-                    item.style.borderLeft = '5px solid #00bcd4';
-                });
-
-                // Auth items
-                const authItems = panel.querySelectorAll('.auth-item');
-                authItems.forEach(item => {
-                    item.style.backgroundColor = 'transparent';
-                });
-
-                // Badges
-                const badges = panel.querySelectorAll('.badge');
-                badges.forEach(badge => {
-                    if (badge.classList.contains('badge-success')) {
-                        badge.style.backgroundColor = '#10b981';
-                    } else if (badge.classList.contains('badge-warning')) {
-                        badge.style.backgroundColor = '#f59e0b';
-                    } else if (badge.classList.contains('badge-danger')) {
-                        badge.style.backgroundColor = '#dc2626';
-                    } else if (badge.classList.contains('badge-secondary')) {
-                        badge.style.backgroundColor = '#4b5563';
-                    }
-                    badge.style.color = '#ffffff';
-                });
-            }
-        }
-    };
-
-    html2pdf().set(opt).from(pdfContainer).save()
+    // Tira a foto diretamente do painel original, aplicando as regras no clone silenciosamente
+    html2pdf().set(opt).from(resultPanel).save()
         .then(() => {
-            document.body.removeChild(pdfContainer);
             Swal.fire('Sucesso!', 'Relatório gerado com sucesso.', 'success');
         })
         .catch(err => {
-            document.body.removeChild(pdfContainer);
             Swal.fire('Erro', 'Falha ao criar PDF.', 'error');
             console.error('Erro detalhado:', err);
         });
