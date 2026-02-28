@@ -126,10 +126,11 @@ function exibirResultados(res) {
     if (res.Veredito !== 'SEGURO' && res.remetente && res.remetente.toLowerCase().includes('receita')) {
         const alertDiv = document.createElement('div');
         alertDiv.className = 'alert-section mb-3';
+        // Removemos o 'alert-danger' do Bootstrap e forçamos o fundo escuro e letras brancas
         alertDiv.innerHTML = `
-            <div class="alert alert-danger">
-                <h5><i class="bi bi-exclamation-triangle-fill"></i> 🚨 ALERTA GOVERNO</h5>
-                <p class="mb-0"><strong>Receita Federal NUNCA</strong> pede regularização por e-mail com links.</p>
+            <div class="alert" style="background-color: #1e1e1e; border: 1px solid #333; border-left: 4px solid #dc2626; color: #ffffff;">
+                <h5 style="color: #ffffff; font-weight: bold;"><i class="bi bi-exclamation-triangle-fill text-danger"></i> 🚨 ALERTA GOVERNO</h5>
+                <p class="mb-0" style="color: #ffffff;"><strong>Receita Federal NUNCA</strong> pede regularização por e-mail com links.</p>
             </div>
         `;
         alertasContainer.appendChild(alertDiv);
@@ -243,7 +244,7 @@ function toggleHeaders() {
 // ==========================================
 function gerarPDF() {
     if (typeof html2pdf === 'undefined') {
-        Swal.fire('Erro', 'A biblioteca de PDF não carregou. Atualize a página.', 'error');
+        Swal.fire('Erro', 'A biblioteca de PDF não carregou.', 'error');
         return;
     }
 
@@ -255,63 +256,53 @@ function gerarPDF() {
         return;
     }
 
-    // 1. Esconde o botão verde temporariamente
-    const btnPdf = resultPanel.querySelector('button[onclick="gerarPDF()"]');
-    if (btnPdf) btnPdf.style.display = 'none';
-
     Swal.fire({
         title: 'Gerando Relatório...',
         allowOutsideClick: false,
-        didOpen: () => { Swal.showLoading(); }
+        didOpen: () => Swal.showLoading()
     });
 
-    // 2. Volta ao topo
-    window.scrollTo(0, 0);
+    // 🔥 VOLTAMOS À SUA IDEIA ORIGINAL: Clona apenas o resultado!
+    const clone = resultPanel.cloneNode(true);
 
-    // 3. O Truque da Moldura
-    const widthOriginal = resultPanel.style.width;
-    const maxWidthOriginal = resultPanel.style.maxWidth;
-    const marginOriginal = resultPanel.style.margin;
+    // 🌟 A MÁGICA AQUI: Arranca o botão verde do clone (não afeta o ecrã real, apenas o PDF)
+    const btnPdf = clone.querySelector('button[onclick="gerarPDF()"]');
+    if (btnPdf) btnPdf.remove();
 
-    resultPanel.style.width = '800px';
-    resultPanel.style.maxWidth = '800px';
-    resultPanel.style.margin = '0 auto';
+    // 🔥 CRIA CONTAINER TEMPORÁRIO DA SUA VERSÃO
+    const tempContainer = document.createElement('div');
+    tempContainer.style.background = '#0a0a0a'; // Fundo preto
+    tempContainer.style.padding = '30px';
+    tempContainer.style.width = '850px'; // Largura milimétrica para não cortar a direita
+    tempContainer.style.color = '#ffffff'; // Força letras brancas
+    tempContainer.appendChild(clone);
+
+    document.body.appendChild(tempContainer);
 
     const opt = {
-        margin: [10, 10, 10, 10],
+        margin: 10,
         filename: `Relatorio-Phishing-${status}-${new Date().toISOString().slice(0, 10)}.pdf`,
-        image: { type: 'jpeg', quality: 1.0 },
+        image: { type: 'jpeg', quality: 1 },
         html2canvas: {
             scale: 2,
-            useCORS: true,
-            backgroundColor: '#0f0f0f',
-            scrollY: 0,
-            scrollX: 0,
-            windowWidth: 800 // 🔥 A PEÇA QUE FALTAVA: Avisa a câmara para fotografar os 800px inteiros!
+            backgroundColor: '#0a0a0a'
         },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-        pagebreak: { mode: ['css', 'legacy'] }
+        jsPDF: {
+            unit: 'mm',
+            format: 'a4',
+            orientation: 'portrait'
+        }
     };
 
-    // 4. Dispara a captura
-    html2pdf().set(opt).from(resultPanel).save()
+    html2pdf().set(opt).from(tempContainer).save()
         .then(() => {
-            // Restaura tudo num instante
-            if (btnPdf) btnPdf.style.display = 'inline-block';
-            resultPanel.style.width = widthOriginal;
-            resultPanel.style.maxWidth = maxWidthOriginal;
-            resultPanel.style.margin = marginOriginal;
-            
-            Swal.fire('Sucesso!', 'Relatório PDF gerado com sucesso.', 'success');
+            document.body.removeChild(tempContainer);
+            Swal.fire('Sucesso!', 'Relatório gerado com sucesso.', 'success');
         })
         .catch(err => {
-            if (btnPdf) btnPdf.style.display = 'inline-block';
-            resultPanel.style.width = widthOriginal;
-            resultPanel.style.maxWidth = maxWidthOriginal;
-            resultPanel.style.margin = marginOriginal;
-            
+            document.body.removeChild(tempContainer);
             Swal.fire('Erro', 'Falha ao criar PDF.', 'error');
-            console.error('Erro:', err);
+            console.error(err);
         });
 }
 
