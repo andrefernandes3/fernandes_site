@@ -200,91 +200,65 @@ function toggleHeaders() {
 // EXPORTAÇÃO DE RELATÓRIO FORENSE (PDF)
 // ==========================================
 function gerarPDF() {
-    if (typeof html2pdf === 'undefined') {
-        Swal.fire('Erro', 'A biblioteca de PDF não carregou. Atualize a página.', 'error');
-        return;
-    }
-
     const element = document.getElementById('resultPanel');
     const status = document.getElementById('statusLabel').innerText || 'Analise';
-
-    Swal.fire({
-        title: 'Gerando Relatório...',
-        text: 'A formatar o documento forense perfeito...',
-        allowOutsideClick: false,
-        didOpen: () => { Swal.showLoading(); }
-    });
-
-    // Volta ao topo para evitar cortes
-    window.scrollTo(0, 0);
-
+    
+    // Mantemos as margens e estrutura exatas que estão a funcionar para si!
     const opt = {
-        margin: [10, 10, 10, 10],  // Reduzido para caber mais conteúdo
-        filename: `Relatorio-Phishing-${status}-${new Date().toISOString().slice(0, 10)}.pdf`,
-        image: { type: 'jpeg', quality: 0.98 },  // Qualidade alta, mas otimizada
-        html2canvas: {
-            scale: 2,  // Aumentado para melhor resolução (SVG aparece melhor)
+        margin: [15, 10, 10, 10],
+        filename: `PhishDetect-${status}-${new Date().toISOString().slice(0,10)}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { 
+            scale: 2, 
             useCORS: true,
-            backgroundColor: '#ffffff',
-            scrollX: 0,
-            scrollY: 0,
-            windowWidth: document.documentElement.clientWidth,  // Usa largura real da janela
-            windowHeight: document.documentElement.scrollHeight,  // Captura altura full para evitar cortes
+            backgroundColor: '#ffffff', // 1. Garante que o fundo da folha é branco
             onclone: function(clonedDoc) {
+                // Tudo o que acontece aqui dentro afeta SÓ o PDF gerado (o site fica intacto)
                 const clonedPanel = clonedDoc.getElementById('resultPanel');
+                
+                // 2. Esconde o botão verde "Gerar Relatório PDF"
+                const botoes = clonedPanel.querySelectorAll('button');
+                botoes.forEach(btn => btn.style.setProperty('display', 'none', 'important'));
 
-                // Copia todos os estilos (CSS links e styles) do original para o clone
-                const styles = document.querySelectorAll('link[rel="stylesheet"], style');
-                styles.forEach(style => {
-                    clonedDoc.head.appendChild(style.cloneNode(true));
+                // 3. Força o fundo do painel a ser branco
+                clonedPanel.style.setProperty('background-color', '#ffffff', 'important');
+                clonedPanel.style.setProperty('box-shadow', 'none', 'important');
+
+                // 4. Força todos os textos a ficarem pretos para leitura perfeita (ignora as badges)
+                const textos = clonedPanel.querySelectorAll('h1, h2, h3, h4, h5, p, div, li, strong, i, span:not(.badge)');
+                textos.forEach(txt => txt.style.setProperty('color', '#000000', 'important'));
+
+                // 5. Destaca as caixas de informação com um fundo cinza muito clarinho
+                const caixas = clonedPanel.querySelectorAll('.list-group-item, .auth-item, .detalhes-adicionais, #recomendacao, .sender-info');
+                caixas.forEach(caixa => {
+                    caixa.style.setProperty('background-color', '#f8f9fa', 'important');
+                    caixa.style.setProperty('border', '1px solid #dee2e6', 'important');
                 });
 
-                // Ajustes para A4 (largura ~595pt / 210mm)
-                clonedPanel.style.width = '595px';  // Largura exata A4 em portrait (sem margens)
-                clonedPanel.style.maxWidth = 'none';
-                clonedPanel.style.margin = '0 auto';
-                clonedPanel.style.padding = '20px';
-                clonedPanel.style.boxSizing = 'border-box';
-                clonedPanel.style.position = 'relative';  // Muda para relative para evitar offsets
-                clonedPanel.style.height = 'auto';  // Deixa altura automática para full capture
-                clonedPanel.style.overflow = 'visible';  // Evita hidden content
-
-                // Aplica modo PDF (tema claro)
-                clonedPanel.classList.add('pdf-mode');
-                clonedDoc.body.style.backgroundColor = '#ffffff';
-                clonedDoc.body.style.margin = '0';
-                clonedDoc.body.style.padding = '0';
-
-                // Esconde botão de PDF no clone
-                const btn = clonedPanel.querySelector('button[onclick="gerarPDF()"]');
-                if (btn) btn.style.display = 'none';
-
-                // Força visibilidade de elementos (ex: SVG)
-                const svgs = clonedPanel.querySelectorAll('svg');
-                svgs.forEach(svg => {
-                    svg.style.overflow = 'visible';
-                });
-
-                // Debug: Veja o clone no console (remova depois)
-                // console.log(clonedDoc.body.innerHTML);
+                // 6. Garante que ícones de perigo ficam vermelhos e o círculo de fundo fica visível
+                const iconesPerigo = clonedPanel.querySelectorAll('.text-danger');
+                iconesPerigo.forEach(icone => icone.style.setProperty('color', '#dc2626', 'important'));
+                
+                const circleBg = clonedPanel.querySelector('.circle-bg');
+                if (circleBg) circleBg.style.setProperty('stroke', '#e5e7eb', 'important');
             }
         },
-        jsPDF: {
-            unit: 'mm',
-            format: 'a4',
-            orientation: 'portrait'
-        },
-        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }  // Melhora quebras de página
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
 
-    html2pdf().set(opt).from(element).save()
-        .then(() => {
-            Swal.fire('Sucesso!', 'O Relatório foi gerado com perfeição.', 'success');
-        })
-        .catch(err => {
-            Swal.fire('Erro', 'Falha técnica ao criar PDF. Tente atualizar a página.', 'error');
-            console.error(err);
-        });
+    Swal.fire({
+        title: 'Gerando PDF...',
+        text: 'A formatar documento...',
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading()
+    });
+
+    html2pdf().set(opt).from(element).save().then(() => {
+        Swal.fire('Sucesso!', 'Relatório profissional salvo!', 'success');
+    }).catch(err => {
+        Swal.fire('Erro', 'Falha ao gerar PDF', 'error');
+        console.error(err);
+    });
 }
 
 // ==========================================
