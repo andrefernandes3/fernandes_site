@@ -308,12 +308,47 @@ module.exports = async function (context, req) {
             urls_encontradas: foundUrls // Vai mostrar os links extraídos no ecossistema
         };
 
+        // Guardar análise no MongoDB (assíncrono, não bloqueante)
+        if (process.env.MONGO_CONNECTION_STRING) {
+            (async () => {
+                try {
+                    const db = await connectDb();
+                    const collection = db.collection('phishing_analyses');
+                    const ipHash = crypto.createHash('sha256').update(clientIp + (process.env.IP_SALT || 'default_salt')).digest('hex');
+                    
+                    const doc = {
+                        timestamp: new Date(),
+                        user_ip_hash: ipHash,
+                        email_snippet: (emailContent || '').substring(0, 500),
+                        headers_snippet: (headers || '').substring(0, 500),
+                        analise: {
+                            nivel_risco: respostaCompleta.Nivel_Risco,
+                            veredito: respostaCompleta.Veredito,
+                            motivos: respostaCompleta.Motivos,
+                            recomendacao: respostaCompleta.Recomendacao,
+                            detalhes_autenticacao: respostaCompleta.detalhes_autenticacao,
+                            remetente: respostaCompleta.remetente,
+                            return_path: respostaCompleta.return_path,
+                            ip_remetente: respostaCompleta.ip_remetente,
+                            anexo_html: respostaCompleta.anexo_html,
+                            urls_encontradas: respostaCompleta.urls_encontradas
+                        },
+                        pdf_exportado: false
+                    };
+                    
+                    await collection.insertOne(doc);
+                } catch (err) {
+                    console.error('Erro ao guardar análise no MongoDB:', err);
+                }
+            })();
+        }
+
         memoryCache.set(cacheKey, { data: respostaCompleta, timestamp: Date.now() });
         context.res.status = 200; context.res.body = respostaCompleta;
 
     } catch (error) {
-        context.res.status = 200; 
-        context.res.body = { 
+        // Fallback local
+        const respostaCompleta = { 
             Nivel_Risco: localScore, 
             Veredito: localScore >= 80 ? 'PERIGOSO' : (localScore >= 40 ? 'SUSPEITO' : 'SEGURO'), 
             Motivos: evidenciasFortes.length > 0 ? evidenciasFortes : ['Análise Heurística Rápida'], 
@@ -322,5 +357,42 @@ module.exports = async function (context, req) {
             remetente: senderData.nome_exibicao, return_path: senderData.email_real, ip_remetente: senderIP || 'Não identificado', anexo_html: temAnexoHTML,
             urls_encontradas: foundUrls
         };
+
+        // Guardar análise local no MongoDB (assíncrono)
+        if (process.env.MONGO_CONNECTION_STRING) {
+            (async () => {
+                try {
+                    const db = await connectDb();
+                    const collection = db.collection('phishing_analyses');
+                    const ipHash = crypto.createHash('sha256').update(clientIp + (process.env.IP_SALT || 'default_salt')).digest('hex');
+                    
+                    const doc = {
+                        timestamp: new Date(),
+                        user_ip_hash: ipHash,
+                        email_snippet: (emailContent || '').substring(0, 500),
+                        headers_snippet: (headers || '').substring(0, 500),
+                        analise: {
+                            nivel_risco: respostaCompleta.Nivel_Risco,
+                            veredito: respostaCompleta.Veredito,
+                            motivos: respostaCompleta.Motivos,
+                            recomendacao: respostaCompleta.Recomendacao,
+                            detalhes_autenticacao: respostaCompleta.detalhes_autenticacao,
+                            remetente: respostaCompleta.remetente,
+                            return_path: respostaCompleta.return_path,
+                            ip_remetente: respostaCompleta.ip_remetente,
+                            anexo_html: respostaCompleta.anexo_html,
+                            urls_encontradas: respostaCompleta.urls_encontradas
+                        },
+                        pdf_exportado: false
+                    };
+                    
+                    await collection.insertOne(doc);
+                } catch (err) {
+                    console.error('Erro ao guardar análise local no MongoDB:', err);
+                }
+            })();
+        }
+
+        context.res.status = 200; context.res.body = respostaCompleta;
     }
 };
