@@ -587,7 +587,7 @@ header p {
 }
 
 /* 4. Títulos coloridos de alerta (O texto "ALERTA GOVERNO" fica visível) */
-.pdf-mode h5, .pdf-mode h4 { color: #000000 !important; }
+.pdf-mode h5, .pdf-mode h4 { color: #ffffff !important; }
 .pdf-mode .text-danger { color: #dc2626 !important; } /* Vermelho escuro */
 .pdf-mode .text-warning { color: #d97706 !important; } /* Laranja escuro */
 .pdf-mode .text-primary { color: #0284c7 !important; } /* Azul escuro */
