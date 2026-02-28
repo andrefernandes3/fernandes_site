@@ -38,7 +38,7 @@ function checkRateLimit(ip) {
     return true;
 }
 
-// 🟢 NOVO: Descodificador de E-mails (Quoted-Printable e Base64)
+// 🟢 Descodificador de E-mails (Quoted-Printable e Base64)
 function decodeEmailBody(text) {
     if (!text) return '';
     let decoded = text;
@@ -61,7 +61,7 @@ function decodeEmailBody(text) {
     return decoded;
 }
 
-// 🟢 NOVO: Descasca links de proteção (Microsoft SafeLinks, etc.)
+// 🟢 Descasca links de proteção (Microsoft SafeLinks, etc.)
 function unwrapSafeLinks(url) {
     try {
         if (url.includes('safelinks.protection.outlook.com')) {
@@ -73,11 +73,11 @@ function unwrapSafeLinks(url) {
     return url;
 }
 
-// 🟢 ATUALIZADO: Extração de URLs com Desempacotamento
+// 🟢 Extração de URLs com Desempacotamento
 function extractUrls(text) {
     if (!text) return [];
     const urls = new Set();
-    const decodedText = decodeEmailBody(text); // Transforma código num texto legível
+    const decodedText = decodeEmailBody(text);
     
     const regexes = [ /(https?:\/\/[^\s"'>\]\)]+)/gi, /href=["']([^"']+)["']/gi ];
     regexes.forEach(regex => {
@@ -86,8 +86,8 @@ function extractUrls(text) {
             try {
                 let cleanUrl = m.replace(/^href=["']/, '').replace(/["']$/, '');
                 cleanUrl = cleanUrl.startsWith('http') ? cleanUrl : 'http://' + cleanUrl;
-                cleanUrl = unwrapSafeLinks(cleanUrl); // Descasca a proteção
-                new URL(cleanUrl); // Valida se é URL
+                cleanUrl = unwrapSafeLinks(cleanUrl);
+                new URL(cleanUrl);
                 urls.add(cleanUrl);
             } catch {}
         });
@@ -119,7 +119,7 @@ function extractAuthDetails(headers) {
     return authDetails;
 }
 
-// 🟢 NOVO: Tradutor de Nomes de E-mail (Descodifica RFC 2047 como =?utf-8?q?...)
+// 🟢 Tradutor de Nomes de E-mail (Descodifica RFC 2047)
 function decodeRFC2047(text) {
     if (!text) return text;
     return text.replace(/=\?([^?]+)\?([qb])\?([^?]*)\?=/gi, (match, charset, encoding, data) => {
@@ -127,7 +127,6 @@ function decodeRFC2047(text) {
             if (encoding.toLowerCase() === 'b') {
                 return Buffer.from(data, 'base64').toString('utf-8');
             } else if (encoding.toLowerCase() === 'q') {
-                // Limpa o Quoted-Printable e converte de volta para UTF-8
                 let qText = data.replace(/_/g, ' ').replace(/=([0-9A-F]{2})/gi, (m, hex) => {
                     return String.fromCharCode(parseInt(hex, 16));
                 });
@@ -138,7 +137,7 @@ function decodeRFC2047(text) {
     });
 }
 
-// 🟢 ATUALIZADO: Extrai o remetente e passa pelo tradutor
+// 🟢 Extrai o remetente e passa pelo tradutor
 function extractSender(headers) {
     const senderInfo = { nome_exibicao: 'Não identificado', email_real: 'Não identificado' };
     if (!headers) return senderInfo;
@@ -152,7 +151,6 @@ function extractSender(headers) {
         let fromRaw = fromMatch[1].trim();
         let nameRaw = fromRaw.replace(/<.*?>/g, '').trim() || fromRaw;
         
-        // Aplica o nosso novo tradutor para limpar o nome!
         senderInfo.nome_exibicao = decodeRFC2047(nameRaw);
         
         if (senderInfo.email_real === 'Não identificado') {
@@ -224,13 +222,47 @@ module.exports = async function (context, req) {
         return;
     }
 
-    const cacheKey = crypto.createHash('sha256').update((emailContent || '') + (headers || '')).digest('hex');
-    const cachedItem = memoryCache.get(cacheKey);
+    // ========== CHAVE PRIMÁRIA: HASH DO CONTEÚDO COMPLETO ==========
+    const fullContent = (emailContent || '') + (headers || '');
+    const contentHash = crypto.createHash('sha256').update(fullContent).digest('hex');
+
+    // ========== VERIFICAR CACHE EM MEMÓRIA ==========
+    const cachedItem = memoryCache.get(contentHash);
     if (cachedItem && (Date.now() - cachedItem.timestamp < CACHE_TTL)) {
-        context.res.status = 200; context.res.body = cachedItem.data; return;
+        context.res.status = 200;
+        context.res.body = cachedItem.data;
+        return;
     }
 
-    // 🟢 Extração com Desencriptação Integrada
+    // ========== VERIFICAR NO MONGODB (ÚLTIMOS 30 DIAS) ==========
+    let db = null;
+    if (process.env.MONGO_CONNECTION_STRING) {
+        try {
+            db = await connectDb();
+        } catch (e) {
+            console.error('Erro ao conectar MongoDB:', e);
+        }
+    }
+
+    const TRINTA_DIAS_MS = 30 * 24 * 60 * 60 * 1000;
+    if (db) {
+        try {
+            const collection = db.collection('phishing_analyses');
+            const existing = await collection.findOne({ _id: contentHash });
+            if (existing && (Date.now() - new Date(existing.timestamp).getTime() < TRINTA_DIAS_MS)) {
+                // Análise recente encontrada – retornar os dados guardados
+                context.res.status = 200;
+                context.res.body = existing.analise; // objecto analise
+                // Actualizar cache em memória
+                memoryCache.set(contentHash, { data: existing.analise, timestamp: Date.now() });
+                return;
+            }
+        } catch (e) {
+            console.error('Erro ao consultar MongoDB:', e);
+        }
+    }
+
+    // ========== EXTRAIR INFORMAÇÕES PARA ANÁLISE ==========
     const foundUrls = extractUrls(emailContent || '');
     const authDetails = extractAuthDetails(headers);
     const senderData = extractSender(headers);
@@ -238,16 +270,15 @@ module.exports = async function (context, req) {
     const temAnexoHTML = detectarAnexoHTML(emailContent, headers);
     const analiseUrls = analisarUrlsSuspeitas(foundUrls);
 
-    // Desencriptamos também o corpo para análise Heurística Local
     let cleanBodyProcessed = decodeEmailBody(emailContent || '').replace(/<[^>]*>?/gm, ' ').substring(0, 4000);
     
+    // Heurística local (fallback)
     let localScore = 0;
     const evidenciasFortes = [];
     const evidenciasLeves = [];
 
     if (temAnexoHTML) { localScore += 50; evidenciasFortes.push('Anexo HTML detetado - técnica comum de clone de login'); }
     
-    // Alerta específico para links do Canva / DocuSign escondidos
     const hasAbusedPlatform = foundUrls.some(u => u.includes('canva.com') || u.includes('docusign.net'));
     if (hasAbusedPlatform) {
         localScore += 40; evidenciasFortes.push('E-mail contém link para Canva / DocuSign (Muito usado em Phishing B2B)');
@@ -278,121 +309,114 @@ module.exports = async function (context, req) {
     EVIDÊNCIAS LOCAIS: ${evidenciasFortes.join(' | ')}
     `;
 
-    try {
-        const controller = new AbortController(); const timeout = setTimeout(() => controller.abort(), 8000);
-        const groqResponse = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                model: "llama-3.3-70b-versatile",
-                messages: [ { role: "system", content: systemPrompt }, { role: "user", content: `EMAIL:\n${cleanBodyProcessed}\n\n${intelMastigada}` } ],
-                response_format: { type: "json_object" }, max_tokens: 300, temperature: 0.1
-            }), signal: controller.signal
-        });
-        clearTimeout(timeout);
+    // ========== TENTAR ANÁLISE COM GROQ (SE TOKENS DISPONÍVEIS) ==========
+    let respostaCompleta;
+    if (apiKey) { // Só tenta se a chave estiver configurada (pode desligar quando os tokens acabarem)
+        try {
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 8000);
+            const groqResponse = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    model: "llama-3.3-70b-versatile",
+                    messages: [ { role: "system", content: systemPrompt }, { role: "user", content: `EMAIL:\n${cleanBodyProcessed}\n\n${intelMastigada}` } ],
+                    response_format: { type: "json_object" }, max_tokens: 300, temperature: 0.1
+                }), signal: controller.signal
+            });
+            clearTimeout(timeout);
 
-        const data = await groqResponse.json();
-        let analise = JSON.parse(data.choices[0].message.content);
-        
-        let riscoFinal = parseInt(analise.Nivel_Risco) || localScore;
-        if (evidenciasFortes.length > 0) riscoFinal = Math.max(riscoFinal, 80);
-        if (authDetails.autenticado && evidenciasFortes.length === 0 && !knownScams && !hasAbusedPlatform) riscoFinal = Math.min(riscoFinal, 15);
+            const data = await groqResponse.json();
+            let analise = JSON.parse(data.choices[0].message.content);
+            
+            let riscoFinal = parseInt(analise.Nivel_Risco) || localScore;
+            if (evidenciasFortes.length > 0) riscoFinal = Math.max(riscoFinal, 80);
+            if (authDetails.autenticado && evidenciasFortes.length === 0 && !knownScams && !hasAbusedPlatform) riscoFinal = Math.min(riscoFinal, 15);
 
-        const respostaCompleta = {
-            Nivel_Risco: riscoFinal,
-            Veredito: riscoFinal >= 80 ? 'PERIGOSO' : (riscoFinal >= 40 ? 'SUSPEITO' : 'SEGURO'),
-            Motivos: analise.Motivos || evidenciasFortes,
-            Recomendacao: analise.Recomendacao || 'Analise com cautela.',
-            detalhes_autenticacao: { spf: authDetails.spf, dkim: authDetails.dkim, dmarc: authDetails.dmarc, dominio_autenticado: authDetails.dominioAutenticado },
-            remetente: senderData.nome_exibicao, return_path: senderData.email_real, ip_remetente: senderIP || 'Não identificado', anexo_html: temAnexoHTML,
-            urls_encontradas: foundUrls // Vai mostrar os links extraídos no ecossistema
-        };
+            respostaCompleta = {
+                Nivel_Risco: riscoFinal,
+                Veredito: riscoFinal >= 80 ? 'PERIGOSO' : (riscoFinal >= 40 ? 'SUSPEITO' : 'SEGURO'),
+                Motivos: analise.Motivos || evidenciasFortes,
+                Recomendacao: analise.Recomendacao || 'Analise com cautela.',
+                detalhes_autenticacao: { spf: authDetails.spf, dkim: authDetails.dkim, dmarc: authDetails.dmarc, dominio_autenticado: authDetails.dominioAutenticado },
+                remetente: senderData.nome_exibicao,
+                return_path: senderData.email_real,
+                ip_remetente: senderIP || 'Não identificado',
+                anexo_html: temAnexoHTML,
+                urls_encontradas: foundUrls
+            };
 
-        // Guardar análise no MongoDB (assíncrono, não bloqueante)
-        if (process.env.MONGO_CONNECTION_STRING) {
-            (async () => {
-                try {
-                    const db = await connectDb();
-                    const collection = db.collection('phishing_analyses');
-                    const ipHash = crypto.createHash('sha256').update(clientIp + (process.env.IP_SALT || 'default_salt')).digest('hex');
-                    
-                    const doc = {
-                        timestamp: new Date(),
-                        user_ip_hash: ipHash,
-                        email_snippet: (emailContent || '').substring(0, 500),
-                        headers_snippet: (headers || '').substring(0, 500),
-                        analise: {
-                            nivel_risco: respostaCompleta.Nivel_Risco,
-                            veredito: respostaCompleta.Veredito,
-                            motivos: respostaCompleta.Motivos,
-                            recomendacao: respostaCompleta.Recomendacao,
-                            detalhes_autenticacao: respostaCompleta.detalhes_autenticacao,
-                            remetente: respostaCompleta.remetente,
-                            return_path: respostaCompleta.return_path,
-                            ip_remetente: respostaCompleta.ip_remetente,
-                            anexo_html: respostaCompleta.anexo_html,
-                            urls_encontradas: respostaCompleta.urls_encontradas
-                        },
-                        pdf_exportado: false
-                    };
-                    
-                    await collection.insertOne(doc);
-                } catch (err) {
-                    console.error('Erro ao guardar análise no MongoDB:', err);
-                }
-            })();
+        } catch (error) {
+            console.error('Erro na API Groq, usando fallback:', error);
+            // Fallback local
+            respostaCompleta = { 
+                Nivel_Risco: localScore, 
+                Veredito: localScore >= 80 ? 'PERIGOSO' : (localScore >= 40 ? 'SUSPEITO' : 'SEGURO'), 
+                Motivos: evidenciasFortes.length > 0 ? evidenciasFortes : ['Análise Heurística Rápida'], 
+                Recomendacao: 'Análise gerada localmente.',
+                detalhes_autenticacao: { spf: authDetails.spf, dkim: authDetails.dkim, dmarc: authDetails.dmarc, dominio_autenticado: authDetails.dominioAutenticado },
+                remetente: senderData.nome_exibicao,
+                return_path: senderData.email_real,
+                ip_remetente: senderIP || 'Não identificado',
+                anexo_html: temAnexoHTML,
+                urls_encontradas: foundUrls
+            };
         }
-
-        memoryCache.set(cacheKey, { data: respostaCompleta, timestamp: Date.now() });
-        context.res.status = 200; context.res.body = respostaCompleta;
-
-    } catch (error) {
-        // Fallback local
-        const respostaCompleta = { 
+    } else {
+        // Sem chave da Groq, usa apenas heurística
+        respostaCompleta = { 
             Nivel_Risco: localScore, 
             Veredito: localScore >= 80 ? 'PERIGOSO' : (localScore >= 40 ? 'SUSPEITO' : 'SEGURO'), 
-            Motivos: evidenciasFortes.length > 0 ? evidenciasFortes : ['Análise Heurística Rápida'], 
-            Recomendacao: 'Análise gerada localmente.',
+            Motivos: evidenciasFortes.length > 0 ? evidenciasFortes : ['Análise Heurística'], 
+            Recomendacao: 'Análise gerada localmente (sem IA).',
             detalhes_autenticacao: { spf: authDetails.spf, dkim: authDetails.dkim, dmarc: authDetails.dmarc, dominio_autenticado: authDetails.dominioAutenticado },
-            remetente: senderData.nome_exibicao, return_path: senderData.email_real, ip_remetente: senderIP || 'Não identificado', anexo_html: temAnexoHTML,
+            remetente: senderData.nome_exibicao,
+            return_path: senderData.email_real,
+            ip_remetente: senderIP || 'Não identificado',
+            anexo_html: temAnexoHTML,
             urls_encontradas: foundUrls
         };
-
-        // Guardar análise local no MongoDB (assíncrono)
-        if (process.env.MONGO_CONNECTION_STRING) {
-            (async () => {
-                try {
-                    const db = await connectDb();
-                    const collection = db.collection('phishing_analyses');
-                    const ipHash = crypto.createHash('sha256').update(clientIp + (process.env.IP_SALT || 'default_salt')).digest('hex');
-                    
-                    const doc = {
-                        timestamp: new Date(),
-                        user_ip_hash: ipHash,
-                        email_snippet: (emailContent || '').substring(0, 500),
-                        headers_snippet: (headers || '').substring(0, 500),
-                        analise: {
-                            nivel_risco: respostaCompleta.Nivel_Risco,
-                            veredito: respostaCompleta.Veredito,
-                            motivos: respostaCompleta.Motivos,
-                            recomendacao: respostaCompleta.Recomendacao,
-                            detalhes_autenticacao: respostaCompleta.detalhes_autenticacao,
-                            remetente: respostaCompleta.remetente,
-                            return_path: respostaCompleta.return_path,
-                            ip_remetente: respostaCompleta.ip_remetente,
-                            anexo_html: respostaCompleta.anexo_html,
-                            urls_encontradas: respostaCompleta.urls_encontradas
-                        },
-                        pdf_exportado: false
-                    };
-                    
-                    await collection.insertOne(doc);
-                } catch (err) {
-                    console.error('Erro ao guardar análise local no MongoDB:', err);
-                }
-            })();
-        }
-
-        context.res.status = 200; context.res.body = respostaCompleta;
     }
+
+    // ========== GUARDAR NO MONGODB (UPSERT COM _id = contentHash) ==========
+    if (db) {
+        try {
+            const collection = db.collection('phishing_analyses');
+            const ipHash = crypto.createHash('sha256').update(clientIp + (process.env.IP_SALT || 'default_salt')).digest('hex');
+            
+            const doc = {
+                _id: contentHash,
+                timestamp: new Date(),
+                user_ip_hash: ipHash,
+                email_snippet: (emailContent || '').substring(0, 500),
+                headers_snippet: (headers || '').substring(0, 500),
+                analise: {
+                    nivel_risco: respostaCompleta.Nivel_Risco,
+                    veredito: respostaCompleta.Veredito,
+                    motivos: respostaCompleta.Motivos,
+                    recomendacao: respostaCompleta.Recomendacao,
+                    detalhes_autenticacao: respostaCompleta.detalhes_autenticacao,
+                    remetente: respostaCompleta.remetente,
+                    return_path: respostaCompleta.return_path,
+                    ip_remetente: respostaCompleta.ip_remetente,
+                    anexo_html: respostaCompleta.anexo_html,
+                    urls_encontradas: respostaCompleta.urls_encontradas
+                },
+                pdf_exportado: false
+            };
+
+            await collection.updateOne(
+                { _id: contentHash },
+                { $set: doc },
+                { upsert: true }
+            );
+        } catch (err) {
+            console.error('Erro ao guardar análise no MongoDB:', err);
+        }
+    }
+
+    // ========== GUARDAR EM CACHE DE MEMÓRIA E RETORNAR ==========
+    memoryCache.set(contentHash, { data: respostaCompleta, timestamp: Date.now() });
+    context.res.status = 200;
+    context.res.body = respostaCompleta;
 };
