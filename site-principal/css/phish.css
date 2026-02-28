@@ -570,7 +570,7 @@ header p {
 
 /* 2. Forçar todos os textos principais a serem PRETOS */
 .pdf-mode * {
-    color: #000000 !important;
+    color: #ffffff !important;
     text-shadow: none !important;
 }
 
@@ -583,7 +583,7 @@ header p {
 .pdf-mode .alert-section {
     background-color: #f8f9fa !important;
     border: 1px solid #dee2e6 !important;
-    color: #000000 !important;
+    color: #ffffff !important;
 }
 
 /* 4. Títulos coloridos de alerta (O texto "ALERTA GOVERNO" fica visível) */
