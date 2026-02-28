@@ -436,7 +436,8 @@ header p {
     line-height: 140px !important;
     text-align: center !important;
     transform: none !important;
-    font-size: 28px !important; /* Reduzido de 32px para 28px */
+    font-size: 32px !important; /* Reduzido de 32px para 28px */
+    letter-spacing: -0.5px !important;
     font-weight: bold !important;
     color: #ffffff !important;
     white-space: nowrap !important;
