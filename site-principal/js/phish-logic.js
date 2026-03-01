@@ -153,7 +153,7 @@ function criarDetalhesAdicionais(res) {
     // 1. Constrói a lista de URLs
     let urlsHtml = '';
     if (res.urls_encontradas && res.urls_encontradas.length > 0) {
-        const listaUrls = res.urls_encontradas.map(u => 
+        const listaUrls = res.urls_encontradas.map(u =>
             `<li class="list-group-item py-3"><i class="bi bi-link-45deg me-2 text-primary fs-5"></i>${escapeHtml(u)}</li>`
         ).join('');
 
@@ -193,13 +193,23 @@ function criarDetalhesAdicionais(res) {
                         
                         <div id="loadingPrint" style="position: absolute; text-align: center; color: #00bcd4; z-index: 1;">
                             <div class="spinner-border mb-3" role="status" style="width: 3rem; height: 3rem;"></div>
-                            <h5>A processar captura de ecrã remota...</h5>
-                            <small class="text-muted">(Pode demorar entre 10 a 15 segundos)</small>
+                            <h5>A processar captura de ecrã...</h5>
+                            <small class="text-muted">(Aguarde uns segundos)</small>
                         </div>
 
-                        <img src="${printUrl}" style="width: 100%; height: auto; position: relative; z-index: 2; display: none;" 
+                        <img src="${printUrl}" data-attempts="0" style="width: 100%; height: auto; position: relative; z-index: 2; display: none;" 
                              onload="this.style.display='block'; document.getElementById('loadingPrint').style.display='none';" 
-                             onerror="setTimeout(() => this.src='${printUrl}?t=' + new Date().getTime(), 5000);">
+                             onerror="
+                                let attempts = parseInt(this.getAttribute('data-attempts'));
+                                if(attempts < 10) {
+                                    this.setAttribute('data-attempts', attempts + 1);
+                                    // Tenta de novo em 5 segundos, adicionando um carimbo de tempo para não ler cache
+                                    setTimeout(() => this.src='${printUrl}?t=' + new Date().getTime(), 5000);
+                                } else {
+                                    // Desiste após 10 tentativas e mostra aviso forense
+                                    document.getElementById('loadingPrint').innerHTML = '<i class=\\'bi bi-shield-x text-muted\\' style=\\'font-size: 3rem;\\'></i><br><h5 class=\\'mt-3 text-warning\\'>Captura de Ecrã Indisponível</h5><small class=\\'text-muted\\'>O site criminoso está offline ou possui proteção Anti-Bot.<br>Consulte o Relatório Técnico abaixo para dados de rede.</small>';
+                                }
+                             ">
                     </div>
                     <div class="mt-3 text-end">
                         <a href="${linkRelatorio}" target="_blank" class="btn btn-outline-info">
@@ -339,7 +349,7 @@ function gerarPDF() {
             resultPanel.style.width = widthOriginal;
             resultPanel.style.maxWidth = maxWidthOriginal;
             resultPanel.style.margin = marginOriginal;
-            
+
             Swal.fire('Sucesso!', 'Relatório PDF gerado com sucesso.', 'success');
         })
         .catch(err => {
@@ -348,7 +358,7 @@ function gerarPDF() {
             resultPanel.style.width = widthOriginal;
             resultPanel.style.maxWidth = maxWidthOriginal;
             resultPanel.style.margin = marginOriginal;
-            
+
             Swal.fire('Erro', 'Falha ao criar PDF.', 'error');
             console.error('Erro:', err);
         });
