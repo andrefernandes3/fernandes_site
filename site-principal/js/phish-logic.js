@@ -278,81 +278,51 @@ function toggleHeaders() {
 }
 
 // ==========================================
-// EXPORTAÇÃO DE RELATÓRIO FORENSE (PDF)
+// EXPORTAÇÃO DE RELATÓRIO PDF (Otimizado)
 // ==========================================
 function gerarPDF() {
-    if (typeof html2pdf === 'undefined') {
-        Swal.fire('Erro', 'A biblioteca de PDF não carregou. Atualize a página.', 'error');
-        return;
-    }
+    // 1. Esconde os botões para eles não saírem na foto do PDF
+    const botoes = document.querySelector('.mt-4.text-end');
+    if (botoes) botoes.style.display = 'none';
 
-    const resultPanel = document.getElementById('resultPanel');
-    const status = document.getElementById('statusLabel').innerText || 'Analise';
+    // 2. Seleciona o elemento que queremos transformar em PDF
+    const elemento = document.getElementById('resultPanel');
 
-    if (resultPanel.classList.contains('hidden')) {
-        Swal.fire('Atenção', 'Faça uma análise primeiro.', 'warning');
-        return;
-    }
-
-    // 1. Esconde o botão verde temporariamente
-    const btnPdf = resultPanel.querySelector('button[onclick="gerarPDF()"]');
-    if (btnPdf) btnPdf.style.display = 'none';
-
-    Swal.fire({
-        title: 'Gerando Relatório...',
-        allowOutsideClick: false,
-        didOpen: () => { Swal.showLoading(); }
-    });
-
-    // 2. Volta ao topo da página para evitar cortes pelo scroll
-    window.scrollTo(0, 0);
-
-    // 3. A VERSÃO INFALÍVEL (O Truque da Moldura)
-    // Guardamos o tamanho atual do seu painel panorâmico
-    const widthOriginal = resultPanel.style.width;
-    const maxWidthOriginal = resultPanel.style.maxWidth;
-    const marginOriginal = resultPanel.style.margin;
-
-    // Forçamos o painel a encolher para 800px (o tamanho perfeito de uma folha A4 em pé)
-    resultPanel.style.width = '800px';
-    resultPanel.style.maxWidth = '800px';
-    resultPanel.style.margin = '0 auto';
-
+    // 3. Configurações Profissionais do PDF
     const opt = {
-        margin: [10, 10, 10, 10],
-        filename: `Relatorio-Phishing-${status}-${new Date().toISOString().slice(0, 10)}.pdf`,
-        image: { type: 'jpeg', quality: 1.0 },
-        html2canvas: {
-            scale: 2,
-            useCORS: true,
-            backgroundColor: '#0f0f0f', // Mantém o seu fundo preto elegante
-            scrollY: 0
+        margin:       10, // Margem do documento
+        filename:     `Relatorio-Phishing-${new Date().toISOString().slice(0, 10)}.pdf`,
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { 
+            scale: 2, // Aumenta a resolução para evitar texto desfocado
+            useCORS: true, // 🟢 CRÍTICO: Permite que a foto do urlscan.io seja capturada para o PDF!
+            backgroundColor: '#1a1a1a', // Força o fundo escuro para manter o Dark Mode
+            windowWidth: document.getElementById('resultPanel').scrollWidth // Força a largura para não quebrar as colunas
         },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-        pagebreak: { mode: ['css', 'legacy'] }
+        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
 
-    // 4. Tira a fotografia à página já redimensionada para A4
-    html2pdf().set(opt).from(resultPanel).save()
-        .then(() => {
-            // Restaura o botão e as dimensões originais num milissegundo!
-            if (btnPdf) btnPdf.style.display = 'inline-block';
-            resultPanel.style.width = widthOriginal;
-            resultPanel.style.maxWidth = maxWidthOriginal;
-            resultPanel.style.margin = marginOriginal;
+    // 4. Mostra um aviso ao utilizador de que está a gerar
+    Swal.fire({
+        title: 'A Gerar Relatório Forense...',
+        text: 'A processar as evidências e a formatar o documento.',
+        icon: 'info',
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
 
-            Swal.fire('Sucesso!', 'Relatório PDF gerado com sucesso.', 'success');
-        })
-        .catch(err => {
-            // Se houver erro, restaura o painel também
-            if (btnPdf) btnPdf.style.display = 'inline-block';
-            resultPanel.style.width = widthOriginal;
-            resultPanel.style.maxWidth = maxWidthOriginal;
-            resultPanel.style.margin = marginOriginal;
-
-            Swal.fire('Erro', 'Falha ao criar PDF.', 'error');
-            console.error('Erro:', err);
-        });
+    // 5. Gera o PDF
+    html2pdf().set(opt).from(elemento).save().then(() => {
+        // Quando terminar, volta a mostrar os botões no ecrã
+        if (botoes) botoes.style.display = 'block';
+        Swal.close();
+    }).catch(err => {
+        console.error('Erro ao gerar PDF:', err);
+        if (botoes) botoes.style.display = 'block';
+        Swal.fire('Erro', 'Ocorreu um problema ao gerar o PDF.', 'error');
+    });
 }
 // ==========================================
 // LEITOR DE ARQUIVOS .EML
