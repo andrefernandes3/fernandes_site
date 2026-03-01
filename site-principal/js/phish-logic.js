@@ -181,7 +181,6 @@ function criarDetalhesAdicionais(res) {
     // 2. 🟢 O NOVO VISUALIZADOR DO URLSCAN (SANDBOX)
     let sandboxHtml = '';
     if (res.urlscan_uuid) {
-        const printUrl = `https://urlscan.io/screenshots/${res.urlscan_uuid}.png`;
         const linkRelatorio = `https://urlscan.io/result/${res.urlscan_uuid}/`;
 
         sandboxHtml = `
@@ -191,25 +190,13 @@ function criarDetalhesAdicionais(res) {
                     <p class="text-muted mb-3"><small>Captura de ecrã segura gerada em ambiente isolado (urlscan.io).</small></p>
                     <div class="sandbox-container" style="background: #111; border: 1px solid #444; border-radius: 8px; overflow: hidden; position: relative; min-height: 350px; display: flex; align-items: center; justify-content: center;">
                         
-                        <div id="loadingPrint" style="position: absolute; text-align: center; color: #00bcd4; z-index: 1;">
+                        <div id="loadingPrint_${res.urlscan_uuid}" style="position: absolute; text-align: center; color: #00bcd4; z-index: 1;">
                             <div class="spinner-border mb-3" role="status" style="width: 3rem; height: 3rem;"></div>
                             <h5>A processar captura de ecrã...</h5>
-                            <small class="text-muted">(Aguarde uns segundos)</small>
+                            <small class="text-muted">(A nuvem pode demorar até 60 segundos)</small>
                         </div>
 
-                        <img src="${printUrl}" data-attempts="0" style="width: 100%; height: auto; position: relative; z-index: 2; display: none;" 
-                             onload="this.style.display='block'; document.getElementById('loadingPrint').style.display='none';" 
-                             onerror="
-                                let attempts = parseInt(this.getAttribute('data-attempts'));
-                                if(attempts < 10) {
-                                    this.setAttribute('data-attempts', attempts + 1);
-                                    // Tenta de novo em 5 segundos, adicionando um carimbo de tempo para não ler cache
-                                    setTimeout(() => this.src='${printUrl}?t=' + new Date().getTime(), 5000);
-                                } else {
-                                    // Desiste após 10 tentativas e mostra aviso forense
-                                    document.getElementById('loadingPrint').innerHTML = '<i class=\\'bi bi-shield-x text-muted\\' style=\\'font-size: 3rem;\\'></i><br><h5 class=\\'mt-3 text-warning\\'>Captura de Ecrã Indisponível</h5><small class=\\'text-muted\\'>O site criminoso está offline ou possui proteção Anti-Bot.<br>Consulte o Relatório Técnico abaixo para dados de rede.</small>';
-                                }
-                             ">
+                        <img id="imgPrint_${res.urlscan_uuid}" style="width: 100%; height: auto; position: relative; z-index: 2; display: none;">
                     </div>
                     <div class="mt-3 text-end">
                         <a href="${linkRelatorio}" target="_blank" class="btn btn-outline-info">
@@ -219,6 +206,9 @@ function criarDetalhesAdicionais(res) {
                 </div>
             </div>
         `;
+
+        // 🚀 Dispara o "Motor Silencioso" 100 milissegundos após o painel ser criado
+        setTimeout(() => { pollUrlScanImage(res.urlscan_uuid); }, 100);
     }
 
     // 3. Junta as 3 secções (Origem/Autenticação, URLs e Sandbox) no contentor final
@@ -408,3 +398,53 @@ document.addEventListener('DOMContentLoaded', function () {
         riskValue.textContent = '0%';
     }
 });
+
+// ==========================================
+// MOTOR DE POLLING (BACKGROUND) DO URLSCAN
+// ==========================================
+function pollUrlScanImage(uuid, attempts = 0) {
+    const maxAttempts = 15; // 15 tentativas no total
+    const imgUrl = `https://urlscan.io/screenshots/${uuid}.png`;
+    const loaderId = `loadingPrint_${uuid}`;
+    const imgId = `imgPrint_${uuid}`;
+    
+    // 🧠 A MÁGICA: Dá 15 segundos de "avanço" à nuvem na 1ª tentativa. Depois procura a cada 5 segundos.
+    const delay = attempts === 0 ? 15000 : 5000;
+    
+    setTimeout(() => {
+        // Cria uma imagem fantasma para testar se já existe sem dar erros feios na tela
+        const img = new Image();
+        
+        img.onload = () => {
+            // SUCESSO! A foto já existe no servidor. Vamos mostrá-la!
+            const targetImg = document.getElementById(imgId);
+            const loader = document.getElementById(loaderId);
+            if (targetImg && loader) {
+                targetImg.src = img.src;
+                targetImg.style.display = 'block';
+                loader.style.display = 'none';
+            }
+        };
+        
+        img.onerror = () => {
+            // FALHA: A foto ainda não está pronta.
+            if (attempts < maxAttempts) {
+                // Tenta outra vez silenciosamente
+                pollUrlScanImage(uuid, attempts + 1);
+            } else {
+                // DESISTE: O tempo esgotou (mais de 1 minuto) ou o hacker bloqueou a foto.
+                const loader = document.getElementById(loaderId);
+                if (loader) {
+                    loader.innerHTML = `
+                        <i class="bi bi-shield-x text-muted" style="font-size: 3rem;"></i><br>
+                        <h5 class="mt-3 text-warning">Captura de Ecrã Indisponível</h5>
+                        <small class="text-muted">Tempo esgotado ou site com bloqueio Anti-Bot.<br>Consulte o Relatório Técnico abaixo.</small>
+                    `;
+                }
+            }
+        };
+        
+        // Pede a imagem com um código de tempo para furar a cache do navegador
+        img.src = `${imgUrl}?t=${new Date().getTime()}`; 
+    }, delay);
+}
