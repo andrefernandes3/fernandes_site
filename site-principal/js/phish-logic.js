@@ -278,34 +278,46 @@ function toggleHeaders() {
 }
 
 // ==========================================
-// EXPORTAÇÃO DE RELATÓRIO PDF (Otimizado)
+// EXPORTAÇÃO DE RELATÓRIO PDF (Alinhamento Perfeito)
 // ==========================================
 function gerarPDF() {
-    // 1. Esconde os botões para eles não saírem na foto do PDF
     const botoes = document.querySelector('.mt-4.text-end');
     if (botoes) botoes.style.display = 'none';
 
-    // 2. Seleciona o elemento que queremos transformar em PDF
     const elemento = document.getElementById('resultPanel');
+    
+    // 1. 🛡️ TRUQUE DE ALINHAMENTO: Congelar o layout do Bootstrap
+    // Vamos forçar as colunas a comportarem-se como num ecrã de PC gigante, ignorando responsividade
+    const authCol = document.querySelector('.col-md-5');
+    const origCol = document.querySelector('.col-md-7');
+    
+    if (authCol) { authCol.classList.remove('col-md-5'); authCol.classList.add('col-5'); }
+    if (origCol) { origCol.classList.remove('col-md-7'); origCol.classList.add('col-7'); }
 
-    // 3. Configurações Profissionais do PDF
+    // Forçamos o painel a ter exatos 1200px de largura para a "fotografia" não espremer o texto
+    const originalWidth = elemento.style.width;
+    elemento.style.width = '1200px';
+
+    // 2. Configurações Profissionais (Com Proteção de Quebra de Página)
     const opt = {
-        margin:       10, // Margem do documento
+        margin:       [15, 10, 15, 10], // Margens [Cima, Direita, Baixo, Esquerda]
         filename:     `Relatorio-Phishing-${new Date().toISOString().slice(0, 10)}.pdf`,
-        image:        { type: 'jpeg', quality: 0.98 },
+        image:        { type: 'jpeg', quality: 1.0 },
         html2canvas:  { 
-            scale: 2, // Aumenta a resolução para evitar texto desfocado
-            useCORS: true, // 🟢 CRÍTICO: Permite que a foto do urlscan.io seja capturada para o PDF!
-            backgroundColor: '#1a1a1a', // Força o fundo escuro para manter o Dark Mode
-            windowWidth: document.getElementById('resultPanel').scrollWidth // Força a largura para não quebrar as colunas
+            scale: 2, 
+            useCORS: true, // Garante que a imagem do urlscan aparece
+            backgroundColor: '#1a1a1a', 
+            windowWidth: 1200,
+            scrollY: 0 // Impede que o PDF saia cortado se a página estiver "scrollada" para baixo
         },
-        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        // 🟢 NOVO: Evita que as caixas ou a imagem sejam cortadas a meio da folha A4
+        pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] } 
     };
 
-    // 4. Mostra um aviso ao utilizador de que está a gerar
     Swal.fire({
-        title: 'A Gerar Relatório Forense...',
-        text: 'A processar as evidências e a formatar o documento.',
+        title: 'A Formatar Relatório...',
+        text: 'A estabilizar o layout e a capturar a evidência visual.',
         icon: 'info',
         allowOutsideClick: false,
         didOpen: () => {
@@ -313,15 +325,21 @@ function gerarPDF() {
         }
     });
 
-    // 5. Gera o PDF
+    // 3. Gerar o PDF
     html2pdf().set(opt).from(elemento).save().then(() => {
-        // Quando terminar, volta a mostrar os botões no ecrã
+        // 4. 🧹 LIMPEZA: Reverte o site ao estado normal após gerar o PDF
         if (botoes) botoes.style.display = 'block';
+        elemento.style.width = originalWidth;
+        if (authCol) { authCol.classList.remove('col-5'); authCol.classList.add('col-md-5'); }
+        if (origCol) { origCol.classList.remove('col-7'); origCol.classList.add('col-md-7'); }
         Swal.close();
     }).catch(err => {
         console.error('Erro ao gerar PDF:', err);
         if (botoes) botoes.style.display = 'block';
-        Swal.fire('Erro', 'Ocorreu um problema ao gerar o PDF.', 'error');
+        elemento.style.width = originalWidth;
+        if (authCol) { authCol.classList.remove('col-5'); authCol.classList.add('col-md-5'); }
+        if (origCol) { origCol.classList.remove('col-7'); origCol.classList.add('col-md-7'); }
+        Swal.fire('Erro', 'Ocorreu um problema ao gerar o documento.', 'error');
     });
 }
 // ==========================================
