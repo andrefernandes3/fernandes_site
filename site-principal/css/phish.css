@@ -405,12 +405,24 @@ header p {
    GERADOR DE PDF NATIVO (ENTERPRISE)
 ========================================= */
 @media print {
-    /* 1. Esconde tudo o que não interessa para o relatório */
-    nav, footer, .container > div:not(#resultPanel), #emlFileInput, .alert, button {
+    /* 1. Esconde APENAS o topo, a área de submissão e os botões */
+    header, 
+    nav, 
+    footer, 
+    .input-area, 
+    button {
         display: none !important;
     }
 
-    /* 2. Força o navegador a imprimir o Dark Mode com exatidão */
+    /* 2. Remove as margens laterais para a folha A4 ser 100% do Relatório */
+    body, .phish-container, .container {
+        margin: 0 !important;
+        padding: 0 !important;
+        max-width: 100% !important;
+        width: 100% !important;
+    }
+
+    /* 3. Força o navegador a imprimir o Dark Mode */
     body {
         background-color: #1a1a1a !important;
         color: #e0e0e0 !important;
@@ -418,22 +430,14 @@ header p {
         print-color-adjust: exact !important;
     }
 
-    /* 3. Margens perfeitas da página A4 */
-    @page {
-        margin: 1.5cm;
-        size: A4 portrait;
-    }
-
-    /* 4. Expande o painel para ocupar 100% da folha */
+    /* 4. Garante que o Painel se expande na folha */
     #resultPanel {
         display: block !important;
         width: 100% !important;
-        margin: 0 !important;
-        padding: 0 !important;
         box-shadow: none !important;
     }
 
-    /* 5. Garante que os painéis mantêm as cores Premium */
+    /* 5. Mantém as cores Premium dos painéis internos */
     .card, .auth-item, .origem-box, .list-group-item, .sandbox-container {
         background-color: #222 !important;
         border: 1px solid #444 !important;
@@ -442,13 +446,13 @@ header p {
         print-color-adjust: exact !important;
     }
 
-    /* 6. A REGRA DE OURO: Impede que as caixas sejam rasgadas a meio entre a página 1 e 2 */
-    .row, .auth-item, .origem-box, .sandbox-container, .list-group-item {
+    /* 6. A REGRA DE OURO: Evita o corte das caixas a meio da página */
+    .card, .row, .auth-item, .origem-box, .sandbox-container, .list-group-item {
         page-break-inside: avoid !important;
         break-inside: avoid !important;
     }
 
-    /* Ajuste para as tags Badge (SPF/DKIM) não perderem a cor */
-    .badge.bg-success { background-color: #198754 !important; color: white !important; }
-    .badge.bg-danger { background-color: #dc3545 !important; color: white !important; }
+    /* 7. Ajustes das Etiquetas (Badges) */
+    .badge.bg-success { background-color: #198754 !important; color: white !important; border: 1px solid #198754 !important; }
+    .badge.bg-danger { background-color: #dc3545 !important; color: white !important; border: 1px solid #dc3545 !important; }
 }
