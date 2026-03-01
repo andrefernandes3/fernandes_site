@@ -8,12 +8,17 @@
     }
   ],
   "navigationFallback": {
-    "rewrite": "/phish.html",
-    "exclude": ["/assets/*.{png,jpg,gif,svg}", "/css/*", "/js/*"]
+    "rewrite": "/index.html",
+    "exclude": [
+      "/assets/*.{png,jpg,gif,svg,webp}",
+      "/css/*",
+      "/js/*",
+      "/favicon.ico"
+    ]
   },
-  "globalHeaders": {   
-   "Content-Security-Policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com data:; img-src 'self' data: blob: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://challenges.cloudflare.com; connect-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com;", 
-   "X-Content-Type-Options": "nosniff",
+  "globalHeaders": {
+    "Content-Security-Policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com data:; img-src 'self' data: blob: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://challenges.cloudflare.com; connect-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com;",
+    "X-Content-Type-Options": "nosniff",
     "X-Frame-Options": "DENY",
     "X-XSS-Protection": "1; mode=block",
     "Referrer-Policy": "same-origin"
