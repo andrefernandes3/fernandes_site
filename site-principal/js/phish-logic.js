@@ -278,68 +278,18 @@ function toggleHeaders() {
 }
 
 // ==========================================
-// EXPORTAÇÃO DE RELATÓRIO PDF (Alinhamento Perfeito)
+// EXPORTAÇÃO DE RELATÓRIO PDF (Motor Nativo)
 // ==========================================
 function gerarPDF() {
-    const botoes = document.querySelector('.mt-4.text-end');
-    if (botoes) botoes.style.display = 'none';
-
-    const elemento = document.getElementById('resultPanel');
-    
-    // 1. 🛡️ TRUQUE DE ALINHAMENTO: Congelar o layout do Bootstrap
-    // Vamos forçar as colunas a comportarem-se como num ecrã de PC gigante, ignorando responsividade
-    const authCol = document.querySelector('.col-md-5');
-    const origCol = document.querySelector('.col-md-7');
-    
-    if (authCol) { authCol.classList.remove('col-md-5'); authCol.classList.add('col-5'); }
-    if (origCol) { origCol.classList.remove('col-md-7'); origCol.classList.add('col-7'); }
-
-    // Forçamos o painel a ter exatos 1200px de largura para a "fotografia" não espremer o texto
-    const originalWidth = elemento.style.width;
-    elemento.style.width = '1200px';
-
-    // 2. Configurações Profissionais (Com Proteção de Quebra de Página)
-    const opt = {
-        margin:       [15, 10, 15, 10], // Margens [Cima, Direita, Baixo, Esquerda]
-        filename:     `Relatorio-Phishing-${new Date().toISOString().slice(0, 10)}.pdf`,
-        image:        { type: 'jpeg', quality: 1.0 },
-        html2canvas:  { 
-            scale: 2, 
-            useCORS: true, // Garante que a imagem do urlscan aparece
-            backgroundColor: '#1a1a1a', 
-            windowWidth: 1200,
-            scrollY: 0 // Impede que o PDF saia cortado se a página estiver "scrollada" para baixo
-        },
-        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
-        // 🟢 NOVO: Evita que as caixas ou a imagem sejam cortadas a meio da folha A4
-        pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] } 
-    };
-
     Swal.fire({
-        title: 'A Formatar Relatório...',
-        text: 'A estabilizar o layout e a capturar a evidência visual.',
+        title: 'A Preparar Documento...',
+        text: 'O Relatório Forense será aberto. Selecione "Guardar como PDF" no destino.',
         icon: 'info',
-        allowOutsideClick: false,
-        didOpen: () => {
-            Swal.showLoading();
-        }
-    });
-
-    // 3. Gerar o PDF
-    html2pdf().set(opt).from(elemento).save().then(() => {
-        // 4. 🧹 LIMPEZA: Reverte o site ao estado normal após gerar o PDF
-        if (botoes) botoes.style.display = 'block';
-        elemento.style.width = originalWidth;
-        if (authCol) { authCol.classList.remove('col-5'); authCol.classList.add('col-md-5'); }
-        if (origCol) { origCol.classList.remove('col-7'); origCol.classList.add('col-md-7'); }
-        Swal.close();
-    }).catch(err => {
-        console.error('Erro ao gerar PDF:', err);
-        if (botoes) botoes.style.display = 'block';
-        elemento.style.width = originalWidth;
-        if (authCol) { authCol.classList.remove('col-5'); authCol.classList.add('col-md-5'); }
-        if (origCol) { origCol.classList.remove('col-7'); origCol.classList.add('col-md-7'); }
-        Swal.fire('Erro', 'Ocorreu um problema ao gerar o documento.', 'error');
+        timer: 2000,
+        showConfirmButton: false
+    }).then(() => {
+        // O navegador encarrega-se do resto com perfeição matemática!
+        window.print();
     });
 }
 // ==========================================

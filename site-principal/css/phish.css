@@ -400,3 +400,55 @@ header p {
     overflow-wrap: break-word;
     hyphens: auto;
 }
+
+/* =========================================
+   GERADOR DE PDF NATIVO (ENTERPRISE)
+========================================= */
+@media print {
+    /* 1. Esconde tudo o que não interessa para o relatório */
+    nav, footer, .container > div:not(#resultPanel), #emlFileInput, .alert, button {
+        display: none !important;
+    }
+
+    /* 2. Força o navegador a imprimir o Dark Mode com exatidão */
+    body {
+        background-color: #1a1a1a !important;
+        color: #e0e0e0 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+
+    /* 3. Margens perfeitas da página A4 */
+    @page {
+        margin: 1.5cm;
+        size: A4 portrait;
+    }
+
+    /* 4. Expande o painel para ocupar 100% da folha */
+    #resultPanel {
+        display: block !important;
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        box-shadow: none !important;
+    }
+
+    /* 5. Garante que os painéis mantêm as cores Premium */
+    .card, .auth-item, .origem-box, .list-group-item, .sandbox-container {
+        background-color: #222 !important;
+        border: 1px solid #444 !important;
+        color: #eee !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+
+    /* 6. A REGRA DE OURO: Impede que as caixas sejam rasgadas a meio entre a página 1 e 2 */
+    .row, .auth-item, .origem-box, .sandbox-container, .list-group-item {
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+    }
+
+    /* Ajuste para as tags Badge (SPF/DKIM) não perderem a cor */
+    .badge.bg-success { background-color: #198754 !important; color: white !important; }
+    .badge.bg-danger { background-color: #dc3545 !important; color: white !important; }
+}
