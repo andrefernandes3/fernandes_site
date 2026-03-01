@@ -318,7 +318,17 @@ module.exports = async function (context, req) {
     let urlscanUuid = null;
     if (foundUrls && foundUrls.length > 0 && process.env.URLSCAN_API_KEY) {
         try {
-            const primeiraUrl = foundUrls[0];
+            let primeiraUrl = foundUrls[0];
+            
+            // 🛡️ ANTI-OBFUSCAÇÃO: Remove falsos utilizadores (o truque do @) para o urlscan não bloquear
+            try {
+                const urlObj = new URL(primeiraUrl);
+                if (urlObj.username || urlObj.password) {
+                    // Reconstrói o link limpo ignorando o que estava antes do @
+                    primeiraUrl = `${urlObj.protocol}//${urlObj.host}${urlObj.pathname}${urlObj.search}`;
+                }
+            } catch (e) { /* ignora se não conseguir parsear */ }
+
             const scanResponse = await fetch('https://urlscan.io/api/v1/scan/', {
                 method: 'POST',
                 headers: {
@@ -327,15 +337,17 @@ module.exports = async function (context, req) {
                 },
                 body: JSON.stringify({
                     url: primeiraUrl,
-                    visibility: 'public' // Mantemos como public para os limites gratuitos
+                    visibility: 'public'
                 })
             });
 
             if (scanResponse.ok) {
                 const scanData = await scanResponse.json();
                 if (scanData.uuid) {
-                    urlscanUuid = scanData.uuid; // Guardamos o identificador único da foto
+                    urlscanUuid = scanData.uuid;
                 }
+            } else {
+                console.error('Urlscan rejeitou a URL:', scanResponse.status);
             }
         } catch (e) {
             console.error('Falha ao contactar urlscan.io:', e);
