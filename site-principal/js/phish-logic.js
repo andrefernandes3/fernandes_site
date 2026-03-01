@@ -172,7 +172,8 @@ function criarDetalhesAdicionais(res) {
             <div class="row mt-5">
                 <div class="col-12">
                     <h4><i class="bi bi-globe text-secondary"></i> URLs e Links Detetados</h4>
-                    <p class="text-muted"><i class="bi bi-info-circle me-2"></i>Nenhum link web encontrado no corpo do e-mail.</p>
+                    <p class="text-info mb-3" style="font-size: 0.95em;">
+    <i class="bi bi-shield-check me-1"></i> Captura de ecrã segura gerada em ambiente isolado (urlscan.io).</p>
                 </div>
             </div>
         `;
@@ -407,14 +408,14 @@ function pollUrlScanImage(uuid, attempts = 0) {
     const imgUrl = `https://urlscan.io/screenshots/${uuid}.png`;
     const loaderId = `loadingPrint_${uuid}`;
     const imgId = `imgPrint_${uuid}`;
-    
+
     // 🧠 A MÁGICA: Dá 15 segundos de "avanço" à nuvem na 1ª tentativa. Depois procura a cada 5 segundos.
     const delay = attempts === 0 ? 15000 : 5000;
-    
+
     setTimeout(() => {
         // Cria uma imagem fantasma para testar se já existe sem dar erros feios na tela
         const img = new Image();
-        
+
         img.onload = () => {
             // SUCESSO! A foto já existe no servidor. Vamos mostrá-la!
             const targetImg = document.getElementById(imgId);
@@ -425,7 +426,7 @@ function pollUrlScanImage(uuid, attempts = 0) {
                 loader.style.display = 'none';
             }
         };
-        
+
         img.onerror = () => {
             // FALHA: A foto ainda não está pronta.
             if (attempts < maxAttempts) {
@@ -443,8 +444,8 @@ function pollUrlScanImage(uuid, attempts = 0) {
                 }
             }
         };
-        
+
         // Pede a imagem com um código de tempo para furar a cache do navegador
-        img.src = `${imgUrl}?t=${new Date().getTime()}`; 
+        img.src = `${imgUrl}?t=${new Date().getTime()}`;
     }, delay);
 }
