@@ -41,7 +41,12 @@
 
                     <div class="row mt-3">
                         <div class="col-md-6">
-                            <input type="file" id="emlFileInput" accept=".eml,.msg" class="form-control">
+                            <input type="file" id="emlFileInput" accept=".eml" class="form-control bg-dark text-light border-secondary">
+<div class="mt-2 text-end">
+    <a href="#" onclick="mostrarAjudaEml(); return false;" class="text-info text-decoration-none" style="font-size: 0.85em;">
+        <i class="bi bi-question-circle"></i> Como obtenho o ficheiro .eml do meu e-mail?
+    </a>
+</div>
                         </div>
                         <div class="col-md-6">
                             <button id="btnAnalisar" class="btn btn-primary w-100" onclick="processarAnalise()">

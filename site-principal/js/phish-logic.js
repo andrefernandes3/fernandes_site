@@ -368,6 +368,20 @@ document.addEventListener('DOMContentLoaded', () => {
         const file = e.target.files[0];
         if (!file) return;
 
+        // 🟢 BLINDAGEM: Rejeita tudo o que não seja .eml
+        if (!file.name.toLowerCase().endsWith('.eml')) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Formato Inválido',
+                text: 'Por favor, envie apenas ficheiros no formato .eml (o formato bruto padrão da internet).',
+                background: '#222',
+                color: '#eee',
+                confirmButtonColor: '#00bcd4'
+            });
+            this.value = ''; // Limpa o campo para o utilizador tentar novamente
+            return;
+        }
+
         emailBody.value = '';
         emailHeaders.value = '';
         document.getElementById('resultPanel').classList.add('hidden');
@@ -448,4 +462,25 @@ function pollUrlScanImage(uuid, attempts = 0) {
         // Pede a imagem com um código de tempo para furar a cache do navegador
         img.src = `${imgUrl}?t=${new Date().getTime()}`;
     }, delay);
+}
+
+// ==========================================
+// TUTORIAL DE EXPORTAÇÃO DE .EML
+// ==========================================
+function mostrarAjudaEml() {
+    Swal.fire({
+        title: 'Como salvar o arquivo .eml?',
+        html: `
+            <div style="text-align: left; font-size: 0.95em; color: #ccc;">
+                <p><strong class="text-danger"><i class="bi bi-google"></i> Gmail:</strong> Abra o e-mail, clique nos 3 pontos (canto superior direito) e escolha <b class="text-light">"Baixar a mensagem"</b>.</p>
+                <p><strong class="text-info"><i class="bi bi-microsoft"></i> Outlook:</strong> Abra o e-mail, clique nos 3 pontos, vá a "Mais ações" e escolha <b class="text-light">"Salvar"</b> ou "Salvar como".</p>
+                <p><strong class="text-secondary"><i class="bi bi-apple"></i> Apple Mail:</strong> Arraste o e-mail diretamente para a sua Área de Trabalho (Desktop).</p>
+            </div>
+        `,
+        icon: 'info',
+        background: '#222',
+        color: '#eee',
+        confirmButtonColor: '#00bcd4',
+        confirmButtonText: 'Entendido!'
+    });
 }
