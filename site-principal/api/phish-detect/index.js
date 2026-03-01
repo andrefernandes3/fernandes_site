@@ -28,7 +28,7 @@ async function connectDb() {
 function checkRateLimit(ip) {
     const now = Date.now();
     const windowMs = 60000;
-    const maxRequests = 15; 
+    const maxRequests = 15;
     const hashedIp = crypto.createHash('sha256').update(ip + (process.env.IP_SALT || 'default_salt')).digest('hex');
     const userRequests = rateLimit.get(hashedIp) || [];
     const recentRequests = userRequests.filter(time => now - time < windowMs);
@@ -42,11 +42,11 @@ function checkRateLimit(ip) {
 function decodeEmailBody(text) {
     if (!text) return '';
     let decoded = text;
-    
+
     // 1. Descodifica Quoted-Printable (Remove quebras de linha com "=")
     decoded = decoded.replace(/=\r?\n/g, '');
     decoded = decoded.replace(/=([0-9A-F]{2})/gi, (match, hex) => {
-        try { return String.fromCharCode(parseInt(hex, 16)); } catch(e) { return match; }
+        try { return String.fromCharCode(parseInt(hex, 16)); } catch (e) { return match; }
     });
 
     // 2. Extrai e Descodifica blocos Base64 ocultos
@@ -55,7 +55,7 @@ function decodeEmailBody(text) {
     while ((match = b64Regex.exec(text)) !== null) {
         let payload = match[1].replace(/[\r\n\s]+/g, '');
         if (payload.length > 50) {
-            try { decoded += '\n' + Buffer.from(payload, 'base64').toString('utf-8'); } catch(e) {}
+            try { decoded += '\n' + Buffer.from(payload, 'base64').toString('utf-8'); } catch (e) { }
         }
     }
     return decoded;
@@ -69,7 +69,7 @@ function unwrapSafeLinks(url) {
             const actualUrl = parsed.searchParams.get('url');
             if (actualUrl) return decodeURIComponent(actualUrl);
         }
-    } catch(e) {}
+    } catch (e) { }
     return url;
 }
 
@@ -78,8 +78,8 @@ function extractUrls(text) {
     if (!text) return [];
     const urls = new Set();
     const decodedText = decodeEmailBody(text); // Transforma código num texto legível
-    
-    const regexes = [ /(https?:\/\/[^\s"'>\]\)]+)/gi, /href=["']([^"']+)["']/gi ];
+
+    const regexes = [/(https?:\/\/[^\s"'>\]\)]+)/gi, /href=["']([^"']+)["']/gi];
     regexes.forEach(regex => {
         const matches = decodedText.match(regex) || [];
         matches.forEach(m => {
@@ -89,7 +89,7 @@ function extractUrls(text) {
                 cleanUrl = unwrapSafeLinks(cleanUrl); // Descasca a proteção
                 new URL(cleanUrl); // Valida se é URL
                 urls.add(cleanUrl);
-            } catch {}
+            } catch { }
         });
     });
     return Array.from(urls).slice(0, 20);
@@ -181,7 +181,7 @@ function decodeRFC2047(text) {
                 });
                 return Buffer.from(qText, 'binary').toString('utf-8');
             }
-        } catch (e) {}
+        } catch (e) { }
         return match;
     });
 }
@@ -199,10 +199,10 @@ function extractSender(headers) {
     if (fromMatch) {
         let fromRaw = fromMatch[1].trim();
         let nameRaw = fromRaw.replace(/<.*?>/g, '').trim() || fromRaw;
-        
+
         // Aplica o nosso novo tradutor para limpar o nome!
         senderInfo.nome_exibicao = decodeRFC2047(nameRaw);
-        
+
         if (senderInfo.email_real === 'Não identificado') {
             const emailMatch = fromRaw.match(/<([^>]+)>/);
             if (emailMatch) senderInfo.email_real = emailMatch[1].trim();
@@ -238,7 +238,7 @@ function analisarUrlsSuspeitas(urls) {
             if (isCloud && hostname.includes('onmicrosoft.com')) {
                 evidencias.push(`URL hospedada em subdomínio Azure/O365 suspeito (${hostname})`);
             }
-        } catch (e) {}
+        } catch (e) { }
     }
     return { evidencias, urlsDetalhadas };
 }
@@ -267,7 +267,7 @@ module.exports = async function (context, req) {
     const apiKey = process.env.GROQ_API_KEY;
 
     if (!emailContent || emailContent.trim().length < 10) {
-        context.res.status = 400; 
+        context.res.status = 400;
         context.res.body = { Nivel_Risco: 0, Veredito: 'SEGURO', Motivos: ['Conteúdo insuficiente'] };
         return;
     }
@@ -288,13 +288,13 @@ module.exports = async function (context, req) {
 
     // Desencriptamos também o corpo para análise Heurística Local
     let cleanBodyProcessed = decodeEmailBody(emailContent || '').replace(/<[^>]*>?/gm, ' ').substring(0, 4000);
-    
+
     let localScore = 0;
     const evidenciasFortes = [];
     const evidenciasLeves = [];
 
     if (temAnexoHTML) { localScore += 50; evidenciasFortes.push('Anexo HTML detetado - técnica comum de clone de login'); }
-    
+
     // Alerta específico para links do Canva / DocuSign escondidos
     const hasAbusedPlatform = foundUrls.some(u => u.includes('canva.com') || u.includes('docusign.net'));
     if (hasAbusedPlatform) {
@@ -361,7 +361,7 @@ module.exports = async function (context, req) {
             headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 model: "llama-3.3-70b-versatile",
-                messages: [ { role: "system", content: systemPrompt }, { role: "user", content: `EMAIL:\n${cleanBodyProcessed}\n\n${intelMastigada}` } ],
+                messages: [{ role: "system", content: systemPrompt }, { role: "user", content: `EMAIL:\n${cleanBodyProcessed}\n\n${intelMastigada}` }],
                 response_format: { type: "json_object" }, max_tokens: 300, temperature: 0.1
             }), signal: controller.signal
         });
@@ -369,7 +369,7 @@ module.exports = async function (context, req) {
 
         const data = await groqResponse.json();
         let analise = JSON.parse(data.choices[0].message.content);
-        
+
         let riscoFinal = parseInt(analise.Nivel_Risco) || localScore;
         if (evidenciasFortes.length > 0) riscoFinal = Math.max(riscoFinal, 80);
         if (authDetails.autenticado && evidenciasFortes.length === 0 && !knownScams && !hasAbusedPlatform) riscoFinal = Math.min(riscoFinal, 15);
@@ -379,10 +379,18 @@ module.exports = async function (context, req) {
             Veredito: riscoFinal >= 80 ? 'PERIGOSO' : (riscoFinal >= 40 ? 'SUSPEITO' : 'SEGURO'),
             Motivos: analise.Motivos || evidenciasFortes,
             Recomendacao: analise.Recomendacao || 'Analise com cautela.',
-            detalhes_autenticacao: { spf: authDetails.spf, dkim: authDetails.dkim, dmarc: authDetails.dmarc, dominio_autenticado: authDetails.dominioAutenticado },
+            detalhes_autenticacao: {
+                spf: authDetails.spf,
+                dkim: authDetails.dkim,
+                dmarc: authDetails.dmarc,
+                alinhamento: authDetails.alinhamento,
+                from_domain: authDetails.fromDomain,
+                spf_domain: authDetails.spfDomain,
+                dkim_domain: authDetails.dkimDomain
+            },
             remetente: senderData.nome_exibicao, return_path: senderData.email_real, ip_remetente: senderIP || 'Não identificado', anexo_html: temAnexoHTML,
-            urls_encontradas: foundUrls, 
-            urlscan_uuid: urlscanUuid    
+            urls_encontradas: foundUrls,
+            urlscan_uuid: urlscanUuid
         };
 
         // 🟢 SALVA NO BANCO DE DADOS (SUCESSO COM IA)
@@ -401,16 +409,16 @@ module.exports = async function (context, req) {
         context.res.status = 200; context.res.body = respostaCompleta;
 
     } catch (error) {
-        context.res.status = 200; 
-        const falhaCompleta = { 
-            Nivel_Risco: localScore, 
-            Veredito: localScore >= 80 ? 'PERIGOSO' : (localScore >= 40 ? 'SUSPEITO' : 'SEGURO'), 
-            Motivos: evidenciasFortes.length > 0 ? evidenciasFortes : ['Análise Heurística Rápida'], 
+        context.res.status = 200;
+        const falhaCompleta = {
+            Nivel_Risco: localScore,
+            Veredito: localScore >= 80 ? 'PERIGOSO' : (localScore >= 40 ? 'SUSPEITO' : 'SEGURO'),
+            Motivos: evidenciasFortes.length > 0 ? evidenciasFortes : ['Análise Heurística Rápida'],
             Recomendacao: 'Análise gerada localmente. O motor de IA excedeu o tempo de resposta.',
             detalhes_autenticacao: { spf: authDetails.spf, dkim: authDetails.dkim, dmarc: authDetails.dmarc, dominio_autenticado: authDetails.dominioAutenticado },
             remetente: senderData.nome_exibicao, return_path: senderData.email_real, ip_remetente: senderIP || 'Não identificado', anexo_html: temAnexoHTML,
             urls_encontradas: foundUrls,
-            urlscan_uuid: urlscanUuid 
+            urlscan_uuid: urlscanUuid
         };
 
         // 🟢 SALVA NO BANCO DE DADOS MESMO SE O GROQ FALHAR (FALLBACK)
