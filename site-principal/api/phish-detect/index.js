@@ -95,27 +95,75 @@ function extractUrls(text) {
     return Array.from(urls).slice(0, 20);
 }
 
+function getOrganizationalDomain(domain) {
+    if (!domain) return null;
+    const parts = domain.toLowerCase().split('.');
+    if (parts.length <= 2) return domain.toLowerCase();
+    return parts.slice(-2).join('.');
+}
+
+function extractFromDomain(headers) {
+    if (!headers) return null;
+    const norm = headers.replace(/\r?\n\s+/g, ' ');
+    const match = norm.match(/From:.*?<([^>]+)>/i);
+    if (!match) return null;
+    const email = match[1].trim().toLowerCase();
+    return email.split('@')[1] || null;
+}
+
 function extractAuthDetails(headers) {
-    const authDetails = { spf: null, dkim: null, dmarc: null, autenticado: false, dominioAutenticado: null };
+    const authDetails = {
+        spf: null,
+        dkim: null,
+        dmarc: null,
+        spfDomain: null,
+        dkimDomain: null,
+        fromDomain: null,
+        alinhamento: 'fail',
+        autenticado: false
+    };
+
     if (!headers) return authDetails;
-    
+
     const normHeaders = headers.replace(/\r?\n\s+/g, ' ');
-    
+
+    // SPF
     const spfMatch = normHeaders.match(/spf=(pass|fail|softfail|none|neutral|permerror|temperror)/i);
     if (spfMatch) authDetails.spf = spfMatch[1].toLowerCase();
-    
+
+    const spfDomainMatch = normHeaders.match(/smtp\.mailfrom=([a-zA-Z0-9.-]+)/i);
+    if (spfDomainMatch) authDetails.spfDomain = spfDomainMatch[1].toLowerCase();
+
+    // DKIM
     const dkimMatch = normHeaders.match(/dkim=(pass|fail|none)/i);
     if (dkimMatch) authDetails.dkim = dkimMatch[1].toLowerCase();
-    
+
+    const dkimDomainMatch = normHeaders.match(/header\.d=([a-zA-Z0-9.-]+)/i);
+    if (dkimDomainMatch) authDetails.dkimDomain = dkimDomainMatch[1].toLowerCase();
+
+    // DMARC
     const dmarcMatch = normHeaders.match(/dmarc=(pass|fail|bestguesspass|none)/i);
     if (dmarcMatch) authDetails.dmarc = dmarcMatch[1].toLowerCase();
-    
-    const dkimDomainMatch = normHeaders.match(/header\.d=([a-zA-Z0-9.-]+)/i);
-    const spfDomainMatch = normHeaders.match(/smtp\.mailfrom=([a-zA-Z0-9.-]+)/i);
-    authDetails.dominioAutenticado = (dkimDomainMatch?.[1] || spfDomainMatch?.[1] || '').toLowerCase();
-    
-    authDetails.autenticado = (authDetails.spf === 'pass' || authDetails.dkim === 'pass');
-    
+
+    // FROM
+    authDetails.fromDomain = extractFromDomain(headers);
+
+    // ===== ALINHAMENTO REAL =====
+    const fromOrg = getOrganizationalDomain(authDetails.fromDomain);
+    const spfOrg = getOrganizationalDomain(authDetails.spfDomain);
+    const dkimOrg = getOrganizationalDomain(authDetails.dkimDomain);
+
+    const spfAligned = authDetails.spf === 'pass' && fromOrg && spfOrg && fromOrg === spfOrg;
+    const dkimAligned = authDetails.dkim === 'pass' && fromOrg && dkimOrg && fromOrg === dkimOrg;
+
+    if (spfAligned || dkimAligned) {
+        authDetails.alinhamento = 'pass';
+        authDetails.autenticado = true;
+    } else {
+        authDetails.alinhamento = 'fail';
+        authDetails.autenticado = false;
+    }
+
     return authDetails;
 }
 
