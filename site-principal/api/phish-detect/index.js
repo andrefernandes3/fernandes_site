@@ -3,7 +3,7 @@ const crypto = require('crypto');
 const { MongoClient } = require('mongodb');
 
 const memoryCache = new Map();
-// 🟢 CACHE REDUZIDO PARA 15 SEGUNDOS DURANTE OS TESTES (para não bloquear as suas atualizações)
+// 🟢 Cache reduzido para 15 segundos para lhe permitir fazer testes rápidos
 const CACHE_TTL = 15 * 1000; 
 let cachedDb = null;
 const rateLimit = new Map();
@@ -213,15 +213,23 @@ module.exports = async function (context, req) {
     else if (!authDetails.autenticado && localScore < 50) localScore += 20;
     localScore = Math.min(100, localScore);
 
-    // 🟢 urlscan.io COM ANTI-OBFUSCAÇÃO
+    // 🟢 urlscan.io COM ANTI-OBFUSCAÇÃO E FILTRO DE RUÍDO
     let urlscanUuid = null;
     if (foundUrls && foundUrls.length > 0 && process.env.URLSCAN_API_KEY) {
         try {
-            let primeiraUrl = foundUrls[0];
+            // 🛡️ Filtro de Inteligência: Remove links estruturais (w3.org) e imagens, focando na ameaça real
+            const urlsParaEscanear = foundUrls.filter(u => {
+                const l = u.toLowerCase();
+                return !l.includes('w3.org') && !l.includes('schema.org') && !l.endsWith('.png') && !l.endsWith('.jpg') && !l.endsWith('.gif');
+            });
+            
+            // Escolhe a primeira URL maliciosa válida que restou
+            let primeiraUrl = urlsParaEscanear.length > 0 ? urlsParaEscanear[0] : foundUrls[0];
+
             try {
                 const urlObj = new URL(primeiraUrl);
+                // Corta o falso usuário da URL para o urlscan não ser bloqueado (o truque do @)
                 if (urlObj.username || urlObj.password) {
-                    // Corta o falso usuário da URL para não ser bloqueado (o truque do @)
                     primeiraUrl = `${urlObj.protocol}//${urlObj.host}${urlObj.pathname}${urlObj.search}`;
                 }
             } catch (e) { }
@@ -235,6 +243,8 @@ module.exports = async function (context, req) {
             if (scanResponse.ok) {
                 const scanData = await scanResponse.json();
                 if (scanData.uuid) urlscanUuid = scanData.uuid;
+            } else {
+                console.error('Erro urlscan:', scanResponse.status);
             }
         } catch (e) { console.error('Falha no urlscan:', e); }
     }
@@ -268,7 +278,7 @@ EVIDÊNCIAS: ${evidenciasFortes.join(' | ')}`;
             detalhes_autenticacao: { spf: authDetails.spf, dkim: authDetails.dkim, dmarc: authDetails.dmarc, dominio_autenticado: authDetails.dominioAutenticado },
             remetente: senderData.nome_exibicao, return_path: senderData.email_real, ip_remetente: senderIP, anexo_html: temAnexoHTML,
             urls_encontradas: foundUrls, 
-            urlscan_uuid: urlscanUuid // 🟢 Envia a foto
+            urlscan_uuid: urlscanUuid 
         };
 
         try {
