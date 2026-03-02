@@ -278,16 +278,16 @@ function toggleHeaders() {
 }
 
 // ==========================================
-// EXPORTAÇÃO DE RELATÓRIO PDF (Motor Nativo)
+// EXPORTAÇÃO DE RELATÓRIO PDF (Com Nome Dinâmico)
 // ==========================================
 function gerarPDF() {
     Swal.fire({
-        title: 'Preparando o Documento...',
-        text: 'O Relatório Forense será aberto. Selecione "Salvar como PDF" no destino.',
+        title: 'A Preparar Documento...',
+        text: 'O Relatório Forense será aberto. Selecione "Guardar como PDF" no destino.',
         icon: 'info',
-        timer: 1500, // Reduzi um pouco o tempo de espera
+        timer: 1500,
         showConfirmButton: false
-    }}).then(() => {
+    }).then(() => {
         setTimeout(() => {
             // 1. Guarda o título original do site
             const tituloOriginal = document.title;
