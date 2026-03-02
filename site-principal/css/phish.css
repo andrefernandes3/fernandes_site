@@ -414,6 +414,17 @@ header p {
         display: none !important;
     }
 
+    /* Bloqueia qualquer resquício do popup de tentar sair no PDF */
+    .swal2-container {
+        display: none !important;
+    }
+
+    /* Impede que o navegador corte o site caso haja barras de scroll ativas */
+    html, body {
+        overflow: visible !important;
+        height: auto !important;
+    }
+
     /* 2. Remove as margens laterais para a folha A4 ser 100% do Relatório */
     body, .phish-container, .container {
         margin: 0 !important;
