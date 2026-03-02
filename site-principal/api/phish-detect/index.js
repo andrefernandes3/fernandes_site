@@ -211,7 +211,51 @@ module.exports = async function (context, req) {
     let cleanBodyProcessed = decodeEmailBody(emailContent || '').replace(/<[^>]*>?/gm, ' ').substring(0, 4000);
     
     let localScore = 0;
-    const evidenciasFortes = [];
+    let evidenciasFortes = [];
+
+    // ==========================================
+    // MOTOR HEURÍSTICO INTERNO (Análise Estática Rápida)
+    // ==========================================
+    
+    // 1. Falha Crítica de Autenticação (Spoofing)
+    if (authDetails.spf === 'fail' || authDetails.dmarc === 'fail') {
+        localScore += 35; // Penalização pesada!
+        evidenciasFortes.push("Falha crítica de autenticação (SPF/DMARC). Alto risco de falsificação de identidade (Spoofing).");
+    }
+
+    // 2. Manipulação de Resposta (Reply-To Mismatch)
+    // Se o hacker envia como CEO, mas pede para responder para outro e-mail
+    const replyToMatch = headers.match(/^Reply-To:\s*(.+)$/im);
+    if (replyToMatch) {
+        // Função auxiliar simples para extrair o e-mail do texto
+        const extractEmailText = (str) => { const m = str.match(/<([^>]+)>/); return m ? m[1] : str.trim(); };
+        const replyToEmail = extractEmailText(replyToMatch[1]);
+        
+        if (replyToEmail && senderData.email_real && replyToEmail.toLowerCase() !== senderData.email_real.toLowerCase()) {
+            localScore += 30;
+            evidenciasFortes.push(`O endereço de resposta (${replyToEmail}) é diferente do remetente. Tática comum para desviar a comunicação da vítima.`);
+        }
+    }
+
+    // 3. Links Ofuscados e Ataques Homográficos (Punycode)
+    // Identifica links que usam caracteres estranhos disfarçados (ex: xn--microsft-9za.com)
+    if (foundUrls && foundUrls.length > 0) {
+        const temPunycode = foundUrls.some(u => u.toLowerCase().includes('xn--'));
+        if (temPunycode) {
+            localScore += 25;
+            evidenciasFortes.push("Detetado link com ofuscação 'Punycode' (xn--...). Tentativa clara de disfarçar o nome do site real.");
+        }
+    }
+
+    // 4. E-mails de Domínios Gratuitos a fazerem-se passar por Empresas
+    const remetenteNome = (senderData.nome_exibicao || '').toLowerCase();
+    const dominioRemetente = (authDetails.dominioAutenticado || '').toLowerCase();
+    const dominiosGratuitos = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com'];
+    
+    if ((remetenteNome.includes('microsoft') || remetenteNome.includes('bradesco') || remetenteNome.includes('suporte')) && dominiosGratuitos.includes(dominioRemetente)) {
+        localScore += 40;
+        evidenciasFortes.push(`O remetente diz ser corporativo (${senderData.nome_exibicao}), mas está a usar um e-mail gratuito (${dominioRemetente}).`);
+    }
     const evidenciasLeves = [];
 
     if (temAnexoHTML) { localScore += 50; evidenciasFortes.push('Anexo HTML detetado - técnica comum de clone de login'); }
