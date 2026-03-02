@@ -155,32 +155,45 @@ function criarDetalhesAdicionais(res) {
     // 1. INJEÇÃO DA ANÁLISE DO VIRUSTOTAL (Lateral)
     // ==========================================
     const painelAlertas = document.getElementById('alertasExtras');
-    if (painelAlertas) {
-        painelAlertas.innerHTML = ''; 
-        
-        if (res.vt_stats) {
-            const malicious = res.vt_stats.malicious || 0;
-            const suspicious = res.vt_stats.suspicious || 0;
-            const isMalicious = malicious > 0 || suspicious > 0;
-            const totalAlertas = malicious + suspicious;
+    if (res.vt_stats) {
+            // 🚩 NOVO: Cenário de Domínio Fantasma (Erro 404 no VT)
+            if (res.vt_stats.fantasma) {
+                painelAlertas.innerHTML += `
+                    <div class="alert mt-3 shadow-sm" style="border: 1px solid #ffc107; background: #332701;">
+                        <h5 class="alert-heading" style="color: #ffc107;">
+                            <i class="bi bi-exclamation-triangle-fill me-2"></i> VirusTotal: Domínio Fantasma
+                        </h5>
+                        <p class="mb-0 text-light" style="font-size: 0.9em;">
+                            O domínio <strong class="text-warning">${res.vt_stats.dominio}</strong> não possui qualquer histórico na base de dados. <br><br>
+                            Isto é uma <strong>Red Flag</strong> severa: indica um site recém-criado, frequentemente usado em ataques de Phishing direcionados antes que os antivírus os consigam detetar.
+                        </p>
+                    </div>
+                `;
+            } 
+            // Cenário Normal: O VT conhece o domínio
+            else {
+                const malicious = res.vt_stats.malicious || 0;
+                const suspicious = res.vt_stats.suspicious || 0;
+                const isMalicious = malicious > 0 || suspicious > 0;
+                const totalAlertas = malicious + suspicious;
 
-            const vtColor = isMalicious ? 'danger' : 'success';
-            const vtTitle = isMalicious ? 'Ameaça Detetada' : 'Domínio Limpo';
-            const vtText = isMalicious 
-                ? `<strong>${totalAlertas} motores</strong> de antivírus marcaram o link como malicioso ou suspeito.` 
-                : `Nenhum motor de antivírus sinalizou o link alvo.`;
+                const vtColor = isMalicious ? 'danger' : 'success';
+                const vtTitle = isMalicious ? 'Ameaça Detetada' : 'Domínio Limpo';
+                const vtText = isMalicious 
+                    ? `<strong>${totalAlertas} motores</strong> de antivírus marcaram o link como malicioso ou suspeito.` 
+                    : `Nenhum motor de antivírus sinalizou o link alvo.`;
 
-            painelAlertas.innerHTML += `
-                <div class="alert alert-${vtColor} mt-3" style="border: 1px solid #444; background: #222;">
-                    <h5 class="alert-heading text-${vtColor}">
-                        <img src="https://www.virustotal.com/gui/images/favicon.ico" style="width:16px; margin-right:5px; margin-top:-3px;">
-                        VirusTotal: ${vtTitle}
-                    </h5>
-                    <p class="mb-0 text-light" style="font-size: 0.9em;">${vtText}</p>
-                </div>
-            `;
+                painelAlertas.innerHTML += `
+                    <div class="alert alert-${vtColor} mt-3 shadow-sm" style="border: 1px solid #444; background: #222;">
+                        <h5 class="alert-heading text-${vtColor}">
+                            <img src="https://www.virustotal.com/gui/images/favicon.ico" style="width:16px; margin-right:5px; margin-top:-3px;">
+                            VirusTotal: ${vtTitle}
+                        </h5>
+                        <p class="mb-0 text-light" style="font-size: 0.9em;">${vtText}</p>
+                    </div>
+                `;
+            }
         }
-    }
    
    // ==========================================
     // 2. PAINEL DE AUTENTICAÇÃO E ORIGEM 
