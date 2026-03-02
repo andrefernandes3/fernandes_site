@@ -282,14 +282,16 @@ function toggleHeaders() {
 // ==========================================
 function gerarPDF() {
     Swal.fire({
-        title: 'A Preparar Documento...',
-        text: 'O Relatório Forense será aberto. Selecione "Guardar como PDF" no destino.',
+        title: 'Preparando o Documento...',
+        text: 'O Relatório Forense será aberto. Selecione "Salvar como PDF" no destino.',
         icon: 'info',
-        timer: 2000,
+        timer: 1500, // Reduzi um pouco o tempo de espera
         showConfirmButton: false
     }).then(() => {
-        // O navegador encarrega-se do resto com perfeição matemática!
-        window.print();
+        // 🟢 A MAGIA: Espera meio segundo para garantir que a animação do popup desapareceu totalmente do HTML!
+        setTimeout(() => {
+            window.print();
+        }, 500);
     });
 }
 // ==========================================
