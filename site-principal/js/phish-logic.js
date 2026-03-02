@@ -181,9 +181,9 @@ function criarDetalhesAdicionais(res) {
             `;
         }
     }
-
-    // ==========================================
-    // 2. PAINEL DE AUTENTICAÇÃO E ORIGEM (Restaurado)
+   
+   // ==========================================
+    // 2. PAINEL DE AUTENTICAÇÃO E ORIGEM 
     // ==========================================
     const auth = res.detalhes_autenticacao || {};
     const spfColor = auth.spf === 'pass' ? 'success' : (auth.spf === 'none' ? 'secondary' : 'danger');
@@ -192,9 +192,9 @@ function criarDetalhesAdicionais(res) {
 
     const authOriginHtml = `
         <div class="row mt-4 mb-4">
-            <div class="col-md-5">
-                <div class="card p-3 h-100 shadow-sm auth-item" style="background: #222; border: 1px solid #444;">
-                    <h5 class="text-info border-bottom border-secondary pb-2"><i class="bi bi-shield-lock"></i> Autenticação</h5>
+            <div class="col-6">
+                <div class="card p-3 h-100 shadow-sm auth-item" style="background: #222 !important; border: 1px solid #444 !important; color: #fff !important;">
+                    <h5 class="border-bottom border-secondary pb-2" style="color: #00bcd4 !important;"><i class="bi bi-shield-lock"></i> Autenticação</h5>
                     <ul class="list-unstyled mt-3 mb-0">
                         <li class="mb-2 d-flex justify-content-between"><span>SPF:</span> <span class="badge bg-${spfColor}">${auth.spf || 'N/A'}</span></li>
                         <li class="mb-2 d-flex justify-content-between"><span>DKIM:</span> <span class="badge bg-${dkimColor}">${auth.dkim || 'N/A'}</span></li>
@@ -202,14 +202,14 @@ function criarDetalhesAdicionais(res) {
                     </ul>
                 </div>
             </div>
-            <div class="col-md-7">
-                <div class="card p-3 h-100 shadow-sm origem-box" style="background: #222; border: 1px solid #444;">
-                    <h5 class="text-info border-bottom border-secondary pb-2"><i class="bi bi-person-lines-fill"></i> Origem do Email</h5>
-                    <ul class="list-unstyled mt-3 mb-0">
-                        <li class="mb-1"><strong class="text-muted">Nome:</strong> ${res.remetente || 'N/A'}</li>
-                        <li class="mb-1"><strong class="text-muted">SMTP:</strong> ${res.return_path || 'N/A'}</li>
-                        <li class="mb-1"><strong class="text-muted">IP:</strong> ${res.ip_remetente || 'N/A'}</li>
-                        <li><strong class="text-muted">Domínio:</strong> ${auth.dominio_autenticado || 'N/A'}</li>
+            <div class="col-6">
+                <div class="card p-3 h-100 shadow-sm origem-box" style="background: #222 !important; border: 1px solid #444 !important; color: #fff !important;">
+                    <h5 class="border-bottom border-secondary pb-2" style="color: #00bcd4 !important;"><i class="bi bi-person-lines-fill"></i> Origem do Email</h5>
+                    <ul class="list-unstyled mt-3 mb-0" style="word-break: break-all;">
+                        <li class="mb-2"><strong style="color: #00bcd4 !important;">Nome:</strong> ${res.remetente || 'N/A'}</li>
+                        <li class="mb-2"><strong style="color: #00bcd4 !important;">SMTP:</strong> ${res.return_path || 'N/A'}</li>
+                        <li class="mb-2"><strong style="color: #00bcd4 !important;">IP:</strong> ${res.ip_remetente || 'N/A'}</li>
+                        <li><strong style="color: #00bcd4 !important;">Domínio:</strong> ${auth.dominio_autenticado || 'N/A'}</li>
                     </ul>
                 </div>
             </div>
