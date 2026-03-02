@@ -144,24 +144,65 @@ function exibirResultados(res) {
     panel.scrollIntoView({ behavior: 'smooth' });
 }
 
+// ==========================================
+// CRIAÇÃO DOS DETALHES ADICIONAIS (URLs, Sandbox e VT)
+// ==========================================
 function criarDetalhesAdicionais(res) {
     const container = document.createElement('div');
     container.className = 'detalhes-adicionais mt-5';
 
-    const auth = res.detalhes_autenticacao || {};
+    // ==========================================
+    // 1. INJEÇÃO DA ANÁLISE DO VIRUSTOTAL (No painel lateral)
+    // ==========================================
+    const painelAlertas = document.getElementById('alertasExtras');
+    if (painelAlertas) {
+        painelAlertas.innerHTML = ''; // Limpa alertas antigos antes de injetar o novo
+        
+        if (res.vt_stats) {
+            const malicious = res.vt_stats.malicious || 0;
+            const suspicious = res.vt_stats.suspicious || 0;
 
-    // 1. Constrói a lista de URLs
+            const isMalicious = malicious > 0 || suspicious > 0;
+            const totalAlertas = malicious + suspicious;
+
+            const vtColor = isMalicious ? 'danger' : 'success';
+            const vtTitle = isMalicious ? 'Ameaça Detetada' : 'Domínio Limpo';
+            const vtText = isMalicious 
+                ? `<strong>${totalAlertas} motores</strong> de antivírus marcaram o link como malicioso ou suspeito.` 
+                : `Nenhum motor de antivírus sinalizou o link alvo.`;
+
+            painelAlertas.innerHTML += `
+                <div class="alert alert-${vtColor} mt-3" style="border: 1px solid #444; background: #222;">
+                    <h5 class="alert-heading text-${vtColor}">
+                        <img src="https://www.virustotal.com/gui/images/favicon.ico" style="width:16px; margin-right:5px; margin-top:-3px;">
+                        VirusTotal: ${vtTitle}
+                    </h5>
+                    <p class="mb-0 text-light" style="font-size: 0.9em;">${vtText}</p>
+                </div>
+            `;
+        }
+    }
+
+    // ==========================================
+    // 2. CONSTRUÇÃO DA LISTA DE URLs
+    // ==========================================
     let urlsHtml = '';
     if (res.urls_encontradas && res.urls_encontradas.length > 0) {
-        const listaUrls = res.urls_encontradas.map(u =>
-            `<li class="list-group-item py-3"><i class="bi bi-link-45deg me-2 text-primary fs-5"></i>${escapeHtml(u)}</li>`
+        // Função de escape para evitar XSS
+        const escapeHtml = (unsafe) => unsafe.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        
+        const listaUrls = res.urls_encontradas.map(u => 
+            `<li class="list-group-item py-3" style="word-break: break-all;">
+                <i class="bi bi-link-45deg me-2 text-primary fs-5"></i>
+                ${escapeHtml(u)}
+            </li>`
         ).join('');
 
         urlsHtml = `
             <div class="row mt-5">
                 <div class="col-12">
-                    <h4><i class="bi bi-globe"></i> URLs e Links Detetados</h4>
-                    <ul class="list-group list-group-flush border border-secondary rounded overflow-hidden">
+                    <h4><i class="bi bi-globe text-info"></i> URLs e Links Detetados</h4>
+                    <ul class="list-group list-group-flush border border-secondary rounded overflow-hidden mt-3">
                         ${listaUrls}
                     </ul>
                 </div>
@@ -172,14 +213,15 @@ function criarDetalhesAdicionais(res) {
             <div class="row mt-5">
                 <div class="col-12">
                     <h4><i class="bi bi-globe text-secondary"></i> URLs e Links Detetados</h4>
-                    <p class="text-info mb-3" style="font-size: 0.95em;">
-    <i class="bi bi-shield-check me-1"></i> Captura de ecrã segura gerada em ambiente isolado (urlscan.io).</p>
+                    <p class="text-muted mt-2">Nenhum link web encontrado no corpo deste e-mail.</p>
                 </div>
             </div>
         `;
     }
 
-    // 2. 🟢 O NOVO VISUALIZADOR DO URLSCAN (SANDBOX)
+    // ==========================================
+    // 3. VISUALIZADOR DA SANDBOX (urlscan.io)
+    // ==========================================
     let sandboxHtml = '';
     if (res.urlscan_uuid) {
         const linkRelatorio = `https://urlscan.io/result/${res.urlscan_uuid}/`;
@@ -187,8 +229,10 @@ function criarDetalhesAdicionais(res) {
         sandboxHtml = `
             <div class="row mt-5">
                 <div class="col-12">
-                    <h4><i class="bi bi-camera text-primary"></i> Sandbox: Evidência Visual da Ameaça</h4>
-                    <p class="text-muted mb-3"><small>Captura de ecrã segura gerada em ambiente isolado (urlscan.io).</small></p>
+                    <h4><i class="bi bi-camera text-primary"></i> Sandbox: Evidência Visual</h4>
+                    <p class="text-info mb-3" style="font-size: 0.95em;">
+                        <i class="bi bi-shield-check me-1"></i> Captura de ecrã segura gerada em ambiente isolado (urlscan.io).
+                    </p>
                     <div class="sandbox-container" style="background: #111; border: 1px solid #444; border-radius: 8px; overflow: hidden; position: relative; min-height: 350px; display: flex; align-items: center; justify-content: center;">
                         
                         <div id="loadingPrint_${res.urlscan_uuid}" style="position: absolute; text-align: center; color: #00bcd4; z-index: 1;">
@@ -208,47 +252,13 @@ function criarDetalhesAdicionais(res) {
             </div>
         `;
 
-        // 🚀 Dispara o "Motor Silencioso" 100 milissegundos após o painel ser criado
+        // Dispara o motor silencioso
         setTimeout(() => { pollUrlScanImage(res.urlscan_uuid); }, 100);
     }
 
-    // 3. Junta as 3 secções (Origem/Autenticação, URLs e Sandbox) no contentor final
-    container.innerHTML = `
-        <div class="card">
-            <div class="card-body p-0">
-                <div class="row g-4">
-                    <div class="col-md-5">
-                        <h4><i class="bi bi-shield-lock"></i> Autenticação</h4>
-                        <div class="auth-grid">
-                            <div class="auth-item mb-3">
-                                <span class="auth-label">SPF</span>
-                                <span class="auth-value badge ${getStatusClass(auth.spf)}">${escapeHtml(auth.spf || 'N/A')}</span>
-                            </div>
-                            <div class="auth-item mb-3">
-                                <span class="auth-label">DKIM</span>
-                                <span class="auth-value badge ${getStatusClass(auth.dkim)}">${escapeHtml(auth.dkim || 'N/A')}</span>
-                            </div>
-                            <div class="auth-item mb-0">
-                                <span class="auth-label">DMARC</span>
-                                <span class="auth-value badge ${getStatusClass(auth.dmarc)}">${escapeHtml(auth.dmarc || 'N/A')}</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-7">
-                        <h4><i class="bi bi-person-bounding-box"></i> Origem do Email</h4>
-                        <div class="origem-box d-flex flex-column justify-content-center">
-                            <div><strong>Nome:</strong> <span class="fw-bold">${escapeHtml(res.remetente || 'Não identificado')}</span></div>
-                            <div><strong>SMTP:</strong> ${escapeHtml(res.return_path || 'Não identificado')}</div>
-                            <div><strong>IP:</strong> ${escapeHtml(res.ip_remetente || 'Não identificado')}</div>
-                            <div><strong>Domínio:</strong> ${escapeHtml(auth.dominio_autenticado || 'Não identificado')}</div>
-                        </div>
-                    </div>
-                </div>
-                ${urlsHtml}
-                ${sandboxHtml}
-            </div>
-        </div>
-    `;
+    // Junta as URLs e a Sandbox no container central
+    container.innerHTML = urlsHtml + sandboxHtml;
+
     return container;
 }
 
