@@ -145,23 +145,22 @@ function exibirResultados(res) {
 }
 
 // ==========================================
-// CRIAÇÃO DOS DETALHES ADICIONAIS (URLs, Sandbox e VT)
+// CRIAÇÃO DOS DETALHES ADICIONAIS (Completo)
 // ==========================================
 function criarDetalhesAdicionais(res) {
     const container = document.createElement('div');
     container.className = 'detalhes-adicionais mt-5';
 
     // ==========================================
-    // 1. INJEÇÃO DA ANÁLISE DO VIRUSTOTAL (No painel lateral)
+    // 1. INJEÇÃO DA ANÁLISE DO VIRUSTOTAL (Lateral)
     // ==========================================
     const painelAlertas = document.getElementById('alertasExtras');
     if (painelAlertas) {
-        painelAlertas.innerHTML = ''; // Limpa alertas antigos antes de injetar o novo
+        painelAlertas.innerHTML = ''; 
         
         if (res.vt_stats) {
             const malicious = res.vt_stats.malicious || 0;
             const suspicious = res.vt_stats.suspicious || 0;
-
             const isMalicious = malicious > 0 || suspicious > 0;
             const totalAlertas = malicious + suspicious;
 
@@ -184,11 +183,44 @@ function criarDetalhesAdicionais(res) {
     }
 
     // ==========================================
-    // 2. CONSTRUÇÃO DA LISTA DE URLs
+    // 2. PAINEL DE AUTENTICAÇÃO E ORIGEM (Restaurado)
+    // ==========================================
+    const auth = res.detalhes_autenticacao || {};
+    const spfColor = auth.spf === 'pass' ? 'success' : (auth.spf === 'none' ? 'secondary' : 'danger');
+    const dkimColor = auth.dkim === 'pass' ? 'success' : (auth.dkim === 'none' ? 'secondary' : 'danger');
+    const dmarcColor = auth.dmarc === 'pass' ? 'success' : (auth.dmarc === 'none' ? 'secondary' : 'danger');
+
+    const authOriginHtml = `
+        <div class="row mt-4 mb-4">
+            <div class="col-md-5">
+                <div class="card p-3 h-100 shadow-sm auth-item" style="background: #222; border: 1px solid #444;">
+                    <h5 class="text-info border-bottom border-secondary pb-2"><i class="bi bi-shield-lock"></i> Autenticação</h5>
+                    <ul class="list-unstyled mt-3 mb-0">
+                        <li class="mb-2 d-flex justify-content-between"><span>SPF:</span> <span class="badge bg-${spfColor}">${auth.spf || 'N/A'}</span></li>
+                        <li class="mb-2 d-flex justify-content-between"><span>DKIM:</span> <span class="badge bg-${dkimColor}">${auth.dkim || 'N/A'}</span></li>
+                        <li class="d-flex justify-content-between"><span>DMARC:</span> <span class="badge bg-${dmarcColor}">${auth.dmarc || 'N/A'}</span></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="col-md-7">
+                <div class="card p-3 h-100 shadow-sm origem-box" style="background: #222; border: 1px solid #444;">
+                    <h5 class="text-info border-bottom border-secondary pb-2"><i class="bi bi-person-lines-fill"></i> Origem do Email</h5>
+                    <ul class="list-unstyled mt-3 mb-0">
+                        <li class="mb-1"><strong class="text-muted">Nome:</strong> ${res.remetente || 'N/A'}</li>
+                        <li class="mb-1"><strong class="text-muted">SMTP:</strong> ${res.return_path || 'N/A'}</li>
+                        <li class="mb-1"><strong class="text-muted">IP:</strong> ${res.ip_remetente || 'N/A'}</li>
+                        <li><strong class="text-muted">Domínio:</strong> ${auth.dominio_autenticado || 'N/A'}</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    `;
+
+    // ==========================================
+    // 3. CONSTRUÇÃO DA LISTA DE URLs
     // ==========================================
     let urlsHtml = '';
     if (res.urls_encontradas && res.urls_encontradas.length > 0) {
-        // Função de escape para evitar XSS
         const escapeHtml = (unsafe) => unsafe.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
         
         const listaUrls = res.urls_encontradas.map(u => 
@@ -199,7 +231,7 @@ function criarDetalhesAdicionais(res) {
         ).join('');
 
         urlsHtml = `
-            <div class="row mt-5">
+            <div class="row mt-4">
                 <div class="col-12">
                     <h4><i class="bi bi-globe text-info"></i> URLs e Links Detetados</h4>
                     <ul class="list-group list-group-flush border border-secondary rounded overflow-hidden mt-3">
@@ -210,7 +242,7 @@ function criarDetalhesAdicionais(res) {
         `;
     } else {
         urlsHtml = `
-            <div class="row mt-5">
+            <div class="row mt-4">
                 <div class="col-12">
                     <h4><i class="bi bi-globe text-secondary"></i> URLs e Links Detetados</h4>
                     <p class="text-muted mt-2">Nenhum link web encontrado no corpo deste e-mail.</p>
@@ -220,7 +252,7 @@ function criarDetalhesAdicionais(res) {
     }
 
     // ==========================================
-    // 3. VISUALIZADOR DA SANDBOX (urlscan.io)
+    // 4. VISUALIZADOR DA SANDBOX (urlscan.io)
     // ==========================================
     let sandboxHtml = '';
     if (res.urlscan_uuid) {
@@ -252,16 +284,14 @@ function criarDetalhesAdicionais(res) {
             </div>
         `;
 
-        // Dispara o motor silencioso
         setTimeout(() => { pollUrlScanImage(res.urlscan_uuid); }, 100);
     }
 
-    // Junta as URLs e a Sandbox no container central
-    container.innerHTML = urlsHtml + sandboxHtml;
+    // Junta Tudo no Container Central
+    container.innerHTML = authOriginHtml + urlsHtml + sandboxHtml;
 
     return container;
 }
-
 // ==========================================
 // FUNÇÕES AUXILIARES
 // ==========================================
