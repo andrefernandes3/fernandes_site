@@ -67,6 +67,7 @@ function unwrapSafeLinks(url) {
     return url;
 }
 
+// 🛡️ SANITIZADOR AVANÇADO DE URLs
 function extractUrls(text) {
     if (!text) return [];
     const urls = new Set();
@@ -78,14 +79,23 @@ function extractUrls(text) {
         matches.forEach(m => {
             try {
                 let cleanUrl = m.replace(/^href=["']/, '').replace(/["']$/, '');
+                
+                // CORTA LIXO: Se o remetente colou HTML mal feito (ex: site.com<mailto:...)
+                cleanUrl = cleanUrl.split('<')[0].split('>')[0].split('"')[0];
+                
                 cleanUrl = cleanUrl.startsWith('http') ? cleanUrl : 'http://' + cleanUrl;
                 cleanUrl = unwrapSafeLinks(cleanUrl);
-                new URL(cleanUrl); 
-                urls.add(cleanUrl);
-            } catch {}
+                
+                // Valida se é realmente um link construído e com host
+                const parsedUrl = new URL(cleanUrl); 
+                if (['http:', 'https:'].includes(parsedUrl.protocol) && parsedUrl.hostname.includes('.')) {
+                    urls.add(cleanUrl);
+                }
+            } catch {} // Se a URL for inválida, simplesmente ignora
         });
     });
-    return Array.from(urls).slice(0, 20);
+    // Retorna apenas 15 links para não sobrecarregar as APIs nem o PDF
+    return Array.from(urls).slice(0, 15);
 }
 
 function extractAuthDetails(headers) {
@@ -213,40 +223,65 @@ module.exports = async function (context, req) {
     else if (!authDetails.autenticado && localScore < 50) localScore += 20;
     localScore = Math.min(100, localScore);
 
-    // 🟢 urlscan.io COM ANTI-OBFUSCAÇÃO E FILTRO DE RUÍDO
+    // 🟢 INTEGRAÇÃO 1: urlscan.io (Raio-X visual)
     let urlscanUuid = null;
-    if (foundUrls && foundUrls.length > 0 && process.env.URLSCAN_API_KEY) {
-        try {
-            // 🛡️ Filtro de Inteligência: Remove links estruturais (w3.org) e imagens, focando na ameaça real
-            const urlsParaEscanear = foundUrls.filter(u => {
-                const l = u.toLowerCase();
-                return !l.includes('w3.org') && !l.includes('schema.org') && !l.endsWith('.png') && !l.endsWith('.jpg') && !l.endsWith('.gif');
-            });
-            
-            // Escolhe a primeira URL maliciosa válida que restou
-            let primeiraUrl = urlsParaEscanear.length > 0 ? urlsParaEscanear[0] : foundUrls[0];
-
+    let primeiraUrlValida = null;
+    
+    if (foundUrls && foundUrls.length > 0) {
+        // Filtro de Inteligência: Remove links estruturais
+        const urlsParaEscanear = foundUrls.filter(u => {
+            const l = u.toLowerCase();
+            return !l.includes('w3.org') && !l.includes('schema.org') && !l.endsWith('.png') && !l.endsWith('.jpg');
+        });
+        
+        primeiraUrlValida = urlsParaEscanear.length > 0 ? urlsParaEscanear[0] : foundUrls[0];
+        
+        if (process.env.URLSCAN_API_KEY) {
             try {
-                const urlObj = new URL(primeiraUrl);
-                // Corta o falso usuário da URL para o urlscan não ser bloqueado (o truque do @)
-                if (urlObj.username || urlObj.password) {
-                    primeiraUrl = `${urlObj.protocol}//${urlObj.host}${urlObj.pathname}${urlObj.search}`;
-                }
-            } catch (e) { }
+                let urlLimpa = primeiraUrlValida;
+                try {
+                    const urlObj = new URL(urlLimpa);
+                    if (urlObj.username || urlObj.password) urlLimpa = `${urlObj.protocol}//${urlObj.host}${urlObj.pathname}${urlObj.search}`;
+                } catch (e) { }
 
-            const scanResponse = await fetch('https://urlscan.io/api/v1/scan/', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'API-Key': process.env.URLSCAN_API_KEY },
-                body: JSON.stringify({ url: primeiraUrl, visibility: 'public' })
+                const scanResponse = await fetch('https://urlscan.io/api/v1/scan/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'API-Key': process.env.URLSCAN_API_KEY },
+                    body: JSON.stringify({ url: urlLimpa, visibility: 'public' })
+                });
+
+                if (scanResponse.ok) {
+                    const scanData = await scanResponse.json();
+                    if (scanData.uuid) urlscanUuid = scanData.uuid;
+                }
+            } catch (e) { console.error('Falha no urlscan:', e); }
+        }
+    }
+
+    // 🟢 INTEGRAÇÃO 2: VirusTotal (Reputação do Domínio)
+    let virusTotalStats = null;
+    if (primeiraUrlValida && process.env.VT_API_KEY) {
+        try {
+            const urlObj = new URL(primeiraUrlValida);
+            const dominioAlvo = urlObj.hostname;
+            
+            const vtResponse = await fetch(`https://www.virustotal.com/api/v3/domains/${dominioAlvo}`, {
+                method: 'GET',
+                headers: { 'x-apikey': process.env.VT_API_KEY }
             });
 
-            if (scanResponse.ok) {
-                const scanData = await scanResponse.json();
-                if (scanData.uuid) urlscanUuid = scanData.uuid;
-            } else {
-                console.error('Erro urlscan:', scanResponse.status);
+            if (vtResponse.ok) {
+                const vtData = await vtResponse.json();
+                virusTotalStats = vtData.data.attributes.last_analysis_stats;
+                // Exemplo de retorno: { malicious: 2, suspicious: 1, harmless: 80, undetected: 10 }
+                
+                // Se o VirusTotal detetar perigo, agravamos a pontuação local severamente!
+                if (virusTotalStats.malicious > 0) {
+                    localScore += 60;
+                    evidenciasFortes.push(`VirusTotal sinalizou o domínio (${dominioAlvo}) como MALICIOSO.`);
+                }
             }
-        } catch (e) { console.error('Falha no urlscan:', e); }
+        } catch (e) { console.error('Falha no VirusTotal:', e); }
     }
 
     const intelMastigada = `ORIGEM: Nome: ${senderData.nome_exibicao} | SMTP: ${senderData.email_real} | IP: ${senderIP} | SPF: ${authDetails.spf}
@@ -272,13 +307,14 @@ EVIDÊNCIAS: ${evidenciasFortes.join(' | ')}`;
         let riscoFinal = parseInt(analise.Nivel_Risco) || localScore;
         if (evidenciasFortes.length > 0) riscoFinal = Math.max(riscoFinal, 80);
 
-        const respostaCompleta = {
+       const respostaCompleta = {
             Nivel_Risco: riscoFinal, Veredito: riscoFinal >= 80 ? 'PERIGOSO' : (riscoFinal >= 40 ? 'SUSPEITO' : 'SEGURO'),
             Motivos: analise.Motivos || evidenciasFortes, Recomendacao: analise.Recomendacao || 'Analise.',
             detalhes_autenticacao: { spf: authDetails.spf, dkim: authDetails.dkim, dmarc: authDetails.dmarc, dominio_autenticado: authDetails.dominioAutenticado },
             remetente: senderData.nome_exibicao, return_path: senderData.email_real, ip_remetente: senderIP, anexo_html: temAnexoHTML,
             urls_encontradas: foundUrls, 
-            urlscan_uuid: urlscanUuid 
+            urlscan_uuid: urlscanUuid,
+            vt_stats: virusTotalStats // 🟢 A inteligência do VirusTotal
         };
 
         try {
@@ -296,7 +332,7 @@ EVIDÊNCIAS: ${evidenciasFortes.join(' | ')}`;
             Motivos: evidenciasFortes.length > 0 ? evidenciasFortes : ['Análise Heurística Rápida'], Recomendacao: 'Motor de IA excedeu tempo.',
             detalhes_autenticacao: { spf: authDetails.spf, dkim: authDetails.dkim, dmarc: authDetails.dmarc, dominio_autenticado: authDetails.dominioAutenticado },
             remetente: senderData.nome_exibicao, return_path: senderData.email_real, ip_remetente: senderIP, anexo_html: temAnexoHTML,
-            urls_encontradas: foundUrls, urlscan_uuid: urlscanUuid 
+            urls_encontradas: foundUrls, urlscan_uuid: urlscanUuid , vt_stats: virusTotalStats
         };
         try {
             const db = await connectDb();
