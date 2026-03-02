@@ -273,13 +273,16 @@ module.exports = async function (context, req) {
             if (vtResponse.ok) {
                 const vtData = await vtResponse.json();
                 virusTotalStats = vtData.data.attributes.last_analysis_stats;
-                // Exemplo de retorno: { malicious: 2, suspicious: 1, harmless: 80, undetected: 10 }
                 
-                // Se o VirusTotal detetar perigo, agravamos a pontuação local severamente!
                 if (virusTotalStats.malicious > 0) {
                     localScore += 60;
                     evidenciasFortes.push(`VirusTotal sinalizou o domínio (${dominioAlvo}) como MALICIOSO.`);
                 }
+            } else if (vtResponse.status === 404) {
+                // 🚩 RED FLAG: O VirusTotal nunca viu este domínio na vida!
+                virusTotalStats = { fantasma: true, dominio: dominioAlvo };
+                localScore += 35; // Aumentamos o risco porque domínios recém-criados são muito perigosos
+                evidenciasFortes.push(`O domínio (${dominioAlvo}) não tem histórico no VirusTotal (Possível domínio recém-criado para fraude).`);
             }
         } catch (e) { console.error('Falha no VirusTotal:', e); }
     }
