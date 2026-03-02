@@ -287,10 +287,31 @@ function gerarPDF() {
         icon: 'info',
         timer: 1500, // Reduzi um pouco o tempo de espera
         showConfirmButton: false
-    }).then(() => {
-        // 🟢 A MAGIA: Espera meio segundo para garantir que a animação do popup desapareceu totalmente do HTML!
+    }}).then(() => {
         setTimeout(() => {
+            // 1. Guarda o título original do site
+            const tituloOriginal = document.title;
+            
+            // 2. Capta o Veredito atual (Seguro, Suspeito ou Perigoso)
+            const veredito = document.getElementById('statusLabel').innerText || 'Analise';
+            
+            // 3. Cria um carimbo de tempo único (ex: 2026-03-02_15-30-45)
+            const agora = new Date();
+            const dataFormatada = agora.toISOString().slice(0, 10); // YYYY-MM-DD
+            const horaFormatada = agora.toTimeString().slice(0, 8).replace(/:/g, '-'); // HH-MM-SS
+            
+            // 4. Monta o nome profissional do ficheiro
+            const nomeFicheiro = `Relatorio-Phishing-${veredito}_${dataFormatada}_${horaFormatada}`;
+            
+            // 5. Troca o título do site invisivelmente
+            document.title = nomeFicheiro;
+
+            // 6. Chama a impressora nativa
             window.print();
+
+            // 7. Assim que a janela de impressão fecha, restaura o título original
+            document.title = tituloOriginal;
+            
         }, 500);
     });
 }
