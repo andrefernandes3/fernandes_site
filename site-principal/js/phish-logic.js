@@ -196,15 +196,19 @@ function criarDetalhesAdicionais(res) {
         }
    
    // ==========================================
-    // 2. PAINEL DE AUTENTICAÇÃO E ORIGEM 
+    // 2. PAINEL DE AUTENTICAÇÃO, ORIGEM E SPOOFING
     // ==========================================
     const auth = res.detalhes_autenticacao || {};
     const spfColor = auth.spf === 'pass' ? 'success' : (auth.spf === 'none' ? 'secondary' : 'danger');
     const dkimColor = auth.dkim === 'pass' ? 'success' : (auth.dkim === 'none' ? 'secondary' : 'danger');
     const dmarcColor = auth.dmarc === 'pass' ? 'success' : (auth.dmarc === 'none' ? 'secondary' : 'danger');
 
+    // Extrai o nome do remetente sem aspas extras para o comparativo
+    const nomeLimpo = res.remetente ? res.remetente.replace(/["']/g, '') : 'Desconhecido';
+    const dominioOculto = auth.dominio_autenticado || 'N/A';
+
     const authOriginHtml = `
-        <div class="row mt-4 mb-4">
+        <div class="row mt-4">
             <div class="col-6">
                 <div class="card p-3 h-100 shadow-sm auth-item" style="background: #222 !important; border: 1px solid #444 !important; color: #fff !important;">
                     <h5 class="border-bottom border-secondary pb-2" style="color: #00bcd4 !important;"><i class="bi bi-shield-lock"></i> Autenticação</h5>
@@ -219,11 +223,36 @@ function criarDetalhesAdicionais(res) {
                 <div class="card p-3 h-100 shadow-sm origem-box" style="background: #222 !important; border: 1px solid #444 !important; color: #fff !important;">
                     <h5 class="border-bottom border-secondary pb-2" style="color: #00bcd4 !important;"><i class="bi bi-person-lines-fill"></i> Origem do Email</h5>
                     <ul class="list-unstyled mt-3 mb-0" style="word-break: break-all;">
-                        <li class="mb-2"><strong style="color: #00bcd4 !important;">Nome:</strong> ${res.remetente || 'N/A'}</li>
+                        <li class="mb-2"><strong style="color: #00bcd4 !important;">Nome:</strong> ${nomeLimpo}</li>
                         <li class="mb-2"><strong style="color: #00bcd4 !important;">SMTP:</strong> ${res.return_path || 'N/A'}</li>
                         <li class="mb-2"><strong style="color: #00bcd4 !important;">IP:</strong> ${res.ip_remetente || 'N/A'}</li>
-                        <li><strong style="color: #00bcd4 !important;">Domínio:</strong> ${auth.dominio_autenticado || 'N/A'}</li>
+                        <li><strong style="color: #00bcd4 !important;">Domínio:</strong> ${dominioOculto}</li>
                     </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-3 mb-4">
+            <div class="col-12">
+                <div class="card p-3 shadow-sm" style="background: #1a1a1a !important; border: 1px dashed #666 !important; color: #fff !important;">
+                    <h6 style="color: #ff9800 !important; margin-bottom: 15px;"><i class="bi bi-mask"></i> Análise de Identidade (Spoofing & Typosquatting)</h6>
+                    <div class="d-flex justify-content-between text-center" style="display: flex !important; flex-direction: row !important;">
+                        
+                        <div style="flex: 1; border-right: 1px solid #444;">
+                            <small style="color: #aaa !important;">O que a vítima lê (Nome Falso):</small><br>
+                            <strong style="font-size: 1.1em; color: #fff !important;">${nomeLimpo}</strong>
+                        </div>
+                        
+                        <div style="flex: 1; align-self: center; font-size: 1.5em; color: #666 !important;">
+                            <i class="bi bi-arrow-left-right"></i> VS <i class="bi bi-arrow-left-right"></i>
+                        </div>
+
+                        <div style="flex: 1;">
+                            <small style="color: #aaa !important;">O domínio real (A Verdade):</small><br>
+                            <strong style="font-size: 1.1em; font-family: 'Courier New', monospace; color: #ff6b6b !important;">${dominioOculto}</strong>
+                        </div>
+
+                    </div>
                 </div>
             </div>
         </div>
