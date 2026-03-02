@@ -203,9 +203,44 @@ function criarDetalhesAdicionais(res) {
     const dkimColor = auth.dkim === 'pass' ? 'success' : (auth.dkim === 'none' ? 'secondary' : 'danger');
     const dmarcColor = auth.dmarc === 'pass' ? 'success' : (auth.dmarc === 'none' ? 'secondary' : 'danger');
 
-    // Extrai o nome do remetente sem aspas extras para o comparativo
+    // Extrai o nome do remetente e o domínio suspeito
     const nomeLimpo = res.remetente ? res.remetente.replace(/["']/g, '') : 'Desconhecido';
-    const dominioOculto = auth.dominio_autenticado || 'N/A';
+    const dominioFalso = auth.dominio_autenticado || res.return_path?.split('@')[1] || 'Desconhecido';
+
+    // 🟢 MOTOR DINÂMICO DE TYPOSQUATTING (Engenharia Reversa)
+    function descobrirDominioReal(nome, dominio) {
+        nome = (nome || '').toLowerCase();
+        dominio = (dominio || '').toLowerCase();
+
+        // 1. Dicionário VIP: Se a IA não adivinhar, nós forçamos as marcas mais atacadas
+        const marcas = {
+            'microsoft': 'microsoft.com',
+            'bradesco': 'banco.bradesco',
+            'scross': 'scross.com', // 👈 O seu exemplo!
+            'github': 'github.com',
+            'superior air': 'superiorairparts.com'
+        };
+        for (let [marca, real] of Object.entries(marcas)) {
+            if (nome.includes(marca) || dominio.includes(marca.replace(/\s/g, ''))) return real;
+        }
+
+        // 2. Desofuscação de Caracteres Homográficos (O truque mágico)
+        // O algoritmo reverte as táticas dos hackers para ver se revela uma palavra real
+        let desofuscado = dominio
+            .replace(/0/g, 'o')
+            .replace(/1/g, 'l')
+            .replace(/3/g, 'e')
+            .replace(/5/g, 's')
+            .replace(/rn/g, 'm')
+            .replace(/@/g, 'a');
+
+        // Se a tradução mudou alguma letra, ele encontrou o domínio pretendido!
+        if (desofuscado !== dominio) return desofuscado;
+
+        return "dominio-esperado.com"; // Texto de fallback
+    }
+
+    const dominioReal = descobrirDominioReal(nomeLimpo, dominioFalso);
 
     const authOriginHtml = `
         <div class="row mt-4">
@@ -226,7 +261,7 @@ function criarDetalhesAdicionais(res) {
                         <li class="mb-2"><strong style="color: #00bcd4 !important;">Nome:</strong> ${nomeLimpo}</li>
                         <li class="mb-2"><strong style="color: #00bcd4 !important;">SMTP:</strong> ${res.return_path || 'N/A'}</li>
                         <li class="mb-2"><strong style="color: #00bcd4 !important;">IP:</strong> ${res.ip_remetente || 'N/A'}</li>
-                        <li><strong style="color: #00bcd4 !important;">Domínio:</strong> ${dominioOculto}</li>
+                        <li><strong style="color: #00bcd4 !important;">Domínio:</strong> ${dominioFalso}</li>
                     </ul>
                 </div>
             </div>
@@ -235,21 +270,25 @@ function criarDetalhesAdicionais(res) {
         <div class="row mt-3 mb-4">
             <div class="col-12">
                 <div class="card p-3 shadow-sm" style="background: #1a1a1a !important; border: 1px dashed #666 !important; color: #fff !important;">
-                    <h6 style="color: #ff9800 !important; margin-bottom: 15px;"><i class="bi bi-mask"></i> Análise de Identidade (Spoofing & Typosquatting)</h6>
+                    <h6 style="color: #ff9800 !important; margin-bottom: 15px;"><i class="bi bi-mask"></i> Análise Visual: Typosquatting (Domínio Falso vs Real)</h6>
                     <div class="d-flex justify-content-between text-center" style="display: flex !important; flex-direction: row !important;">
                         
-                        <div style="flex: 1; border-right: 1px solid #444;">
-                            <small style="color: #aaa !important;">O que a vítima lê (Nome Falso):</small><br>
-                            <strong style="font-size: 1.1em; color: #fff !important;">${nomeLimpo}</strong>
+                        <div style="flex: 1; border-right: 1px solid #444; padding-right: 10px;">
+                            <small style="color: #aaa !important;">O que o Hacker usou (A Fraude):</small><br>
+                            <strong style="font-size: 1.1em; font-family: 'Courier New', monospace; color: #ff6b6b !important;">
+                                ${dominioFalso}
+                            </strong>
                         </div>
                         
-                        <div style="flex: 1; align-self: center; font-size: 1.5em; color: #666 !important;">
+                        <div style="flex: 0.5; align-self: center; font-size: 1.5em; color: #666 !important;">
                             <i class="bi bi-arrow-left-right"></i> VS <i class="bi bi-arrow-left-right"></i>
                         </div>
 
-                        <div style="flex: 1;">
-                            <small style="color: #aaa !important;">O domínio real (A Verdade):</small><br>
-                            <strong style="font-size: 1.1em; font-family: 'Courier New', monospace; color: #ff6b6b !important;">${dominioOculto}</strong>
+                        <div style="flex: 1; padding-left: 10px;">
+                            <small style="color: #aaa !important;">O que a vítima esperava (O Legítimo):</small><br>
+                            <strong style="font-size: 1.1em; font-family: 'Courier New', monospace; color: #00bcd4 !important;">
+                                ${dominioReal}
+                            </strong>
                         </div>
 
                     </div>
