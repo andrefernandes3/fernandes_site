@@ -224,7 +224,7 @@ module.exports = async function (context, req) {
         evidenciasFortes.push("Falha crítica de autenticação (SPF/DMARC). Alto risco de falsificação de identidade (Spoofing).");
     }
 
-    // 2. Manipulação de Resposta (Reply-To Mismatch) - COM TUNING SOC
+    // 2. Manipulação de Resposta (Reply-To Mismatch) - COM TUNING SOC NÍVEL 2
     const replyToMatch = headers.match(/^Reply-To:\s*(.+)$/im);
     let replyToEmail = null;
     if (replyToMatch) {
@@ -232,11 +232,21 @@ module.exports = async function (context, req) {
         replyToEmail = extractEmailText(replyToMatch[1]);
     }
 
-    // 🟢 TUNING: Perdoar sistemas de envio em massa (Marketing/CRM)
-    const isAuthenticatedBounce = authDetails.dmarc === 'pass' && (senderData.email_real || '').toLowerCase().includes('bounce');
+    // 🟢 TUNING NÍVEL 2: Perdoar Bounces E Servidores de Disparo Corporativos (ESPs)
+    const smtpReal = (senderData.email_real || '').toLowerCase();
+    const isKnownESP = smtpReal.includes('bounce') || 
+                       smtpReal.includes('amazonses.com') || 
+                       smtpReal.includes('sendgrid') || 
+                       smtpReal.includes('mailgun') ||
+                       smtpReal.includes('mandrillapp') ||
+                       smtpReal.includes('mailchimp');
 
-    if (replyToEmail && senderData.email_real && replyToEmail.toLowerCase() !== senderData.email_real.toLowerCase()) {
-        if (!isAuthenticatedBounce) {
+    // Se o DMARC passa e o servidor de envio é um ESP conhecido, é legítimo.
+    const isAuthenticatedESP = authDetails.dmarc === 'pass' && isKnownESP;
+
+    if (replyToEmail && senderData.email_real && replyToEmail.toLowerCase() !== smtpReal) {
+        // Só aplicamos a penalização de 30 pontos se NÃO for um servidor autorizado
+        if (!isAuthenticatedESP) {
             localScore += 30;
             evidenciasFortes.push(`O endereço de resposta (${replyToEmail}) é diferente do envelope de envio. Tática comum de evasão.`);
         }
