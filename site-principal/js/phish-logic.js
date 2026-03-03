@@ -203,44 +203,42 @@ function criarDetalhesAdicionais(res) {
     const dkimColor = auth.dkim === 'pass' ? 'success' : (auth.dkim === 'none' ? 'secondary' : 'danger');
     const dmarcColor = auth.dmarc === 'pass' ? 'success' : (auth.dmarc === 'none' ? 'secondary' : 'danger');
 
-    // Extrai o nome do remetente e o domínio suspeito
+    // Extração Limpa de Variáveis
     const nomeLimpo = res.remetente ? res.remetente.replace(/["']/g, '') : 'Desconhecido';
-    const dominioFalso = auth.dominio_autenticado || res.return_path?.split('@')[1] || 'Desconhecido';
+    const dominioBruto = auth.dominio_autenticado || res.return_path?.split('@')[1] || 'Desconhecido';
 
-    // 🟢 MOTOR DINÂMICO DE TYPOSQUATTING (Engenharia Reversa)
-    function descobrirDominioReal(nome, dominio) {
-        nome = (nome || '').toLowerCase();
-        dominio = (dominio || '').toLowerCase();
-
-        // 1. Dicionário VIP: Se a IA não adivinhar, nós forçamos as marcas mais atacadas
-        const marcas = {
-            'microsoft': 'microsoft.com',
-            'bradesco': 'banco.bradesco',
-            'scross': 'scross.com', // 👈 O seu exemplo!
-            'github': 'github.com',
-            'superior air': 'superiorairparts.com'
-        };
-        for (let [marca, real] of Object.entries(marcas)) {
-            if (nome.includes(marca) || dominio.includes(marca.replace(/\s/g, ''))) return real;
+    // 🟢 TUNING DE SOC: Extrator de Domínio Raiz (Remove subdomínios como user.hostinger)
+    function extrairDominioRaiz(dominio) {
+        if (dominio === 'Desconhecido' || dominio === 'N/A') return dominio;
+        const partes = dominio.split('.');
+        if (partes.length > 2) {
+            if (partes[partes.length - 2] === 'com' || partes[partes.length - 2] === 'co' || partes[partes.length - 2] === 'gov') {
+                return partes.slice(-3).join('.');
+            }
+            return partes.slice(-2).join('.');
         }
-
-        // 2. Desofuscação de Caracteres Homográficos (O truque mágico)
-        // O algoritmo reverte as táticas dos hackers para ver se revela uma palavra real
-        let desofuscado = dominio
-            .replace(/0/g, 'o')
-            .replace(/1/g, 'l')
-            .replace(/3/g, 'e')
-            .replace(/5/g, 's')
-            .replace(/rn/g, 'm')
-            .replace(/@/g, 'a');
-
-        // Se a tradução mudou alguma letra, ele encontrou o domínio pretendido!
-        if (desofuscado !== dominio) return desofuscado;
-
-        return "dominio-esperado.com"; // Texto de fallback
+        return dominio;
     }
+    const dominioFalso = extrairDominioRaiz(dominioBruto);
 
-    const dominioReal = descobrirDominioReal(nomeLimpo, dominioFalso);
+    // 🟢 MOTOR DINÂMICO DE TYPOSQUATTING (IA + Engenharia Reversa)
+    function descobrirDominioRealDinamico(nome, dominioFalso, dominioDaIA) {
+        if (dominioDaIA && dominioDaIA !== 'N/A' && dominioDaIA !== 'Desconhecido') return dominioDaIA.toLowerCase();
+
+        let desofuscado = (dominioFalso || '').toLowerCase()
+            .replace(/0/g, 'o').replace(/1/g, 'l').replace(/3/g, 'e')
+            .replace(/5/g, 's').replace(/rn/g, 'm').replace(/@/g, 'a');
+
+        if (desofuscado !== dominioFalso.toLowerCase()) return desofuscado;
+
+        let marcaExtraida = (nome || '').toLowerCase()
+            .replace(/ceo|suporte|support|admin|atendimento|equipe|faturamento/g, '')
+            .replace(/[^a-z0-9]/g, '');
+
+        if (marcaExtraida.length > 2) return `${marcaExtraida}.com`; 
+        return "dominio-legitimo.com"; 
+    }
+    const dominioReal = descobrirDominioRealDinamico(nomeLimpo, dominioFalso, res.dominio_oficial);
 
     const authOriginHtml = `
         <div class="row mt-4">
