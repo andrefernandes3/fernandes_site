@@ -226,8 +226,8 @@ function criarDetalhesAdicionais(res) {
     }
     const dominioFalso = extrairDominioRaiz(dominioBruto);
 
-// 🟢 MOTOR DINÂMICO DE TYPOSQUATTING (IA + Engenharia Reversa)
-    function descobrirDominioRealDinamico(nome, dominioFalso, dominioDaIA) {
+// 🟢 MOTOR DINÂMICO DE TYPOSQUATTING (100% Inteligente e Sem Dicionários)
+    function descobrirDominioRealDinamico(nome, dominioFalso, dominioDaIA, nivelRisco) {
         // 1. A INTELIGÊNCIA ARTIFICIAL
         if (dominioDaIA && dominioDaIA !== 'N/A' && dominioDaIA !== 'Desconhecido') {
             return dominioDaIA.toLowerCase();
@@ -236,9 +236,7 @@ function criarDetalhesAdicionais(res) {
         const nomeLower = (nome || '').toLowerCase();
         let desofuscado = (dominioFalso || '').toLowerCase();
 
-        // 2. DESOFUSCAÇÃO MATEMÁTICA CONDICIONAL (A Prova de Balas)
-        // Só substitui o número pela letra se o remetente NÃO usar esse número no nome!
-        // Assim, a B3 não vira "be", mas o "amaz0n" vira "amazon".
+        // 2. DESOFUSCAÇÃO MATEMÁTICA CONDICIONAL (Pega fraudes visuais independente do risco)
         if (!nomeLower.includes('0')) desofuscado = desofuscado.replace(/0/g, 'o');
         if (!nomeLower.includes('1')) desofuscado = desofuscado.replace(/1/g, 'l');
         if (!nomeLower.includes('3')) desofuscado = desofuscado.replace(/3/g, 'e');
@@ -247,7 +245,23 @@ function criarDetalhesAdicionais(res) {
 
         if (desofuscado !== (dominioFalso || '').toLowerCase()) return desofuscado;
 
-        // 3. EXTRATOR DINÂMICO (Plano C)
+        // 🟢 TRAVA DE AUTENTICIDADE (A Salvação de marcas como a B3)
+        const dominioCore = (dominioFalso || '').split('.')[0];
+        if (dominioCore.length >= 2 && nomeLower.includes(dominioCore)) {
+            return dominioFalso.toLowerCase(); 
+        }
+
+        // ==========================================
+        // 🛑 O GUARDIÃO DINÂMICO DE SOC
+        // ==========================================
+        // Se a matemática não pegou fraude e o e-mail foi considerado SEGURO (Risco < 40),
+        // significa que é uma pessoa real (ex: Lucas) ou um sistema legítimo.
+        // O motor recusa-se a "inventar" domínios e assume que é autêntico!
+        if (nivelRisco < 40) {
+            return dominioFalso.toLowerCase();
+        }
+
+        // 3. EXTRATOR DINÂMICO (Plano C) - Só dispara para e-mails Suspeitos ou Perigosos!
         if (nomeLower === 'desconhecido' || nomeLower.includes('@')) {
             return dominioFalso.toLowerCase(); 
         }
@@ -256,18 +270,14 @@ function criarDetalhesAdicionais(res) {
             return nomeLower; 
         }
 
+        // Sem dicionários de palavras! Apenas removemos acentos e símbolos.
         const nomeSemAcentos = nomeLower.normalize('NFD').replace(/[\u0300-\u036f]/g, "");
-       
-        let marcaExtraida = nomeSemAcentos
-            .replace(/ceo|suporte|support|admin|atendimento|equipe|faturamento|cartao|banco|loja|oficial|caf|temporario|financeiro|finance|account|payable|invoice|pagamento|cobranca/g, '')
-            .replace(/[^a-z0-9]/g, '');
+        let marcaExtraida = nomeSemAcentos.replace(/[^a-z0-9]/g, '');
 
+        // Inteligência Geográfica
         if (marcaExtraida.length > 2 && marcaExtraida.length < 20) {
-            let terminacao = '.com'; // O padrão mundial é .com
-            
+            let terminacao = '.com';
             if (dominioFalso && dominioFalso.includes('.')) {
-                // Só rouba o TLD (.net, .br) se o domínio falso tentar imitar a marca.
-                // Compara as 3 primeiras letras. Se não tiver nada a ver (ex: ptd vs superior), mantém o .com!
                 const hackerRaiz = dominioFalso.split('.')[0];
                 if (hackerRaiz.includes(marcaExtraida.substring(0, 3)) || marcaExtraida.includes(hackerRaiz.substring(0, 3))) {
                     terminacao = dominioFalso.substring(dominioFalso.indexOf('.'));
@@ -276,9 +286,9 @@ function criarDetalhesAdicionais(res) {
             return `${marcaExtraida}${terminacao}`.toLowerCase(); 
         }
 
-        return dominioFalso.toLowerCase();
+        return dominioFalso.toLowerCase(); 
     }
-    const dominioReal = descobrirDominioRealDinamico(nomeLimpo, dominioFalso, res.dominio_oficial);
+    const dominioReal = descobrirDominioRealDinamico(nomeLimpo, dominioFalso, res.dominio_oficial, res.Nivel_Risco || 0);
 
     const authOriginHtml = `
         <div class="row mt-4">
