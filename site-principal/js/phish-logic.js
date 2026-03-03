@@ -257,9 +257,9 @@ function criarDetalhesAdicionais(res) {
         }
 
         const nomeSemAcentos = nomeLower.normalize('NFD').replace(/[\u0300-\u036f]/g, "");
-
+       
         let marcaExtraida = nomeSemAcentos
-            .replace(/ceo|suporte|support|admin|atendimento|equipe|faturamento|cartao|banco|loja|oficial/g, '')
+            .replace(/ceo|suporte|support|admin|atendimento|equipe|faturamento|cartao|banco|loja|oficial|caf|temporario|financeiro|finance|account|payable|invoice|pagamento|cobranca/g, '')
             .replace(/[^a-z0-9]/g, '');
 
         if (marcaExtraida.length > 2 && marcaExtraida.length < 20) {
