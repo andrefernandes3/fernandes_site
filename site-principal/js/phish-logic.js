@@ -258,6 +258,27 @@ function criarDetalhesAdicionais(res) {
             .replace(/ceo|suporte|support|admin|atendimento|equipe|faturamento/g, '')
             .replace(/[^a-z0-9]/g, '');
 
+        // 3. EXTRATOR DINÂMICO (Plano C)
+        const nomeLower = (nome || '').toLowerCase();
+        
+        // 🛑 TRAVA 1: Se o nome for "Desconhecido" ou for um e-mail (tiver @)
+        if (nomeLower === 'desconhecido' || nomeLower.includes('@')) {
+            return dominioFalso; 
+        }
+
+        // 🛑 TRAVA 2: Se o nome de exibição JÁ PARECE UM SITE
+        if (nomeLower.includes('.') && !nomeLower.includes(' ') && /\.[a-z]{2,3}$/.test(nomeLower)) {
+            return nomeLower; 
+        }
+
+        // 🟢 NOVIDADE 1: Remover acentos (transforma 'cartão' em 'cartao')
+        const nomeSemAcentos = nomeLower.normalize('NFD').replace(/[\u0300-\u036f]/g, "");
+
+        // 🟢 NOVIDADE 2: Adicionadas palavras comerciais/financeiras ao filtro
+        let marcaExtraida = nomeSemAcentos
+            .replace(/ceo|suporte|support|admin|atendimento|equipe|faturamento|cartao|banco|loja|oficial/g, '')
+            .replace(/[^a-z0-9]/g, '');
+
         // 🛑 TRAVA 3: Inteligência Geográfica
         if (marcaExtraida.length > 2 && marcaExtraida.length < 20) {
             let terminacao = '.com';
@@ -267,7 +288,7 @@ function criarDetalhesAdicionais(res) {
             return `${marcaExtraida}${terminacao}`; 
         }
 
-        return dominioFalso; 
+        return dominioFalso;
     }
     const dominioReal = descobrirDominioRealDinamico(nomeLimpo, dominioFalso, res.dominio_oficial);
 
