@@ -263,14 +263,20 @@ function criarDetalhesAdicionais(res) {
             .replace(/[^a-z0-9]/g, '');
 
         if (marcaExtraida.length > 2 && marcaExtraida.length < 20) {
-            let terminacao = '.com';
+            let terminacao = '.com'; // O padrão mundial é .com
+            
             if (dominioFalso && dominioFalso.includes('.')) {
-                terminacao = dominioFalso.substring(dominioFalso.indexOf('.'));
+                // Só rouba o TLD (.net, .br) se o domínio falso tentar imitar a marca.
+                // Compara as 3 primeiras letras. Se não tiver nada a ver (ex: ptd vs superior), mantém o .com!
+                const hackerRaiz = dominioFalso.split('.')[0];
+                if (hackerRaiz.includes(marcaExtraida.substring(0, 3)) || marcaExtraida.includes(hackerRaiz.substring(0, 3))) {
+                    terminacao = dominioFalso.substring(dominioFalso.indexOf('.'));
+                }
             }
             return `${marcaExtraida}${terminacao}`.toLowerCase(); 
         }
 
-        return dominioFalso.toLowerCase(); 
+        return dominioFalso.toLowerCase();
     }
     const dominioReal = descobrirDominioRealDinamico(nomeLimpo, dominioFalso, res.dominio_oficial);
 
