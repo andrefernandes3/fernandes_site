@@ -228,49 +228,49 @@ function criarDetalhesAdicionais(res) {
 
 // 🟢 MOTOR DINÂMICO DE TYPOSQUATTING (IA + Engenharia Reversa)
     function descobrirDominioRealDinamico(nome, dominioFalso, dominioDaIA) {
-        // 1. A INTELIGÊNCIA ARTIFICIAL: Se a IA souber o domínio oficial, é esse que vale!
+        // 1. A INTELIGÊNCIA ARTIFICIAL
         if (dominioDaIA && dominioDaIA !== 'N/A' && dominioDaIA !== 'Desconhecido') {
             return dominioDaIA.toLowerCase();
         }
 
-        // 2. DESOFUSCAÇÃO MATEMÁTICA: Reverte Typosquatting (ex: arnaz0n -> amazon)
-        let desofuscado = (dominioFalso || '').toLowerCase()
-            .replace(/0/g, 'o').replace(/1/g, 'l').replace(/3/g, 'e')
-            .replace(/5/g, 's').replace(/rn/g, 'm').replace(/@/g, 'a');
+        const nomeLower = (nome || '').toLowerCase();
+        let desofuscado = (dominioFalso || '').toLowerCase();
+
+        // 2. DESOFUSCAÇÃO MATEMÁTICA CONDICIONAL (A Prova de Balas)
+        // Só substitui o número pela letra se o remetente NÃO usar esse número no nome!
+        // Assim, a B3 não vira "be", mas o "amaz0n" vira "amazon".
+        if (!nomeLower.includes('0')) desofuscado = desofuscado.replace(/0/g, 'o');
+        if (!nomeLower.includes('1')) desofuscado = desofuscado.replace(/1/g, 'l');
+        if (!nomeLower.includes('3')) desofuscado = desofuscado.replace(/3/g, 'e');
+        if (!nomeLower.includes('5')) desofuscado = desofuscado.replace(/5/g, 's');
+        desofuscado = desofuscado.replace(/rn/g, 'm').replace(/@/g, 'a');
 
         if (desofuscado !== (dominioFalso || '').toLowerCase()) return desofuscado;
 
         // 3. EXTRATOR DINÂMICO (Plano C)
-        const nomeLower = (nome || '').toLowerCase();
-        
-        // 🛑 TRAVA 1: Se o nome for "Desconhecido" ou for um e-mail (tiver @), não inventa
         if (nomeLower === 'desconhecido' || nomeLower.includes('@')) {
-            return dominioFalso; 
+            return dominioFalso.toLowerCase(); 
         }
 
-        // 🛑 TRAVA 2: Se o nome de exibição JÁ PARECE UM SITE (ex: "Amazon.com.br")
         if (nomeLower.includes('.') && !nomeLower.includes(' ') && /\.[a-z]{2,3}$/.test(nomeLower)) {
             return nomeLower; 
         }
 
-        // 🟢 NOVIDADE 1: Remover acentos (transforma 'cartão' em 'cartao')
         const nomeSemAcentos = nomeLower.normalize('NFD').replace(/[\u0300-\u036f]/g, "");
 
-        // 🟢 NOVIDADE 2: Adicionadas palavras comerciais/financeiras ao filtro
         let marcaExtraida = nomeSemAcentos
             .replace(/ceo|suporte|support|admin|atendimento|equipe|faturamento|cartao|banco|loja|oficial/g, '')
             .replace(/[^a-z0-9]/g, '');
 
-        // 🛑 TRAVA 3: Inteligência Geográfica
         if (marcaExtraida.length > 2 && marcaExtraida.length < 20) {
             let terminacao = '.com';
             if (dominioFalso && dominioFalso.includes('.')) {
                 terminacao = dominioFalso.substring(dominioFalso.indexOf('.'));
             }
-            return `${marcaExtraida}${terminacao}`; 
+            return `${marcaExtraida}${terminacao}`.toLowerCase(); 
         }
 
-        return dominioFalso; 
+        return dominioFalso.toLowerCase(); 
     }
     const dominioReal = descobrirDominioRealDinamico(nomeLimpo, dominioFalso, res.dominio_oficial);
 
