@@ -228,32 +228,46 @@ function criarDetalhesAdicionais(res) {
 
     // 🟢 MOTOR DINÂMICO DE TYPOSQUATTING (IA + Engenharia Reversa)
     function descobrirDominioRealDinamico(nome, dominioFalso, dominioDaIA) {
-        if (dominioDaIA && dominioDaIA !== 'N/A' && dominioDaIA !== 'Desconhecido') return dominioDaIA.toLowerCase();
+        // 1. A INTELIGÊNCIA ARTIFICIAL: Se o Llama3 souber o domínio oficial, é esse que vale!
+        if (dominioDaIA && dominioDaIA !== 'N/A' && dominioDaIA !== 'Desconhecido') {
+            return dominioDaIA.toLowerCase();
+        }
 
+        // 2. DESOFUSCAÇÃO MATEMÁTICA: Reverte Typosquatting (ex: arnaz0n -> amazon)
         let desofuscado = (dominioFalso || '').toLowerCase()
             .replace(/0/g, 'o').replace(/1/g, 'l').replace(/3/g, 'e')
             .replace(/5/g, 's').replace(/rn/g, 'm').replace(/@/g, 'a');
 
-        if (desofuscado !== dominioFalso.toLowerCase()) return desofuscado;
+        if (desofuscado !== (dominioFalso || '').toLowerCase()) return desofuscado;
 
         // 3. EXTRATOR DINÂMICO (Plano C)
         const nomeLower = (nome || '').toLowerCase();
         
-        // 🛑 TRAVA: Se o nome for "Desconhecido" ou for um e-mail (tiver @), não tentamos adivinhar a marca!
+        // 🛑 TRAVA 1: Se o nome for "Desconhecido" ou for um e-mail (tiver @), não inventa
         if (nomeLower === 'desconhecido' || nomeLower.includes('@')) {
-            return dominioFalso; // Devolve o próprio domínio, assumindo que não há spoofing visual de nome
+            return dominioFalso; 
+        }
+
+        // 🛑 TRAVA 2 (A NOVA): Se o nome de exibição JÁ PARECE UM SITE (ex: "Amazon.com.br" ou "Booking.com")
+        // Critério: Tem ponto, não tem espaços, e acaba com 2 ou 3 letras (ex: .com, .br, .pt)
+        if (nomeLower.includes('.') && !nomeLower.includes(' ') && /\.[a-z]{2,3}$/.test(nomeLower)) {
+            return nomeLower; // Usa o próprio nome de exibição como domínio legítimo!
         }
 
         let marcaExtraida = nomeLower
             .replace(/ceo|suporte|support|admin|atendimento|equipe|faturamento/g, '')
             .replace(/[^a-z0-9]/g, '');
 
-        // 🛑 TRAVA 2: Só assume que é uma marca se sobrar uma palavra razoável
+        // 🛑 TRAVA 3: Inteligência Geográfica
         if (marcaExtraida.length > 2 && marcaExtraida.length < 20) {
-            return `${marcaExtraida}.com`; 
+            let terminacao = '.com';
+            if (dominioFalso && dominioFalso.includes('.')) {
+                terminacao = dominioFalso.substring(dominioFalso.indexOf('.'));
+            }
+            return `${marcaExtraida}${terminacao}`; 
         }
 
-        return dominioFalso; // Fallback final inteligente: assume que o domínio é o que é.
+        return dominioFalso; 
     }
     const dominioReal = descobrirDominioRealDinamico(nomeLimpo, dominioFalso, res.dominio_oficial);
 
