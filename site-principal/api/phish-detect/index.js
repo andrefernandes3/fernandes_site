@@ -175,6 +175,7 @@ REGRAS DE CLASSIFICAÇÃO:
 1. AUTENTICAÇÃO FORTE: Se 'Autenticação válida' for SIM (SPF/DKIM pass), e o conteúdo for de serviços legítimos, Nivel_Risco < 15.
 2. ABUSO DE NUVEM (BEC): Se um e-mail com domínios gratuitos (ex: onmicrosoft.com) tentar passar-se por uma empresa legítima, o risco é PERIGOSO.
 3. QUISHING E B2B SCAM: E-mails sem autenticação contendo falsas faturas (DocuSign, Canva, SharePoint) são 100% PERIGOSOS.
+"dominio_oficial": "Domínio canônico da empresa legítima associada à marca utilizada indevidamente na fraude. Se a fraude não envolver uso indevido de marca registrada ou empresa real, retornar 'N/A'."
 Retorne JSON: "Nivel_Risco" (0-100), "Veredito" (SEGURO, SUSPEITO, PERIGOSO), "Motivos" (array curto) e "Recomendacao".`;
 
 module.exports = async function (context, req) {
@@ -223,17 +224,21 @@ module.exports = async function (context, req) {
         evidenciasFortes.push("Falha crítica de autenticação (SPF/DMARC). Alto risco de falsificação de identidade (Spoofing).");
     }
 
-    // 2. Manipulação de Resposta (Reply-To Mismatch)
-    // Se o hacker envia como CEO, mas pede para responder para outro e-mail
+    // 2. Manipulação de Resposta (Reply-To Mismatch) - COM TUNING SOC
     const replyToMatch = headers.match(/^Reply-To:\s*(.+)$/im);
+    let replyToEmail = null;
     if (replyToMatch) {
-        // Função auxiliar simples para extrair o e-mail do texto
         const extractEmailText = (str) => { const m = str.match(/<([^>]+)>/); return m ? m[1] : str.trim(); };
-        const replyToEmail = extractEmailText(replyToMatch[1]);
-        
-        if (replyToEmail && senderData.email_real && replyToEmail.toLowerCase() !== senderData.email_real.toLowerCase()) {
+        replyToEmail = extractEmailText(replyToMatch[1]);
+    }
+
+    // 🟢 TUNING: Perdoar sistemas de envio em massa (Marketing/CRM)
+    const isAuthenticatedBounce = authDetails.dmarc === 'pass' && (senderData.email_real || '').toLowerCase().includes('bounce');
+
+    if (replyToEmail && senderData.email_real && replyToEmail.toLowerCase() !== senderData.email_real.toLowerCase()) {
+        if (!isAuthenticatedBounce) {
             localScore += 30;
-            evidenciasFortes.push(`O endereço de resposta (${replyToEmail}) é diferente do remetente. Tática comum para desviar a comunicação da vítima.`);
+            evidenciasFortes.push(`O endereço de resposta (${replyToEmail}) é diferente do envelope de envio. Tática comum de evasão.`);
         }
     }
 
@@ -355,13 +360,19 @@ EVIDÊNCIAS: ${evidenciasFortes.join(' | ')}`;
         if (evidenciasFortes.length > 0) riscoFinal = Math.max(riscoFinal, 80);
 
        const respostaCompleta = {
-            Nivel_Risco: riscoFinal, Veredito: riscoFinal >= 80 ? 'PERIGOSO' : (riscoFinal >= 40 ? 'SUSPEITO' : 'SEGURO'),
-            Motivos: analise.Motivos || evidenciasFortes, Recomendacao: analise.Recomendacao || 'Analise.',
+            Nivel_Risco: riscoFinal, 
+            Veredito: riscoFinal >= 80 ? 'PERIGOSO' : (riscoFinal >= 40 ? 'SUSPEITO' : 'SEGURO'),
+            Motivos: analise.Motivos || evidenciasFortes, 
+            Recomendacao: analise.Recomendacao || 'Analise.',
             detalhes_autenticacao: { spf: authDetails.spf, dkim: authDetails.dkim, dmarc: authDetails.dmarc, dominio_autenticado: authDetails.dominioAutenticado },
-            remetente: senderData.nome_exibicao, return_path: senderData.email_real, ip_remetente: senderIP, anexo_html: temAnexoHTML,
+            remetente: senderData.nome_exibicao, 
+            return_path: senderData.email_real, 
+            ip_remetente: senderIP, 
+            anexo_html: temAnexoHTML,
+            dominio_oficial: analise.dominio_oficial || 'N/A', // 🟢 A resposta da IA
             urls_encontradas: foundUrls, 
             urlscan_uuid: urlscanUuid,
-            vt_stats: virusTotalStats // 🟢 A inteligência do VirusTotal
+            vt_stats: virusTotalStats
         };
 
         try {
