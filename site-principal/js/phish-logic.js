@@ -226,9 +226,9 @@ function criarDetalhesAdicionais(res) {
     }
     const dominioFalso = extrairDominioRaiz(dominioBruto);
 
-    // 🟢 MOTOR DINÂMICO DE TYPOSQUATTING (IA + Engenharia Reversa)
+// 🟢 MOTOR DINÂMICO DE TYPOSQUATTING (IA + Engenharia Reversa)
     function descobrirDominioRealDinamico(nome, dominioFalso, dominioDaIA) {
-        // 1. A INTELIGÊNCIA ARTIFICIAL: Se o Llama3 souber o domínio oficial, é esse que vale!
+        // 1. A INTELIGÊNCIA ARTIFICIAL: Se a IA souber o domínio oficial, é esse que vale!
         if (dominioDaIA && dominioDaIA !== 'N/A' && dominioDaIA !== 'Desconhecido') {
             return dominioDaIA.toLowerCase();
         }
@@ -248,25 +248,7 @@ function criarDetalhesAdicionais(res) {
             return dominioFalso; 
         }
 
-        // 🛑 TRAVA 2 (A NOVA): Se o nome de exibição JÁ PARECE UM SITE (ex: "Amazon.com.br" ou "Booking.com")
-        // Critério: Tem ponto, não tem espaços, e acaba com 2 ou 3 letras (ex: .com, .br, .pt)
-        if (nomeLower.includes('.') && !nomeLower.includes(' ') && /\.[a-z]{2,3}$/.test(nomeLower)) {
-            return nomeLower; // Usa o próprio nome de exibição como domínio legítimo!
-        }
-
-        let marcaExtraida = nomeLower
-            .replace(/ceo|suporte|support|admin|atendimento|equipe|faturamento/g, '')
-            .replace(/[^a-z0-9]/g, '');
-
-        // 3. EXTRATOR DINÂMICO (Plano C)
-        const nomeLower = (nome || '').toLowerCase();
-        
-        // 🛑 TRAVA 1: Se o nome for "Desconhecido" ou for um e-mail (tiver @)
-        if (nomeLower === 'desconhecido' || nomeLower.includes('@')) {
-            return dominioFalso; 
-        }
-
-        // 🛑 TRAVA 2: Se o nome de exibição JÁ PARECE UM SITE
+        // 🛑 TRAVA 2: Se o nome de exibição JÁ PARECE UM SITE (ex: "Amazon.com.br")
         if (nomeLower.includes('.') && !nomeLower.includes(' ') && /\.[a-z]{2,3}$/.test(nomeLower)) {
             return nomeLower; 
         }
@@ -288,7 +270,7 @@ function criarDetalhesAdicionais(res) {
             return `${marcaExtraida}${terminacao}`; 
         }
 
-        return dominioFalso;
+        return dominioFalso; 
     }
     const dominioReal = descobrirDominioRealDinamico(nomeLimpo, dominioFalso, res.dominio_oficial);
 
