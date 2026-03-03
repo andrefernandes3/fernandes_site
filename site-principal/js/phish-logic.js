@@ -205,7 +205,12 @@ function criarDetalhesAdicionais(res) {
 
     // Extração Limpa de Variáveis
     const nomeLimpo = res.remetente ? res.remetente.replace(/["']/g, '') : 'Desconhecido';
-    const dominioBruto = auth.dominio_autenticado || res.return_path?.split('@')[1] || 'Desconhecido';
+    // 🟢 CORREÇÃO: Trava de segurança para garantir que é um Domínio real (tem de ter um ponto)
+    let dominioBruto = auth.dominio_autenticado;
+    if (!dominioBruto || dominioBruto === 'N/A' || !dominioBruto.includes('.')) {
+        // Se o Backend se enganou e mandou "no-reply", nós cortamos o SMTP e pegamos o "fernandesit.com"
+        dominioBruto = res.return_path?.split('@')[1] || 'Desconhecido';
+    }
 
     // 🟢 TUNING DE SOC: Extrator de Domínio Raiz (Remove subdomínios como user.hostinger)
     function extrairDominioRaiz(dominio) {
@@ -231,12 +236,24 @@ function criarDetalhesAdicionais(res) {
 
         if (desofuscado !== dominioFalso.toLowerCase()) return desofuscado;
 
-        let marcaExtraida = (nome || '').toLowerCase()
+        // 3. EXTRATOR DINÂMICO (Plano C)
+        const nomeLower = (nome || '').toLowerCase();
+        
+        // 🛑 TRAVA: Se o nome for "Desconhecido" ou for um e-mail (tiver @), não tentamos adivinhar a marca!
+        if (nomeLower === 'desconhecido' || nomeLower.includes('@')) {
+            return dominioFalso; // Devolve o próprio domínio, assumindo que não há spoofing visual de nome
+        }
+
+        let marcaExtraida = nomeLower
             .replace(/ceo|suporte|support|admin|atendimento|equipe|faturamento/g, '')
             .replace(/[^a-z0-9]/g, '');
 
-        if (marcaExtraida.length > 2) return `${marcaExtraida}.com`; 
-        return "dominio-legitimo.com"; 
+        // 🛑 TRAVA 2: Só assume que é uma marca se sobrar uma palavra razoável
+        if (marcaExtraida.length > 2 && marcaExtraida.length < 20) {
+            return `${marcaExtraida}.com`; 
+        }
+
+        return dominioFalso; // Fallback final inteligente: assume que o domínio é o que é.
     }
     const dominioReal = descobrirDominioRealDinamico(nomeLimpo, dominioFalso, res.dominio_oficial);
 
@@ -273,8 +290,11 @@ function criarDetalhesAdicionais(res) {
                         
                         <div style="flex: 1; border-right: 1px solid #444; padding-right: 10px;">
                             <small style="color: #aaa !important;">O que o Hacker usou (A Fraude):</small><br>
+                            <strong style="font-size: 0.9em; color: #ff6b6b !important; word-break: break-all;">
+                                ${res.return_path || 'Desconhecido'}
+                            </strong><br>
                             <strong style="font-size: 1.1em; font-family: 'Courier New', monospace; color: #ff6b6b !important;">
-                                ${dominioFalso}
+                                [ ${dominioFalso} ]
                             </strong>
                         </div>
                         
