@@ -227,67 +227,81 @@ function criarDetalhesAdicionais(res) {
     const dominioFalso = extrairDominioRaiz(dominioBruto);
 
 // 🟢 MOTOR DINÂMICO DE TYPOSQUATTING (100% Inteligente e Sem Dicionários)
-    function descobrirDominioRealDinamico(nome, dominioFalso, dominioDaIA, nivelRisco) {
-        // 1. A INTELIGÊNCIA ARTIFICIAL
-        if (dominioDaIA && dominioDaIA !== 'N/A' && dominioDaIA !== 'Desconhecido') {
-            return dominioDaIA.toLowerCase();
-        }
-
-        const nomeLower = (nome || '').toLowerCase();
-        let desofuscado = (dominioFalso || '').toLowerCase();
-
-        // 2. DESOFUSCAÇÃO MATEMÁTICA CONDICIONAL (Pega fraudes visuais independente do risco)
-        if (!nomeLower.includes('0')) desofuscado = desofuscado.replace(/0/g, 'o');
-        if (!nomeLower.includes('1')) desofuscado = desofuscado.replace(/1/g, 'l');
-        if (!nomeLower.includes('3')) desofuscado = desofuscado.replace(/3/g, 'e');
-        if (!nomeLower.includes('5')) desofuscado = desofuscado.replace(/5/g, 's');
-        desofuscado = desofuscado.replace(/rn/g, 'm').replace(/@/g, 'a');
-
-        if (desofuscado !== (dominioFalso || '').toLowerCase()) return desofuscado;
-
-        // 🟢 TRAVA DE AUTENTICIDADE (A Salvação de marcas como a B3)
-        const dominioCore = (dominioFalso || '').split('.')[0];
-        if (dominioCore.length >= 2 && nomeLower.includes(dominioCore)) {
-            return dominioFalso.toLowerCase(); 
-        }
-
-        // ==========================================
-        // 🛑 O GUARDIÃO DINÂMICO DE SOC
-        // ==========================================
-        // Se a matemática não pegou fraude e o e-mail foi considerado SEGURO (Risco < 40),
-        // significa que é uma pessoa real (ex: Lucas) ou um sistema legítimo.
-        // O motor recusa-se a "inventar" domínios e assume que é autêntico!
-        if (nivelRisco < 40) {
-            return dominioFalso.toLowerCase();
-        }
-
-        // 3. EXTRATOR DINÂMICO (Plano C) - Só dispara para e-mails Suspeitos ou Perigosos!
-        if (nomeLower === 'desconhecido' || nomeLower.includes('@')) {
-            return dominioFalso.toLowerCase(); 
-        }
-
-        if (nomeLower.includes('.') && !nomeLower.includes(' ') && /\.[a-z]{2,3}$/.test(nomeLower)) {
-            return nomeLower; 
-        }
-
-        // Sem dicionários de palavras! Apenas removemos acentos e símbolos.
-        const nomeSemAcentos = nomeLower.normalize('NFD').replace(/[\u0300-\u036f]/g, "");
-        let marcaExtraida = nomeSemAcentos.replace(/[^a-z0-9]/g, '');
-
-        // Inteligência Geográfica
-        if (marcaExtraida.length > 2 && marcaExtraida.length < 20) {
-            let terminacao = '.com';
-            if (dominioFalso && dominioFalso.includes('.')) {
-                const hackerRaiz = dominioFalso.split('.')[0];
-                if (hackerRaiz.includes(marcaExtraida.substring(0, 3)) || marcaExtraida.includes(hackerRaiz.substring(0, 3))) {
-                    terminacao = dominioFalso.substring(dominioFalso.indexOf('.'));
-                }
-            }
-            return `${marcaExtraida}${terminacao}`.toLowerCase(); 
-        }
-
-        return dominioFalso.toLowerCase(); 
+function descobrirDominioRealDinamico(nome, dominioFalso, dominioDaIA, nivelRisco) {
+    // 1. A INTELIGÊNCIA ARTIFICIAL
+    if (dominioDaIA && dominioDaIA !== 'N/A' && dominioDaIA !== 'Desconhecido') {
+        return dominioDaIA.toLowerCase();
     }
+
+    const nomeLower = (nome || '').toLowerCase();
+    
+    // 🚨 AS VARIÁVEIS QUE FALTAVAM (Fundamentais para o código não quebrar)
+    const dominioFalsoLower = (dominioFalso || '').toLowerCase();
+    const dominioCoreFalso = dominioFalsoLower.split('.')[0]; // Ex: recorta o "alyssa" do "alyssa.online"
+    
+    let desofuscado = dominioFalsoLower;
+
+    // 2. DESOFUSCAÇÃO MATEMÁTICA CONDICIONAL
+    if (!nomeLower.includes('0')) desofuscado = desofuscado.replace(/0/g, 'o');
+    if (!nomeLower.includes('1')) desofuscado = desofuscado.replace(/1/g, 'l');
+    if (!nomeLower.includes('3')) desofuscado = desofuscado.replace(/3/g, 'e');
+    if (!nomeLower.includes('5')) desofuscado = desofuscado.replace(/5/g, 's');
+    desofuscado = desofuscado.replace(/rn/g, 'm').replace(/@/g, 'a');
+
+    if (desofuscado !== dominioFalsoLower) return desofuscado;
+
+    // ==========================================
+    // 🌍 CAMADA 3.5: TLD SQUATTING
+    // ==========================================
+    const tldsIncomuns = ['.online', '.xyz', '.site', '.top', '.vip', '.shop', '.tech', '.store', '.click', '.live', '.info', '.cc'];
+    const usaTldIncomum = tldsIncomuns.some(tld => dominioFalsoLower.endsWith(tld));
+
+    if (usaTldIncomum && dominioCoreFalso.length > 4) {
+        // Se a extensão é suspeita, devolvemos a versão ".com"
+        return dominioCoreFalso + '.com';
+    }
+
+    // ==========================================
+    // 🔒 CAMADA 4: GUARDIÃO DINÂMICO & EXTRATOR
+    // ==========================================
+    if (dominioCoreFalso.length >= 2 && nomeLower.includes(dominioCoreFalso)) {
+        return dominioFalsoLower; 
+    }
+
+    if (nivelRisco < 40) return dominioFalsoLower;
+
+    // 🟢 TRAVA ANTI-PESSOAS: Se for "Alyssa Rathbone", aborta a criação de site
+    const partesNome = nomeLower.trim().split(' ');
+    if (partesNome.length >= 2 && !dominioCoreFalso.includes(partesNome[0])) {
+        return dominioFalsoLower; 
+    }
+
+    // 3. EXTRATOR DINÂMICO (Plano C)
+    if (nomeLower === 'desconhecido' || nomeLower.includes('@')) {
+        return dominioFalsoLower; 
+    }
+
+    if (nomeLower.includes('.') && !nomeLower.includes(' ') && /\.[a-z]{2,3}$/.test(nomeLower)) {
+        return nomeLower; 
+    }
+
+    const nomeSemAcentos = nomeLower.normalize('NFD').replace(/[\u0300-\u036f]/g, "");
+    let marcaExtraida = nomeSemAcentos.replace(/[^a-z0-9]/g, '');
+
+    // Inteligência Geográfica
+    if (marcaExtraida.length > 2 && marcaExtraida.length < 20) {
+        let terminacao = '.com';
+        if (dominioFalsoLower.includes('.')) {
+            const hackerRaiz = dominioCoreFalso;
+            if (hackerRaiz.includes(marcaExtraida.substring(0, 3)) || marcaExtraida.includes(hackerRaiz.substring(0, 3))) {
+                terminacao = dominioFalsoLower.substring(dominioFalsoLower.indexOf('.'));
+            }
+        }
+        return `${marcaExtraida}${terminacao}`.toLowerCase(); 
+    }
+
+    return dominioFalsoLower; 
+}
     const dominioReal = descobrirDominioRealDinamico(nomeLimpo, dominioFalso, res.dominio_oficial, res.Nivel_Risco || 0);
 
     const authOriginHtml = `
