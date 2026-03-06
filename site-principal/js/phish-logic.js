@@ -228,17 +228,30 @@ function criarDetalhesAdicionais(res) {
 
 // 🟢 MOTOR DINÂMICO DE TYPOSQUATTING (100% Inteligente e Sem Dicionários)
 function descobrirDominioRealDinamico(nome, dominioFalso, dominioDaIA, nivelRisco) {
-    // 1. A INTELIGÊNCIA ARTIFICIAL
-    if (dominioDaIA && dominioDaIA !== 'N/A' && dominioDaIA !== 'Desconhecido') {
-        return dominioDaIA.toLowerCase();
+    const nomeLower = (nome || '').toLowerCase().trim();
+    const dominioFalsoLower = (dominioFalso || '').toLowerCase().trim();
+    const dominioCoreFalso = dominioFalsoLower.split('.')[0]; 
+
+    // ==========================================
+    // 🌍 CAMADA SUPREMA: TLD SQUATTING (Ignora a IA!)
+    // ==========================================
+    // Se o hacker usar um TLD lixo, não acreditamos na IA (a IA pode ter sido enganada).
+    // Nós forçamos imediatamente a conversão para .com!
+    const tldsIncomuns = ['.online', '.xyz', '.site', '.top', '.vip', '.shop', '.tech', '.store', '.click', '.live', '.info', '.cc'];
+    const usaTldIncomum = tldsIncomuns.some(tld => dominioFalsoLower.endsWith(tld));
+
+    if (usaTldIncomum && dominioCoreFalso.length > 4) {
+        return dominioCoreFalso + '.com'; 
     }
 
-    const nomeLower = (nome || '').toLowerCase();
-    
-    // 🚨 AS VARIÁVEIS QUE FALTAVAM (Fundamentais para o código não quebrar)
-    const dominioFalsoLower = (dominioFalso || '').toLowerCase();
-    const dominioCoreFalso = dominioFalsoLower.split('.')[0]; // Ex: recorta o "alyssa" do "alyssa.online"
-    
+    // ==========================================
+    // 1. A INTELIGÊNCIA ARTIFICIAL
+    // ==========================================
+    // Só confiamos na IA se o e-mail passou no teste de TLDs acima.
+    if (dominioDaIA && dominioDaIA !== 'N/A' && dominioDaIA !== 'Desconhecido') {
+        return dominioDaIA.toLowerCase().trim();
+    }
+
     let desofuscado = dominioFalsoLower;
 
     // 2. DESOFUSCAÇÃO MATEMÁTICA CONDICIONAL
@@ -251,17 +264,6 @@ function descobrirDominioRealDinamico(nome, dominioFalso, dominioDaIA, nivelRisc
     if (desofuscado !== dominioFalsoLower) return desofuscado;
 
     // ==========================================
-    // 🌍 CAMADA 3.5: TLD SQUATTING
-    // ==========================================
-    const tldsIncomuns = ['.online', '.xyz', '.site', '.top', '.vip', '.shop', '.tech', '.store', '.click', '.live', '.info', '.cc'];
-    const usaTldIncomum = tldsIncomuns.some(tld => dominioFalsoLower.endsWith(tld));
-
-    if (usaTldIncomum && dominioCoreFalso.length > 4) {
-        // Se a extensão é suspeita, devolvemos a versão ".com"
-        return dominioCoreFalso + '.com';
-    }
-
-    // ==========================================
     // 🔒 CAMADA 4: GUARDIÃO DINÂMICO & EXTRATOR
     // ==========================================
     if (dominioCoreFalso.length >= 2 && nomeLower.includes(dominioCoreFalso)) {
@@ -270,7 +272,7 @@ function descobrirDominioRealDinamico(nome, dominioFalso, dominioDaIA, nivelRisc
 
     if (nivelRisco < 40) return dominioFalsoLower;
 
-    // 🟢 TRAVA ANTI-PESSOAS: Se for "Alyssa Rathbone", aborta a criação de site
+    // 🟢 TRAVA ANTI-PESSOAS
     const partesNome = nomeLower.trim().split(' ');
     if (partesNome.length >= 2 && !dominioCoreFalso.includes(partesNome[0])) {
         return dominioFalsoLower; 
@@ -288,7 +290,6 @@ function descobrirDominioRealDinamico(nome, dominioFalso, dominioDaIA, nivelRisc
     const nomeSemAcentos = nomeLower.normalize('NFD').replace(/[\u0300-\u036f]/g, "");
     let marcaExtraida = nomeSemAcentos.replace(/[^a-z0-9]/g, '');
 
-    // Inteligência Geográfica
     if (marcaExtraida.length > 2 && marcaExtraida.length < 20) {
         let terminacao = '.com';
         if (dominioFalsoLower.includes('.')) {
