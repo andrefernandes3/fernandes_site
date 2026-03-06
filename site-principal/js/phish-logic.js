@@ -72,8 +72,11 @@ function exibirResultados(res) {
         res.Veredito = 'PERIGOSO';
         res.Recomendacao = "ALERTA MÁXIMO: O nosso motor visual detetou uma fraude (Typosquatting/TLD Squatting) que tentou enganar a Inteligência Artificial. Trate como tentativa de golpe imediata!";
         
-        if (!res.Motivos) res.Motivos = [];
-        res.Motivos.unshift("🚨 O domínio de envio tenta falsificar o domínio oficial da empresa (Typosquatting/TLD Abuse).");
+        // 🟢 A CORREÇÃO: Apagamos o array antigo da IA e criamos um novo apenas com as verdades do SOC!
+        res.Motivos = [
+            "🚨 O domínio de envio tenta falsificar o domínio oficial da empresa (Typosquatting/TLD Abuse).",
+            "⚠️ O conteúdo do e-mail foi estruturado para enganar filtros de segurança e simular legitimidade."
+        ];
     }
 
     // ==========================================
