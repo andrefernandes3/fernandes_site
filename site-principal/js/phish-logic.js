@@ -226,82 +226,178 @@ function criarDetalhesAdicionais(res) {
     }
     const dominioFalso = extrairDominioRaiz(dominioBruto);
 
-// 🟢 MOTOR DINÂMICO DE TYPOSQUATTING (100% Inteligente e Sem Dicionários)
-function descobrirDominioRealDinamico(nome, dominioFalso, dominioDaIA, nivelRisco) {
+function descobrirDominioRealDinamico(nome, dominioFalso, dominioDaIA, nivelRisco){
+
     const nomeLower = (nome || '').toLowerCase().trim();
     const dominioFalsoLower = (dominioFalso || '').toLowerCase().trim();
-    const dominioCoreFalso = dominioFalsoLower.split('.')[0]; 
 
-    // ==========================================
-    // 🌍 CAMADA SUPREMA: TLD SQUATTING (Ignora a IA!)
-    // ==========================================
-    // Se o hacker usar um TLD lixo, não acreditamos na IA (a IA pode ter sido enganada).
-    // Nós forçamos imediatamente a conversão para .com!
-    const tldsIncomuns = ['.online', '.xyz', '.site', '.top', '.vip', '.shop', '.tech', '.store', '.click', '.live', '.info', '.cc'];
-    const usaTldIncomum = tldsIncomuns.some(tld => dominioFalsoLower.endsWith(tld));
+    if(!dominioFalsoLower.includes('.'))
+        return dominioFalsoLower;
 
-    if (usaTldIncomum && dominioCoreFalso.length > 4) {
-        return dominioCoreFalso + '.com'; 
+    const partes = dominioFalsoLower.split('.');
+    const tld = partes.pop();
+    const dominioCore = partes.pop() || '';
+    const subdominio = partes.join('.');
+
+    // ================================
+    // 1️⃣ LISTA DE TLD SUSPEITOS
+    // ================================
+
+    const tldsSuspeitos = [
+        'xyz','online','site','top','vip','shop','tech',
+        'store','click','live','info','cc','work','today',
+        'support','email','digital','world','buzz','cloud'
+    ];
+
+    const tldSuspeito = tldsSuspeitos.includes(tld);
+
+    // ================================
+    // 2️⃣ NORMALIZAÇÃO ANTI-HOMOGLYPH
+    // ================================
+
+    function normalizar(texto){
+        return texto
+        .replace(/0/g,'o')
+        .replace(/1/g,'l')
+        .replace(/3/g,'e')
+        .replace(/5/g,'s')
+        .replace(/7/g,'t')
+        .replace(/@/g,'a')
+        .replace(/\$/g,'s')
+        .replace(/!/g,'i')
+        .replace(/rn/g,'m')
+        .replace(/vv/g,'w')
+        .replace(/[^a-z0-9]/g,'');
     }
 
-    // ==========================================
-    // 1. A INTELIGÊNCIA ARTIFICIAL
-    // ==========================================
-    // Só confiamos na IA se o e-mail passou no teste de TLDs acima.
-    if (dominioDaIA && dominioDaIA !== 'N/A' && dominioDaIA !== 'Desconhecido') {
+    const dominioNormal = normalizar(dominioCore);
+
+    // ================================
+    // 3️⃣ EXTRAÇÃO DINÂMICA DE MARCA
+    // ================================
+
+    let marca = nomeLower
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g,"")
+        .replace(/[^a-z0-9]/g,'');
+
+    if(marca.length > 20)
+        marca = marca.substring(0,20);
+
+    // ================================
+    // 4️⃣ LEVENSHTEIN (similaridade)
+    // ================================
+
+    function levenshtein(a,b){
+
+        if(!a || !b) return 99;
+
+        const matrix = [];
+
+        for(let i=0;i<=b.length;i++)
+            matrix[i] = [i];
+
+        for(let j=0;j<=a.length;j++)
+            matrix[0][j] = j;
+
+        for(let i=1;i<=b.length;i++){
+            for(let j=1;j<=a.length;j++){
+
+                if(b.charAt(i-1) === a.charAt(j-1))
+                    matrix[i][j] = matrix[i-1][j-1];
+                else
+                    matrix[i][j] = Math.min(
+                        matrix[i-1][j-1] + 1,
+                        matrix[i][j-1] + 1,
+                        matrix[i-1][j] + 1
+                    );
+            }
+        }
+
+        return matrix[b.length][a.length];
+    }
+
+    // ================================
+    // 5️⃣ SCORE DE FRAUDE
+    // ================================
+
+    let score = 0;
+
+    if(tldSuspeito)
+        score += 40;
+
+    if(subdominio.length > 0)
+        score += 15;
+
+    if(dominioNormal !== dominioCore)
+        score += 20;
+
+    if(marca){
+        const dist = levenshtein(dominioNormal,marca);
+
+        if(dist <= 2)
+            score += 35;
+    }
+
+    if(nivelRisco > 60)
+        score += 25;
+
+    // ================================
+    // 6️⃣ TLD SQUATTING
+    // ================================
+
+    if(tldSuspeito && dominioNormal.length > 3){
+        return dominioNormal + '.com';
+    }
+
+    // ================================
+    // 7️⃣ TYPOSQUATTING
+    // ================================
+
+    if(marca){
+        const dist = levenshtein(dominioNormal,marca);
+
+        if(dist <= 2){
+            return marca + '.com';
+        }
+    }
+
+    // ================================
+    // 8️⃣ SUBDOMÍNIO ENGANOSO
+    // ================================
+
+    if(subdominio){
+
+        const primeiroSub = subdominio.split('.')[0];
+
+        if(nomeLower.includes(primeiroSub)){
+            return primeiroSub + '.com';
+        }
+
+    }
+
+    // ================================
+    // 9️⃣ IA (somente se seguro)
+    // ================================
+
+    if(
+        dominioDaIA &&
+        dominioDaIA !== 'N/A' &&
+        dominioDaIA !== 'Desconhecido' &&
+        score < 30
+    ){
         return dominioDaIA.toLowerCase().trim();
     }
 
-    let desofuscado = dominioFalsoLower;
+    // ================================
+    // 🔟 SCORE ALTO → CORREÇÃO
+    // ================================
 
-    // 2. DESOFUSCAÇÃO MATEMÁTICA CONDICIONAL
-    if (!nomeLower.includes('0')) desofuscado = desofuscado.replace(/0/g, 'o');
-    if (!nomeLower.includes('1')) desofuscado = desofuscado.replace(/1/g, 'l');
-    if (!nomeLower.includes('3')) desofuscado = desofuscado.replace(/3/g, 'e');
-    if (!nomeLower.includes('5')) desofuscado = desofuscado.replace(/5/g, 's');
-    desofuscado = desofuscado.replace(/rn/g, 'm').replace(/@/g, 'a');
-
-    if (desofuscado !== dominioFalsoLower) return desofuscado;
-
-    // ==========================================
-    // 🔒 CAMADA 4: GUARDIÃO DINÂMICO & EXTRATOR
-    // ==========================================
-    if (dominioCoreFalso.length >= 2 && nomeLower.includes(dominioCoreFalso)) {
-        return dominioFalsoLower; 
+    if(score >= 45 && dominioNormal.length > 3){
+        return dominioNormal + '.com';
     }
 
-    if (nivelRisco < 40) return dominioFalsoLower;
-
-    // 🟢 TRAVA ANTI-PESSOAS
-    const partesNome = nomeLower.trim().split(' ');
-    if (partesNome.length >= 2 && !dominioCoreFalso.includes(partesNome[0])) {
-        return dominioFalsoLower; 
-    }
-
-    // 3. EXTRATOR DINÂMICO (Plano C)
-    if (nomeLower === 'desconhecido' || nomeLower.includes('@')) {
-        return dominioFalsoLower; 
-    }
-
-    if (nomeLower.includes('.') && !nomeLower.includes(' ') && /\.[a-z]{2,3}$/.test(nomeLower)) {
-        return nomeLower; 
-    }
-
-    const nomeSemAcentos = nomeLower.normalize('NFD').replace(/[\u0300-\u036f]/g, "");
-    let marcaExtraida = nomeSemAcentos.replace(/[^a-z0-9]/g, '');
-
-    if (marcaExtraida.length > 2 && marcaExtraida.length < 20) {
-        let terminacao = '.com';
-        if (dominioFalsoLower.includes('.')) {
-            const hackerRaiz = dominioCoreFalso;
-            if (hackerRaiz.includes(marcaExtraida.substring(0, 3)) || marcaExtraida.includes(hackerRaiz.substring(0, 3))) {
-                terminacao = dominioFalsoLower.substring(dominioFalsoLower.indexOf('.'));
-            }
-        }
-        return `${marcaExtraida}${terminacao}`.toLowerCase(); 
-    }
-
-    return dominioFalsoLower; 
+    return dominioFalsoLower;
 }
     const dominioReal = descobrirDominioRealDinamico(nomeLimpo, dominioFalso, res.dominio_oficial, res.Nivel_Risco || 0);
 
