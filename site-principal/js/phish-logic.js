@@ -508,8 +508,8 @@ function toggleHeaders() {
 // ==========================================
 function gerarPDF() {
     Swal.fire({
-        title: 'A Preparar Documento...',
-        text: 'O Relatório Forense será aberto. Selecione "Guardar como PDF" no destino.',
+        title: 'Gerando o Documento...',
+        text: 'O Relatório Forense será aberto. Selecione "Salvar como PDF" no destino.',
         icon: 'info',
         timer: 1500,
         showConfirmButton: false
