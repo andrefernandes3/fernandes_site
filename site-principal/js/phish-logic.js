@@ -362,9 +362,23 @@ function descobrirDominioRealDinamico(nome, dominioFalso, dominioDaIA, nivelRisc
     if(!dominioFalsoLower.includes('.')) return dominioFalsoLower;
 
     const partes = dominioFalsoLower.split('.');
-    const tld = partes.pop();
-    const dominioCore = partes.pop() || '';
-    const subdominio = partes.join('.');
+    let tld = '';
+    let dominioCore = '';
+    let subdominio = '';
+
+    // 🧠 NOVIDADE: Detetor de TLDs Compostos (.com.br, .gov.br, .co.uk)
+    const penultimaParte = partes.length >= 3 ? partes[partes.length - 2] : '';
+    const tldsDuplos = ['com', 'gov', 'org', 'net', 'co', 'edu', 'jus', 'mil'];
+
+    if (partes.length >= 3 && tldsDuplos.includes(penultimaParte)) {
+        tld = partes[partes.length - 2] + '.' + partes[partes.length - 1]; // Ex: "com.br"
+        dominioCore = partes[partes.length - 3]; // Ex: "b3"
+        subdominio = partes.slice(0, partes.length - 3).join('.');
+    } else {
+        tld = partes[partes.length - 1]; // Ex: "com"
+        dominioCore = partes.length >= 2 ? partes[partes.length - 2] : ''; // Ex: "amazon"
+        subdominio = partes.slice(0, partes.length - 2).join('.');
+    }
 
     // ================================
     // 1️⃣ LISTA DE TLD SUSPEITOS
