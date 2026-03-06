@@ -1,7 +1,6 @@
 // ==========================================
 // LÓGICA DE ANÁLISE E COMUNICAÇÃO COM A API
 // ==========================================
-//versao que funciona
 async function processarAnalise() {
     const btn = document.getElementById('btnAnalisar');
     const originalText = btn.innerHTML;
@@ -52,34 +51,52 @@ function exibirResultados(res) {
     const panel = document.getElementById('resultPanel');
     panel.classList.remove('hidden');
 
-    // ===== CARD MODERNO =====
+    // ==========================================
+    // 🚨 1. INTERCEPTADOR SUPREMO (A Matemática atua ANTES do HTML)
+    // ==========================================
+    const nomeLimpo = res.remetente ? res.remetente.replace(/["']/g, '') : 'Desconhecido';
+    
+    let dominioBruto = res.detalhes_autenticacao?.dominio_autenticado;
+    if (!dominioBruto || dominioBruto === 'N/A' || !dominioBruto.includes('.')) {
+        dominioBruto = res.return_path?.split('@')[1] || 'Desconhecido';
+    }
+    
+    const dominioFalso = extrairDominioRaiz(dominioBruto);
+    const dominioReal = descobrirDominioRealDinamico(nomeLimpo, dominioFalso, res.dominio_oficial, res.Nivel_Risco || 0);
+    const dominioFalsoLimpo = (dominioFalso || '').toLowerCase().trim();
+
+    // A MÁGICA: Se a matemática detetar fraude, mas a IA disser que é seguro (<40)
+    if (dominioReal !== dominioFalsoLimpo && (res.Nivel_Risco || 0) < 40) {
+        console.warn("🚨 OVERRIDE: IA Enganada. Forçando Risco para 95%!");
+        res.Nivel_Risco = 95;
+        res.Veredito = 'PERIGOSO';
+        res.Recomendacao = "ALERTA MÁXIMO: O nosso motor visual detetou uma fraude (Typosquatting/TLD Squatting) que tentou enganar a Inteligência Artificial. Trate como tentativa de golpe imediata!";
+        
+        if (!res.Motivos) res.Motivos = [];
+        res.Motivos.unshift("🚨 O domínio de envio tenta falsificar o domínio oficial da empresa (Typosquatting/TLD Abuse).");
+    }
+
+    // ==========================================
+    // 2. DESENHO DO CARD MODERNO
+    // ==========================================
     const percentual = res.Nivel_Risco || 0;
 
-    // Atualizar o percentual
     const riskValue = document.getElementById('riskValue');
     if (riskValue) {
         riskValue.textContent = percentual + '%';
     }
 
-    // Atualizar o gradiente
     const riskGradient = document.getElementById('riskGradient');
     if (riskGradient) {
         const angle = (percentual / 100) * 360;
-
-        // Definir cor baseada no nível de risco
         let color;
-        if (percentual < 30) {
-            color = '#10b981'; // verde - seguro
-        } else if (percentual <= 70) {
-            color = '#f59e0b'; // amarelo - suspeito
-        } else {
-            color = '#dc2626'; // vermelho - perigoso
-        }
+        if (percentual < 30) color = '#10b981'; // verde
+        else if (percentual <= 70) color = '#f59e0b'; // amarelo
+        else color = '#dc2626'; // vermelho
 
         riskGradient.style.background = `conic-gradient(from 0deg, ${color} 0deg, ${color} ${angle}deg, #333 ${angle}deg, #333 360deg)`;
     }
 
-    // Atualizar o badge
     const riskBadge = document.getElementById('riskBadge');
     if (riskBadge) {
         let classeBadge = '';
@@ -91,7 +108,6 @@ function exibirResultados(res) {
         riskBadge.className = `badge ${classeBadge}`;
     }
 
-    // Veredito
     const statusLabel = document.getElementById('statusLabel');
     let statusClasse = '';
     if (percentual < 30) statusClasse = 'badge-success';
@@ -102,7 +118,6 @@ function exibirResultados(res) {
     statusLabel.className = `badge fs-3 ${statusClasse}`;
     document.getElementById('recomendacao').innerHTML = (res.Recomendacao || 'Nenhuma recomendação específica.').replace(/\n/g, '<br>');
 
-    // Motivos
     const listaMotivos = document.getElementById('listaMotivos');
     listaMotivos.innerHTML = '';
     if (res.Motivos && res.Motivos.length > 0) {
@@ -126,7 +141,6 @@ function exibirResultados(res) {
     if (res.Veredito !== 'SEGURO' && res.remetente && res.remetente.toLowerCase().includes('receita')) {
         const alertDiv = document.createElement('div');
         alertDiv.className = 'alert-section mb-3';
-        // Removemos o 'alert-danger' do Bootstrap e forçamos o fundo escuro e letras brancas
         alertDiv.innerHTML = `
             <div class="alert" style="background-color: #1e1e1e; border: 1px solid #333; border-left: 4px solid #dc2626; color: #ffffff;">
                 <h5 style="color: #ffffff; font-weight: bold;"><i class="bi bi-exclamation-triangle-fill text-danger"></i> 🚨 ALERTA GOVERNO</h5>
@@ -136,8 +150,9 @@ function exibirResultados(res) {
         alertasContainer.appendChild(alertDiv);
     }
 
+    // Passamos os domínios calculados para o criador de HTML
     if (res.detalhes_autenticacao) {
-        const detalhes = criarDetalhesAdicionais(res);
+        const detalhes = criarDetalhesAdicionais(res, dominioReal, dominioFalso, nomeLimpo);
         panel.appendChild(detalhes);
     }
 
@@ -145,261 +160,56 @@ function exibirResultados(res) {
 }
 
 // ==========================================
-// CRIAÇÃO DOS DETALHES ADICIONAIS (Completo)
+// CRIAÇÃO DOS DETALHES ADICIONAIS
 // ==========================================
-function criarDetalhesAdicionais(res) {
+function criarDetalhesAdicionais(res, dominioReal, dominioFalso, nomeLimpo) {
     const container = document.createElement('div');
     container.className = 'detalhes-adicionais mt-5';
 
-    // ==========================================
-    // 1. INJEÇÃO DA ANÁLISE DO VIRUSTOTAL (Lateral)
-    // ==========================================
+    // 1. ANÁLISE DO VIRUSTOTAL
     const painelAlertas = document.getElementById('alertasExtras');
     if (res.vt_stats) {
-            // 🚩 NOVO: Cenário de Domínio Fantasma (Erro 404 no VT)
-            if (res.vt_stats.fantasma) {
-                painelAlertas.innerHTML += `
-                    <div class="alert mt-3 shadow-sm" style="border: 1px solid #ffc107; background: #332701;">
-                        <h5 class="alert-heading" style="color: #ffc107;">
-                            <i class="bi bi-exclamation-triangle-fill me-2"></i> VirusTotal: Domínio Fantasma
-                        </h5>
-                        <p class="mb-0 text-light" style="font-size: 0.9em;">
-                            O domínio <strong class="text-warning">${res.vt_stats.dominio}</strong> não possui qualquer histórico na base de dados. <br><br>
-                            Isto é uma <strong>Red Flag</strong> severa: indica um site recém-criado, frequentemente usado em ataques de Phishing direcionados antes que os antivírus os consigam detetar.
-                        </p>
-                    </div>
-                `;
-            } 
-            // Cenário Normal: O VT conhece o domínio
-            else {
-                const malicious = res.vt_stats.malicious || 0;
-                const suspicious = res.vt_stats.suspicious || 0;
-                const isMalicious = malicious > 0 || suspicious > 0;
-                const totalAlertas = malicious + suspicious;
+        if (res.vt_stats.fantasma) {
+            painelAlertas.innerHTML += `
+                <div class="alert mt-3 shadow-sm" style="border: 1px solid #ffc107; background: #332701;">
+                    <h5 class="alert-heading" style="color: #ffc107;">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i> VirusTotal: Domínio Fantasma
+                    </h5>
+                    <p class="mb-0 text-light" style="font-size: 0.9em;">
+                        O domínio <strong class="text-warning">${res.vt_stats.dominio}</strong> não possui qualquer histórico na base de dados. <br><br>
+                        Isto é uma <strong>Red Flag</strong> severa: indica um site recém-criado, frequentemente usado em ataques de Phishing direcionados antes que os antivírus os consigam detetar.
+                    </p>
+                </div>
+            `;
+        } else {
+            const malicious = res.vt_stats.malicious || 0;
+            const suspicious = res.vt_stats.suspicious || 0;
+            const isMalicious = malicious > 0 || suspicious > 0;
+            const totalAlertas = malicious + suspicious;
 
-                const vtColor = isMalicious ? 'danger' : 'success';
-                const vtTitle = isMalicious ? 'Ameaça Detetada' : 'Domínio Limpo';
-                const vtText = isMalicious 
-                    ? `<strong>${totalAlertas} motores</strong> de antivírus marcaram o link como malicioso ou suspeito.` 
-                    : `Nenhum motor de antivírus sinalizou o link alvo.`;
+            const vtColor = isMalicious ? 'danger' : 'success';
+            const vtTitle = isMalicious ? 'Ameaça Detetada' : 'Domínio Limpo';
+            const vtText = isMalicious 
+                ? `<strong>${totalAlertas} motores</strong> de antivírus marcaram o link como malicioso ou suspeito.` 
+                : `Nenhum motor de antivírus sinalizou o link alvo.`;
 
-                painelAlertas.innerHTML += `
-                    <div class="alert alert-${vtColor} mt-3 shadow-sm" style="border: 1px solid #444; background: #222;">
-                        <h5 class="alert-heading text-${vtColor}">
-                            <img src="https://www.virustotal.com/gui/images/favicon.ico" style="width:16px; margin-right:5px; margin-top:-3px;">
-                            VirusTotal: ${vtTitle}
-                        </h5>
-                        <p class="mb-0 text-light" style="font-size: 0.9em;">${vtText}</p>
-                    </div>
-                `;
-            }
+            painelAlertas.innerHTML += `
+                <div class="alert alert-${vtColor} mt-3 shadow-sm" style="border: 1px solid #444; background: #222;">
+                    <h5 class="alert-heading text-${vtColor}">
+                        <img src="https://www.virustotal.com/gui/images/favicon.ico" style="width:16px; margin-right:5px; margin-top:-3px;">
+                        VirusTotal: ${vtTitle}
+                    </h5>
+                    <p class="mb-0 text-light" style="font-size: 0.9em;">${vtText}</p>
+                </div>
+            `;
         }
-   
-   // ==========================================
-    // 2. PAINEL DE AUTENTICAÇÃO, ORIGEM E SPOOFING
-    // ==========================================
+    }
+
+    // 2. PAINEL DE AUTENTICAÇÃO E ORIGEM
     const auth = res.detalhes_autenticacao || {};
     const spfColor = auth.spf === 'pass' ? 'success' : (auth.spf === 'none' ? 'secondary' : 'danger');
     const dkimColor = auth.dkim === 'pass' ? 'success' : (auth.dkim === 'none' ? 'secondary' : 'danger');
     const dmarcColor = auth.dmarc === 'pass' ? 'success' : (auth.dmarc === 'none' ? 'secondary' : 'danger');
-
-    // Extração Limpa de Variáveis
-    const nomeLimpo = res.remetente ? res.remetente.replace(/["']/g, '') : 'Desconhecido';
-    // 🟢 CORREÇÃO: Trava de segurança para garantir que é um Domínio real (tem de ter um ponto)
-    let dominioBruto = auth.dominio_autenticado;
-    if (!dominioBruto || dominioBruto === 'N/A' || !dominioBruto.includes('.')) {
-        // Se o Backend se enganou e mandou "no-reply", nós cortamos o SMTP e pegamos o "fernandesit.com"
-        dominioBruto = res.return_path?.split('@')[1] || 'Desconhecido';
-    }
-
-    // 🟢 TUNING DE SOC: Extrator de Domínio Raiz (Remove subdomínios como user.hostinger)
-    function extrairDominioRaiz(dominio) {
-        if (dominio === 'Desconhecido' || dominio === 'N/A') return dominio;
-        const partes = dominio.split('.');
-        if (partes.length > 2) {
-            if (partes[partes.length - 2] === 'com' || partes[partes.length - 2] === 'co' || partes[partes.length - 2] === 'gov') {
-                return partes.slice(-3).join('.');
-            }
-            return partes.slice(-2).join('.');
-        }
-        return dominio;
-    }
-    const dominioFalso = extrairDominioRaiz(dominioBruto);
-
-function descobrirDominioRealDinamico(nome, dominioFalso, dominioDaIA, nivelRisco){
-
-    const nomeLower = (nome || '').toLowerCase().trim();
-    const dominioFalsoLower = (dominioFalso || '').toLowerCase().trim();
-
-    if(!dominioFalsoLower.includes('.'))
-        return dominioFalsoLower;
-
-    const partes = dominioFalsoLower.split('.');
-    const tld = partes.pop();
-    const dominioCore = partes.pop() || '';
-    const subdominio = partes.join('.');
-
-    // ================================
-    // 1️⃣ LISTA DE TLD SUSPEITOS
-    // ================================
-
-    const tldsSuspeitos = [
-        'xyz','online','site','top','vip','shop','tech',
-        'store','click','live','info','cc','work','today',
-        'support','email','digital','world','buzz','cloud'
-    ];
-
-    const tldSuspeito = tldsSuspeitos.includes(tld);
-
-    // ================================
-    // 2️⃣ NORMALIZAÇÃO ANTI-HOMOGLYPH
-    // ================================
-
-    function normalizar(texto){
-        return texto
-        .replace(/0/g,'o')
-        .replace(/1/g,'l')
-        .replace(/3/g,'e')
-        .replace(/5/g,'s')
-        .replace(/7/g,'t')
-        .replace(/@/g,'a')
-        .replace(/\$/g,'s')
-        .replace(/!/g,'i')
-        .replace(/rn/g,'m')
-        .replace(/vv/g,'w')
-        .replace(/[^a-z0-9]/g,'');
-    }
-
-    const dominioNormal = normalizar(dominioCore);
-
-    // ================================
-    // 3️⃣ EXTRAÇÃO DINÂMICA DE MARCA
-    // ================================
-
-    let marca = nomeLower
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g,"")
-        .replace(/[^a-z0-9]/g,'');
-
-    if(marca.length > 20)
-        marca = marca.substring(0,20);
-
-    // ================================
-    // 4️⃣ LEVENSHTEIN (similaridade)
-    // ================================
-
-    function levenshtein(a,b){
-
-        if(!a || !b) return 99;
-
-        const matrix = [];
-
-        for(let i=0;i<=b.length;i++)
-            matrix[i] = [i];
-
-        for(let j=0;j<=a.length;j++)
-            matrix[0][j] = j;
-
-        for(let i=1;i<=b.length;i++){
-            for(let j=1;j<=a.length;j++){
-
-                if(b.charAt(i-1) === a.charAt(j-1))
-                    matrix[i][j] = matrix[i-1][j-1];
-                else
-                    matrix[i][j] = Math.min(
-                        matrix[i-1][j-1] + 1,
-                        matrix[i][j-1] + 1,
-                        matrix[i-1][j] + 1
-                    );
-            }
-        }
-
-        return matrix[b.length][a.length];
-    }
-
-    // ================================
-    // 5️⃣ SCORE DE FRAUDE
-    // ================================
-
-    let score = 0;
-
-    if(tldSuspeito)
-        score += 40;
-
-    if(subdominio.length > 0)
-        score += 15;
-
-    if(dominioNormal !== dominioCore)
-        score += 20;
-
-    if(marca){
-        const dist = levenshtein(dominioNormal,marca);
-
-        if(dist <= 2)
-            score += 35;
-    }
-
-    if(nivelRisco > 60)
-        score += 25;
-
-    // ================================
-    // 6️⃣ TLD SQUATTING
-    // ================================
-
-    if(tldSuspeito && dominioNormal.length > 3){
-        return dominioNormal + '.com';
-    }
-
-    // ================================
-    // 7️⃣ TYPOSQUATTING
-    // ================================
-
-    if(marca){
-        const dist = levenshtein(dominioNormal,marca);
-
-        if(dist <= 2){
-            return marca + '.com';
-        }
-    }
-
-    // ================================
-    // 8️⃣ SUBDOMÍNIO ENGANOSO
-    // ================================
-
-    if(subdominio){
-
-        const primeiroSub = subdominio.split('.')[0];
-
-        if(nomeLower.includes(primeiroSub)){
-            return primeiroSub + '.com';
-        }
-
-    }
-
-    // ================================
-    // 9️⃣ IA (somente se seguro)
-    // ================================
-
-    if(
-        dominioDaIA &&
-        dominioDaIA !== 'N/A' &&
-        dominioDaIA !== 'Desconhecido' &&
-        score < 30
-    ){
-        return dominioDaIA.toLowerCase().trim();
-    }
-
-    // ================================
-    // 🔟 SCORE ALTO → CORREÇÃO
-    // ================================
-
-    if(score >= 45 && dominioNormal.length > 3){
-        return dominioNormal + '.com';
-    }
-
-    return dominioFalsoLower;
-}
-    const dominioReal = descobrirDominioRealDinamico(nomeLimpo, dominioFalso, res.dominio_oficial, res.Nivel_Risco || 0);
 
     const authOriginHtml = `
         <div class="row mt-4">
@@ -459,9 +269,7 @@ function descobrirDominioRealDinamico(nome, dominioFalso, dominioDaIA, nivelRisc
         </div>
     `;
 
-    // ==========================================
     // 3. CONSTRUÇÃO DA LISTA DE URLs
-    // ==========================================
     let urlsHtml = '';
     if (res.urls_encontradas && res.urls_encontradas.length > 0) {
         const escapeHtml = (unsafe) => unsafe.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
@@ -494,9 +302,7 @@ function descobrirDominioRealDinamico(nome, dominioFalso, dominioDaIA, nivelRisc
         `;
     }
 
-    // ==========================================
     // 4. VISUALIZADOR DA SANDBOX (urlscan.io)
-    // ==========================================
     let sandboxHtml = '';
     if (res.urlscan_uuid) {
         const linkRelatorio = `https://urlscan.io/result/${res.urlscan_uuid}/`;
@@ -526,15 +332,152 @@ function descobrirDominioRealDinamico(nome, dominioFalso, dominioDaIA, nivelRisc
                 </div>
             </div>
         `;
-
         setTimeout(() => { pollUrlScanImage(res.urlscan_uuid); }, 100);
     }
 
-    // Junta Tudo no Container Central
     container.innerHTML = authOriginHtml + urlsHtml + sandboxHtml;
-
     return container;
 }
+
+// ==========================================
+// FUNÇÕES GLOBAIS DA ENGENHARIA DO DOMÍNIO
+// ==========================================
+
+function extrairDominioRaiz(dominio) {
+    if (dominio === 'Desconhecido' || dominio === 'N/A') return dominio;
+    const partes = dominio.split('.');
+    if (partes.length > 2) {
+        if (partes[partes.length - 2] === 'com' || partes[partes.length - 2] === 'co' || partes[partes.length - 2] === 'gov') {
+            return partes.slice(-3).join('.');
+        }
+        return partes.slice(-2).join('.');
+    }
+    return dominio;
+}
+
+function descobrirDominioRealDinamico(nome, dominioFalso, dominioDaIA, nivelRisco){
+    const nomeLower = (nome || '').toLowerCase().trim();
+    const dominioFalsoLower = (dominioFalso || '').toLowerCase().trim();
+
+    if(!dominioFalsoLower.includes('.')) return dominioFalsoLower;
+
+    const partes = dominioFalsoLower.split('.');
+    const tld = partes.pop();
+    const dominioCore = partes.pop() || '';
+    const subdominio = partes.join('.');
+
+    // ================================
+    // 1️⃣ LISTA DE TLD SUSPEITOS
+    // ================================
+    const tldsSuspeitos = [
+        'xyz','online','site','top','vip','shop','tech',
+        'store','click','live','info','cc','work','today',
+        'support','email','digital','world','buzz','cloud'
+    ];
+    const tldSuspeito = tldsSuspeitos.includes(tld);
+
+    // ================================
+    // 2️⃣ NORMALIZAÇÃO ANTI-HOMOGLYPH
+    // ================================
+    function normalizar(texto){
+        return texto
+        .replace(/0/g,'o').replace(/1/g,'l').replace(/3/g,'e')
+        .replace(/5/g,'s').replace(/7/g,'t').replace(/@/g,'a')
+        .replace(/\$/g,'s').replace(/!/g,'i').replace(/rn/g,'m')
+        .replace(/vv/g,'w').replace(/[^a-z0-9]/g,'');
+    }
+    const dominioNormal = normalizar(dominioCore);
+
+    // ================================
+    // 3️⃣ EXTRAÇÃO DINÂMICA DE MARCA
+    // ================================
+    let marca = nomeLower
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g,"")
+        .replace(/[^a-z0-9]/g,'');
+
+    if(marca.length > 20) marca = marca.substring(0,20);
+
+    // ================================
+    // 4️⃣ LEVENSHTEIN (similaridade)
+    // ================================
+    function levenshtein(a,b){
+        if(!a || !b) return 99;
+        const matrix = [];
+        for(let i=0;i<=b.length;i++) matrix[i] = [i];
+        for(let j=0;j<=a.length;j++) matrix[0][j] = j;
+        for(let i=1;i<=b.length;i++){
+            for(let j=1;j<=a.length;j++){
+                if(b.charAt(i-1) === a.charAt(j-1))
+                    matrix[i][j] = matrix[i-1][j-1];
+                else
+                    matrix[i][j] = Math.min(
+                        matrix[i-1][j-1] + 1,
+                        matrix[i][j-1] + 1,
+                        matrix[i-1][j] + 1
+                    );
+            }
+        }
+        return matrix[b.length][a.length];
+    }
+
+    // ================================
+    // 5️⃣ SCORE DE FRAUDE
+    // ================================
+    let score = 0;
+    if(tldSuspeito) score += 40;
+    if(subdominio.length > 0) score += 15;
+    if(dominioNormal !== dominioCore) score += 20;
+    if(marca){
+        const dist = levenshtein(dominioNormal,marca);
+        if(dist <= 2) score += 35;
+    }
+    if(nivelRisco > 60) score += 25;
+
+    // ================================
+    // 6️⃣ TLD SQUATTING
+    // ================================
+    if(tldSuspeito && dominioNormal.length > 3){
+        return dominioNormal + '.com';
+    }
+
+    // ================================
+    // 7️⃣ TYPOSQUATTING
+    // ================================
+    if(marca){
+        const dist = levenshtein(dominioNormal,marca);
+        if(dist <= 2){
+            return marca + '.com';
+        }
+    }
+
+    // ================================
+    // 8️⃣ SUBDOMÍNIO ENGANOSO
+    // ================================
+    if(subdominio){
+        const primeiroSub = subdominio.split('.')[0];
+        if(nomeLower.includes(primeiroSub)){
+            return primeiroSub + '.com';
+        }
+    }
+
+    // ================================
+    // 9️⃣ IA (somente se seguro)
+    // ================================
+    if(dominioDaIA && dominioDaIA !== 'N/A' && dominioDaIA !== 'Desconhecido' && score < 30){
+        return dominioDaIA.toLowerCase().trim();
+    }
+
+    // ================================
+    // 🔟 SCORE ALTO → CORREÇÃO
+    // ================================
+    if(score >= 45 && dominioNormal.length > 3){
+        return dominioNormal + '.com';
+    }
+
+    return dominioFalsoLower;
+}
+
 // ==========================================
 // FUNÇÕES AUXILIARES
 // ==========================================
@@ -572,47 +515,32 @@ function gerarPDF() {
         showConfirmButton: false
     }).then(() => {
         setTimeout(() => {
-            // 1. Guarda o título original do site
             const tituloOriginal = document.title;
-            
-            // 2. Capta o Veredito atual (Seguro, Suspeito ou Perigoso)
             const veredito = document.getElementById('statusLabel').innerText || 'Analise';
-            
-            // 3. Cria um carimbo de tempo único (ex: 2026-03-02_15-30-45)
             const agora = new Date();
-            const dataFormatada = agora.toISOString().slice(0, 10); // YYYY-MM-DD
-            const horaFormatada = agora.toTimeString().slice(0, 8).replace(/:/g, '-'); // HH-MM-SS
-            
-            // 4. Monta o nome profissional do ficheiro
+            const dataFormatada = agora.toISOString().slice(0, 10);
+            const horaFormatada = agora.toTimeString().slice(0, 8).replace(/:/g, '-');
             const nomeFicheiro = `Relatorio-Phishing-${veredito}_${dataFormatada}_${horaFormatada}`;
             
-            // 5. Troca o título do site invisivelmente
             document.title = nomeFicheiro;
-
-            // 6. Chama a impressora nativa
             window.print();
-
-            // 7. Assim que a janela de impressão fecha, restaura o título original
             document.title = tituloOriginal;
-            
         }, 500);
     });
 }
-// ==========================================
-// LEITOR DE ARQUIVOS .EML
-// ==========================================
 
+// ==========================================
+// LEITOR DE ARQUIVOS .EML E INICIALIZAÇÃO
+// ==========================================
 document.addEventListener('DOMContentLoaded', () => {
     const emlInput = document.getElementById('emlFileInput');
     const emailBody = document.getElementById('emailBody');
     const emailHeaders = document.getElementById('emailHeaders');
 
-    // Leitor .eml
     emlInput.addEventListener('change', function (e) {
         const file = e.target.files[0];
         if (!file) return;
 
-        // 🟢 BLINDAGEM: Rejeita tudo o que não seja .eml
         if (!file.name.toLowerCase().endsWith('.eml')) {
             Swal.fire({
                 icon: 'warning',
@@ -622,7 +550,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 color: '#eee',
                 confirmButtonColor: '#00bcd4'
             });
-            this.value = ''; // Limpa o campo para o utilizador tentar novamente
+            this.value = ''; 
             return;
         }
 
@@ -648,10 +576,7 @@ document.addEventListener('DOMContentLoaded', () => {
         };
         reader.readAsText(file, 'UTF-8');
     });
-});
 
-// Inicialização
-document.addEventListener('DOMContentLoaded', function () {
     const riskValue = document.getElementById('riskValue');
     if (riskValue && riskValue.textContent === '') {
         riskValue.textContent = '0%';
@@ -662,20 +587,17 @@ document.addEventListener('DOMContentLoaded', function () {
 // MOTOR DE POLLING (BACKGROUND) DO URLSCAN
 // ==========================================
 function pollUrlScanImage(uuid, attempts = 0) {
-    const maxAttempts = 15; // 15 tentativas no total
+    const maxAttempts = 15;
     const imgUrl = `https://urlscan.io/screenshots/${uuid}.png`;
     const loaderId = `loadingPrint_${uuid}`;
     const imgId = `imgPrint_${uuid}`;
 
-    // 🧠 A MÁGICA: Dá 15 segundos de "avanço" à nuvem na 1ª tentativa. Depois procura a cada 5 segundos.
     const delay = attempts === 0 ? 15000 : 5000;
 
     setTimeout(() => {
-        // Cria uma imagem fantasma para testar se já existe sem dar erros feios na tela
         const img = new Image();
 
         img.onload = () => {
-            // SUCESSO! A foto já existe no servidor. Vamos mostrá-la!
             const targetImg = document.getElementById(imgId);
             const loader = document.getElementById(loaderId);
             if (targetImg && loader) {
@@ -686,12 +608,9 @@ function pollUrlScanImage(uuid, attempts = 0) {
         };
 
         img.onerror = () => {
-            // FALHA: A foto ainda não está pronta.
             if (attempts < maxAttempts) {
-                // Tenta outra vez silenciosamente
                 pollUrlScanImage(uuid, attempts + 1);
             } else {
-                // DESISTE: O tempo esgotou (mais de 1 minuto) ou o hacker bloqueou a foto.
                 const loader = document.getElementById(loaderId);
                 if (loader) {
                     loader.innerHTML = `
@@ -703,7 +622,6 @@ function pollUrlScanImage(uuid, attempts = 0) {
             }
         };
 
-        // Pede a imagem com um código de tempo para furar a cache do navegador
         img.src = `${imgUrl}?t=${new Date().getTime()}`;
     }, delay);
 }
