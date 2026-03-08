@@ -189,7 +189,6 @@ module.exports = async function (context, req) {
     }
 
     const { emailContent, headers } = req.body;
-    const apiKey = process.env.GROQ_API_KEY;
 
     if (!emailContent || emailContent.trim().length < 10) {
         context.res.status = 400; 
@@ -220,11 +219,11 @@ module.exports = async function (context, req) {
     
     // 1. Falha Crítica de Autenticação (Spoofing)
     if (authDetails.spf === 'fail' || authDetails.dmarc === 'fail') {
-        localScore += 35; // Penalização pesada!
+        localScore += 35; 
         evidenciasFortes.push("Falha crítica de autenticação (SPF/DMARC). Alto risco de falsificação de identidade (Spoofing).");
     }
 
-    // 2. Manipulação de Resposta (Reply-To Mismatch) - COM TUNING SOC NÍVEL 2
+    // 2. Manipulação de Resposta (Reply-To Mismatch)
     const replyToMatch = headers.match(/^Reply-To:\s*(.+)$/im);
     let replyToEmail = null;
     if (replyToMatch) {
@@ -232,7 +231,6 @@ module.exports = async function (context, req) {
         replyToEmail = extractEmailText(replyToMatch[1]);
     }
 
-    // 🟢 TUNING NÍVEL 2: Perdoar Bounces E Servidores de Disparo Corporativos (ESPs)
     const smtpReal = (senderData.email_real || '').toLowerCase();
     const isKnownESP = smtpReal.includes('bounce') || 
                        smtpReal.includes('amazonses.com') || 
@@ -241,11 +239,9 @@ module.exports = async function (context, req) {
                        smtpReal.includes('mandrillapp') ||
                        smtpReal.includes('mailchimp');
 
-    // Se o DMARC passa e o servidor de envio é um ESP conhecido, é legítimo.
     const isAuthenticatedESP = authDetails.dmarc === 'pass' && isKnownESP;
 
     if (replyToEmail && senderData.email_real && replyToEmail.toLowerCase() !== smtpReal) {
-        // Só aplicamos a penalização de 30 pontos se NÃO for um servidor autorizado
         if (!isAuthenticatedESP) {
             localScore += 30;
             evidenciasFortes.push(`O endereço de resposta (${replyToEmail}) é diferente do envelope de envio. Tática comum de evasão.`);
@@ -253,7 +249,6 @@ module.exports = async function (context, req) {
     }
 
     // 3. Links Ofuscados e Ataques Homográficos (Punycode)
-    // Identifica links que usam caracteres estranhos disfarçados (ex: xn--microsft-9za.com)
     if (foundUrls && foundUrls.length > 0) {
         const temPunycode = foundUrls.some(u => u.toLowerCase().includes('xn--'));
         if (temPunycode) {
@@ -271,6 +266,7 @@ module.exports = async function (context, req) {
         localScore += 40;
         evidenciasFortes.push(`O remetente diz ser corporativo (${senderData.nome_exibicao}), mas está a usar um e-mail gratuito (${dominioRemetente}).`);
     }
+    
     const evidenciasLeves = [];
 
     if (temAnexoHTML) { localScore += 50; evidenciasFortes.push('Anexo HTML detetado - técnica comum de clone de login'); }
@@ -287,7 +283,6 @@ module.exports = async function (context, req) {
     let primeiraUrlValida = null;
     
     if (foundUrls && foundUrls.length > 0) {
-        // Filtro de Inteligência: Remove links estruturais
         const urlsParaEscanear = foundUrls.filter(u => {
             const l = u.toLowerCase();
             return !l.includes('w3.org') && !l.includes('schema.org') && !l.endsWith('.png') && !l.endsWith('.jpg');
@@ -338,9 +333,8 @@ module.exports = async function (context, req) {
                     evidenciasFortes.push(`VirusTotal sinalizou o domínio (${dominioAlvo}) como MALICIOSO.`);
                 }
             } else if (vtResponse.status === 404) {
-                // 🚩 RED FLAG: O VirusTotal nunca viu este domínio na vida!
                 virusTotalStats = { fantasma: true, dominio: dominioAlvo };
-                localScore += 35; // Aumentamos o risco porque domínios recém-criados são muito perigosos
+                localScore += 35; 
                 evidenciasFortes.push(`O domínio (${dominioAlvo}) não tem histórico no VirusTotal (Possível domínio recém-criado para fraude).`);
             }
         } catch (e) { console.error('Falha no VirusTotal:', e); }
@@ -350,26 +344,63 @@ module.exports = async function (context, req) {
 URLs (${foundUrls.length}): ${foundUrls.slice(0, 5).join('\n')}
 EVIDÊNCIAS: ${evidenciasFortes.join(' | ')}`;
 
+    // ==========================================
+    // MOTOR DE IA - CANIVETE SUÍÇO SOC
+    // ==========================================
     try {
-        const controller = new AbortController(); const timeout = setTimeout(() => controller.abort(), 8000);
-        const groqResponse = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        const controller = new AbortController(); 
+        const timeout = setTimeout(() => controller.abort(), 12000); 
+        let analise = null;
+
+        // --- OPÇÃO 1: GOOGLE GEMINI (1.5 Flash) - ATIVADO ---
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`, {
             method: 'POST',
-            headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                systemInstruction: { parts: [{ text: systemPrompt }] },
+                contents: [{ parts: [{ text: `EMAIL:\n${cleanBodyProcessed}\n\n${intelMastigada}` }] }],
+                generationConfig: { responseMimeType: "application/json", temperature: 0.1 }
+            }), signal: controller.signal
+        });
+        const data = await response.json();
+        analise = JSON.parse(data.candidates[0].content.parts[0].text);
+
+        // --- OPÇÃO 2: GROQ (Llama 3.3 70B) - COMENTADO ---
+        /*
+        const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${process.env.GROQ_API_KEY}`, 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 model: "llama-3.3-70b-versatile",
                 messages: [ { role: "system", content: systemPrompt }, { role: "user", content: `EMAIL:\n${cleanBodyProcessed}\n\n${intelMastigada}` } ],
                 response_format: { type: "json_object" }, max_tokens: 300, temperature: 0.1
             }), signal: controller.signal
         });
+        const data = await response.json();
+        analise = JSON.parse(data.choices[0].message.content);
+        */
+
+        // --- OPÇÃO 3: OPENROUTER (Modelos 100% Gratuitos) - COMENTADO ---
+        /*
+        const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                model: "meta-llama/llama-3-8b-instruct:free",
+                messages: [ { role: "system", content: systemPrompt }, { role: "user", content: `EMAIL:\n${cleanBodyProcessed}\n\n${intelMastigada}` } ],
+                response_format: { type: "json_object" }, temperature: 0.1
+            }), signal: controller.signal
+        });
+        const data = await response.json();
+        analise = JSON.parse(data.choices[0].message.content);
+        */
+
         clearTimeout(timeout);
 
-        const data = await groqResponse.json();
-        let analise = JSON.parse(data.choices[0].message.content);
-        
         let riscoFinal = parseInt(analise.Nivel_Risco) || localScore;
         if (evidenciasFortes.length > 0) riscoFinal = Math.max(riscoFinal, 80);
 
-       const respostaCompleta = {
+        const respostaCompleta = {
             Nivel_Risco: riscoFinal, 
             Veredito: riscoFinal >= 80 ? 'PERIGOSO' : (riscoFinal >= 40 ? 'SUSPEITO' : 'SEGURO'),
             Motivos: analise.Motivos || evidenciasFortes, 
@@ -379,7 +410,7 @@ EVIDÊNCIAS: ${evidenciasFortes.join(' | ')}`;
             return_path: senderData.email_real, 
             ip_remetente: senderIP, 
             anexo_html: temAnexoHTML,
-            dominio_oficial: analise.dominio_oficial || 'N/A', // 🟢 A resposta da IA
+            dominio_oficial: analise.dominio_oficial || 'N/A', 
             urls_encontradas: foundUrls, 
             urlscan_uuid: urlscanUuid,
             vt_stats: virusTotalStats
@@ -388,16 +419,17 @@ EVIDÊNCIAS: ${evidenciasFortes.join(' | ')}`;
         try {
             const db = await connectDb();
             await db.collection('analises_phishing').insertOne({ data_analise: new Date(), ip_cliente: clientIp, remetente_analisado: senderData.email_real, resultado: respostaCompleta, ia_utilizada: true });
-        } catch (e) {}
+        } catch (e) { console.error("Erro MongoDB:", e) }
 
         memoryCache.set(cacheKey, { data: respostaCompleta, timestamp: Date.now() });
-        context.res.status = 200; context.res.body = respostaCompleta;
+        context.res.status = 200; 
+        context.res.body = respostaCompleta;
 
     } catch (error) {
         context.res.status = 200; 
         const falhaCompleta = { 
             Nivel_Risco: localScore, Veredito: localScore >= 80 ? 'PERIGOSO' : (localScore >= 40 ? 'SUSPEITO' : 'SEGURO'), 
-            Motivos: evidenciasFortes.length > 0 ? evidenciasFortes : ['Análise Heurística Rápida'], Recomendacao: 'Motor de IA excedeu tempo.',
+            Motivos: evidenciasFortes.length > 0 ? evidenciasFortes : ['Análise Heurística Rápida'], Recomendacao: 'Motor de IA inativo ou excedeu limite.',
             detalhes_autenticacao: { spf: authDetails.spf, dkim: authDetails.dkim, dmarc: authDetails.dmarc, dominio_autenticado: authDetails.dominioAutenticado },
             remetente: senderData.nome_exibicao, return_path: senderData.email_real, ip_remetente: senderIP, anexo_html: temAnexoHTML,
             urls_encontradas: foundUrls, urlscan_uuid: urlscanUuid , vt_stats: virusTotalStats
