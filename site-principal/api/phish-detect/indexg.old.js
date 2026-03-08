@@ -1,3 +1,4 @@
+// 🟢 Usar Gemini
 const fetch = require('node-fetch');
 const crypto = require('crypto');
 const { MongoClient } = require('mongodb');
@@ -343,17 +344,14 @@ module.exports = async function (context, req) {
     const intelMastigada = `ORIGEM: Nome: ${senderData.nome_exibicao} | SMTP: ${senderData.email_real} | IP: ${senderIP} | SPF: ${authDetails.spf}
 URLs (${foundUrls.length}): ${foundUrls.slice(0, 5).join('\n')}
 EVIDÊNCIAS: ${evidenciasFortes.join(' | ')}`;
-
-    // ==========================================
-    // MOTOR DE IA - CANIVETE SUÍÇO SOC
-    // ==========================================
+   
     try {
         const controller = new AbortController(); 
         const timeout = setTimeout(() => controller.abort(), 12000); 
         let analise = null;
 
         // --- OPÇÃO 1: GOOGLE GEMINI (1.5 Flash) - ATIVADO ---
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${process.env.GEMINI_API_KEY}`, {
+       const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -376,8 +374,8 @@ EVIDÊNCIAS: ${evidenciasFortes.join(' | ')}`;
             throw new Error("Erro da API Gemini: " + JSON.stringify(data));
         }
         
-        analise = JSON.parse(data.candidates[0].content.parts[0].text);
-       
+        analise = JSON.parse(data.candidates[0].content.parts[0].text);       
+
         clearTimeout(timeout);
 
         let riscoFinal = parseInt(analise.Nivel_Risco) || localScore;
