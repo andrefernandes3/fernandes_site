@@ -359,10 +359,23 @@ EVIDÊNCIAS: ${evidenciasFortes.join(' | ')}`;
             body: JSON.stringify({
                 systemInstruction: { parts: [{ text: systemPrompt }] },
                 contents: [{ parts: [{ text: `EMAIL:\n${cleanBodyProcessed}\n\n${intelMastigada}` }] }],
-                generationConfig: { responseMimeType: "application/json", temperature: 0.1 }
+                generationConfig: { responseMimeType: "application/json", temperature: 0.1 },
+                // 🛡️ Distintivo SOC: Desliga os filtros de segurança para ele não ter medo de ler phishing!
+                safetySettings: [
+                    { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" },
+                    { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+                    { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+                    { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" }
+                ]
             }), signal: controller.signal
         });
         const data = await response.json();
+        
+        // Se o Google não devolver os candidatos, disparamos o erro real para gravar no Mongo!
+        if (!data.candidates) {
+            throw new Error("Erro da API Gemini: " + JSON.stringify(data));
+        }
+        
         analise = JSON.parse(data.candidates[0].content.parts[0].text);
 
         // --- OPÇÃO 2: GROQ (Llama 3.3 70B) - COMENTADO ---
