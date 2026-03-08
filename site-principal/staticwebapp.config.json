@@ -8,11 +8,13 @@
     },
     {
       "route": "/phish",
-      "rewrite": "/phish/index.html"
+      "redirect": "https://soc.fernandesit.com",
+      "statusCode": 301
     },
     {
       "route": "/phish/*",
-      "rewrite": "/phish/index.html"
+      "redirect": "https://soc.fernandesit.com",
+      "statusCode": 301
     }
   ],
   "navigationFallback": {
