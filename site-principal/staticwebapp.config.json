@@ -5,14 +5,6 @@
       "route": "/api/*",
       "methods": ["POST","GET"],
       "allowedRoles": ["anonymous"]
-    },
-    {
-      "route": "/",
-      "rewrite": "/phish.html",
-      "allowedRoles": ["anonymous"],
-      "headers": {
-        "X-Phishing-Host": "true"
-      }
     }
   ],
   "navigationFallback": {
@@ -21,7 +13,8 @@
       "/assets/*.{png,jpg,gif,svg,webp}",
       "/css/*",
       "/js/*",
-      "/favicon.ico"
+      "/favicon.ico",
+      "/phish/*"
     ]
   },
   "globalHeaders": {
