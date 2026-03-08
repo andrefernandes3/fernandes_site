@@ -533,15 +533,36 @@ function gerarPDF() {
     }).then(() => {
         setTimeout(() => {
             const tituloOriginal = document.title;
-            const veredito = document.getElementById('statusLabel').innerText || 'Analise';
+            
+            // 1. Pega o Veredito
+            const veredito = document.getElementById('statusLabel') ? document.getElementById('statusLabel').innerText : 'Analise';
+            
+            // 2. Tenta capturar o remetente da tela (Assumindo que você tem um elemento com ID 'remetente' ou similar)
+            // Se o ID no seu HTML for diferente, altere o 'remetenteEmail' abaixo para o ID correto
+            const elementoRemetente = document.getElementById('remetenteEmail') || document.getElementById('remetente'); 
+            let remetenteTexto = elementoRemetente ? elementoRemetente.innerText : 'Desconhecido';
+            
+            // Limpa caracteres especiais do remetente para não dar erro ao salvar no Windows/Mac
+            const remetenteLimpo = remetenteTexto.replace(/[^a-zA-Z0-9_\-\.]/g, '_').substring(0, 30);
+            
+            // 3. Formata Data e Hora
             const agora = new Date();
             const dataFormatada = agora.toISOString().slice(0, 10);
             const horaFormatada = agora.toTimeString().slice(0, 8).replace(/:/g, '-');
-            const nomeFicheiro = `Relatorio-Phishing-${veredito}_${dataFormatada}_${horaFormatada}`;
             
+            // 4. Monta o nome final corporativo
+            const nomeFicheiro = `SOC_Relatorio_${veredito}_${remetenteLimpo}_${dataFormatada}_${horaFormatada}`;
+            
+            // Aplica o título para o PDF ler
             document.title = nomeFicheiro;
             window.print();
-            document.title = tituloOriginal;
+            
+            // 5. Restaura o título original com um atraso de segurança (1.5s)
+            // Isso garante que a janela de impressão teve tempo de ler o 'nomeFicheiro'
+            setTimeout(() => {
+                document.title = tituloOriginal;
+            }, 1500);
+            
         }, 500);
     });
 }
