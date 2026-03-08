@@ -360,7 +360,7 @@ EVIDÊNCIAS: ${evidenciasFortes.join(' | ')}`;
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({                
-                model: "meta-llama/llama-3.1-8b-instruct:free", // O modelo gratuito do OpenRouter
+                model: "google/gemini-2.0-flash-001", // O modelo gratuito do OpenRouter
                 messages: [
                     { role: "system", content: systemPrompt },
                     { role: "user", content: `EMAIL:\n${cleanBodyProcessed}\n\n${intelMastigada}` }
