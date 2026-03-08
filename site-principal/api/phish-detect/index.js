@@ -343,10 +343,7 @@ module.exports = async function (context, req) {
     const intelMastigada = `ORIGEM: Nome: ${senderData.nome_exibicao} | SMTP: ${senderData.email_real} | IP: ${senderIP} | SPF: ${authDetails.spf}
 URLs (${foundUrls.length}): ${foundUrls.slice(0, 5).join('\n')}
 EVIDÊNCIAS: ${evidenciasFortes.join(' | ')}`;
-
-    // ==========================================
-    // MOTOR DE IA - CANIVETE SUÍÇO SOC
-    // ==========================================
+   
     try {
         const controller = new AbortController(); 
         const timeout = setTimeout(() => controller.abort(), 12000); 
@@ -376,37 +373,7 @@ EVIDÊNCIAS: ${evidenciasFortes.join(' | ')}`;
             throw new Error("Erro da API Gemini: " + JSON.stringify(data));
         }
         
-        analise = JSON.parse(data.candidates[0].content.parts[0].text);
-
-        // --- OPÇÃO 2: GROQ (Llama 3.3 70B) - COMENTADO ---
-        /*
-        const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${process.env.GROQ_API_KEY}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                model: "llama-3.3-70b-versatile",
-                messages: [ { role: "system", content: systemPrompt }, { role: "user", content: `EMAIL:\n${cleanBodyProcessed}\n\n${intelMastigada}` } ],
-                response_format: { type: "json_object" }, max_tokens: 300, temperature: 0.1
-            }), signal: controller.signal
-        });
-        const data = await response.json();
-        analise = JSON.parse(data.choices[0].message.content);
-        */
-
-        // --- OPÇÃO 3: OPENROUTER (Modelos 100% Gratuitos) - COMENTADO ---
-        /*
-        const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                model: "meta-llama/llama-3-8b-instruct:free",
-                messages: [ { role: "system", content: systemPrompt }, { role: "user", content: `EMAIL:\n${cleanBodyProcessed}\n\n${intelMastigada}` } ],
-                response_format: { type: "json_object" }, temperature: 0.1
-            }), signal: controller.signal
-        });
-        const data = await response.json();
-        analise = JSON.parse(data.choices[0].message.content);
-        */
+        analise = JSON.parse(data.candidates[0].content.parts[0].text);       
 
         clearTimeout(timeout);
 
