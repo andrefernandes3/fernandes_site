@@ -5,7 +5,7 @@ const { MongoClient } = require('mongodb');
 
 const memoryCache = new Map();
 // 🟢 Cache reduzido para 15 segundos para lhe permitir fazer testes rápidos
-const CACHE_TTL = 15 * 1000; 
+const CACHE_TTL = 15 * 1000;
 let cachedDb = null;
 const rateLimit = new Map();
 
@@ -29,7 +29,7 @@ async function connectDb() {
 function checkRateLimit(ip) {
     const now = Date.now();
     const windowMs = 60000;
-    const maxRequests = 20; 
+    const maxRequests = 20;
     const hashedIp = crypto.createHash('sha256').update(ip + (process.env.IP_SALT || 'default_salt')).digest('hex');
     const userRequests = rateLimit.get(hashedIp) || [];
     const recentRequests = userRequests.filter(time => now - time < windowMs);
@@ -44,14 +44,14 @@ function decodeEmailBody(text) {
     let decoded = text;
     decoded = decoded.replace(/=\r?\n/g, '');
     decoded = decoded.replace(/=([0-9A-F]{2})/gi, (match, hex) => {
-        try { return String.fromCharCode(parseInt(hex, 16)); } catch(e) { return match; }
+        try { return String.fromCharCode(parseInt(hex, 16)); } catch (e) { return match; }
     });
     const b64Regex = /Content-Transfer-Encoding:\s*base64[\s\S]*?\r?\n\r?\n([a-zA-Z0-9+/=\r\n]+)/gi;
     let match;
     while ((match = b64Regex.exec(text)) !== null) {
         let payload = match[1].replace(/[\r\n\s]+/g, '');
         if (payload.length > 50) {
-            try { decoded += '\n' + Buffer.from(payload, 'base64').toString('utf-8'); } catch(e) {}
+            try { decoded += '\n' + Buffer.from(payload, 'base64').toString('utf-8'); } catch (e) { }
         }
     }
     return decoded;
@@ -64,7 +64,7 @@ function unwrapSafeLinks(url) {
             const actualUrl = parsed.searchParams.get('url');
             if (actualUrl) return decodeURIComponent(actualUrl);
         }
-    } catch(e) {}
+    } catch (e) { }
     return url;
 }
 
@@ -72,27 +72,27 @@ function unwrapSafeLinks(url) {
 function extractUrls(text) {
     if (!text) return [];
     const urls = new Set();
-    const decodedText = decodeEmailBody(text); 
-    
-    const regexes = [ /(https?:\/\/[^\s"'>\]\)]+)/gi, /href=["']([^"']+)["']/gi ];
+    const decodedText = decodeEmailBody(text);
+
+    const regexes = [/(https?:\/\/[^\s"'>\]\)]+)/gi, /href=["']([^"']+)["']/gi];
     regexes.forEach(regex => {
         const matches = decodedText.match(regex) || [];
         matches.forEach(m => {
             try {
                 let cleanUrl = m.replace(/^href=["']/, '').replace(/["']$/, '');
-                
+
                 // CORTA LIXO: Se o remetente colou HTML mal feito (ex: site.com<mailto:...)
                 cleanUrl = cleanUrl.split('<')[0].split('>')[0].split('"')[0];
-                
+
                 cleanUrl = cleanUrl.startsWith('http') ? cleanUrl : 'http://' + cleanUrl;
                 cleanUrl = unwrapSafeLinks(cleanUrl);
-                
+
                 // Valida se é realmente um link construído e com host
-                const parsedUrl = new URL(cleanUrl); 
+                const parsedUrl = new URL(cleanUrl);
                 if (['http:', 'https:'].includes(parsedUrl.protocol) && parsedUrl.hostname.includes('.')) {
                     urls.add(cleanUrl);
                 }
-            } catch {} // Se a URL for inválida, simplesmente ignora
+            } catch { } // Se a URL for inválida, simplesmente ignora
         });
     });
     // Retorna apenas 15 links para não sobrecarregar as APIs nem o PDF
@@ -103,16 +103,16 @@ function extractAuthDetails(headers) {
     const authDetails = { spf: null, dkim: null, dmarc: null, autenticado: false, dominioAutenticado: null };
     if (!headers) return authDetails;
     const normHeaders = headers.replace(/\r?\n\s+/g, ' ');
-    
+
     const spfMatch = normHeaders.match(/spf=(pass|fail|softfail|none|neutral|permerror|temperror)/i);
     if (spfMatch) authDetails.spf = spfMatch[1].toLowerCase();
-    
+
     const dkimMatch = normHeaders.match(/dkim=(pass|fail|none)/i);
     if (dkimMatch) authDetails.dkim = dkimMatch[1].toLowerCase();
-    
+
     const dmarcMatch = normHeaders.match(/dmarc=(pass|fail|bestguesspass|none)/i);
     if (dmarcMatch) authDetails.dmarc = dmarcMatch[1].toLowerCase();
-    
+
     const dkimDomainMatch = normHeaders.match(/header\.d=([a-zA-Z0-9.-]+)/i);
     const spfDomainMatch = normHeaders.match(/smtp\.mailfrom=([a-zA-Z0-9.-]+)/i);
     authDetails.dominioAutenticado = (dkimDomainMatch?.[1] || spfDomainMatch?.[1] || '').toLowerCase();
@@ -129,7 +129,7 @@ function decodeRFC2047(text) {
                 let qText = data.replace(/_/g, ' ').replace(/=([0-9A-F]{2})/gi, (m, hex) => String.fromCharCode(parseInt(hex, 16)));
                 return Buffer.from(qText, 'binary').toString('utf-8');
             }
-        } catch (e) {}
+        } catch (e) { }
         return match;
     });
 }
@@ -147,7 +147,7 @@ function extractSender(headers) {
         let fromRaw = fromMatch[1].trim();
         let nameRaw = fromRaw.replace(/<.*?>/g, '').trim() || fromRaw;
         senderInfo.nome_exibicao = decodeRFC2047(nameRaw);
-        
+
         if (senderInfo.email_real === 'Não identificado') {
             const emailMatch = fromRaw.match(/<([^>]+)>/);
             if (emailMatch) senderInfo.email_real = emailMatch[1].trim();
@@ -192,7 +192,7 @@ module.exports = async function (context, req) {
     const { emailContent, headers } = req.body;
 
     if (!emailContent || emailContent.trim().length < 10) {
-        context.res.status = 400; 
+        context.res.status = 400;
         context.res.body = { Nivel_Risco: 0, Veredito: 'SEGURO', Motivos: ['Conteúdo insuficiente'] };
         return;
     }
@@ -208,19 +208,19 @@ module.exports = async function (context, req) {
     const senderData = extractSender(headers);
     const senderIP = extractSenderIP(headers);
     const temAnexoHTML = detectarAnexoHTML(emailContent, headers);
-    
+
     let cleanBodyProcessed = decodeEmailBody(emailContent || '').replace(/<[^>]*>?/gm, ' ').substring(0, 4000);
-    
+
     let localScore = 0;
     let evidenciasFortes = [];
 
     // ==========================================
     // MOTOR HEURÍSTICO INTERNO (Análise Estática Rápida)
     // ==========================================
-    
+
     // 1. Falha Crítica de Autenticação (Spoofing)
     if (authDetails.spf === 'fail' || authDetails.dmarc === 'fail') {
-        localScore += 35; 
+        localScore += 35;
         evidenciasFortes.push("Falha crítica de autenticação (SPF/DMARC). Alto risco de falsificação de identidade (Spoofing).");
     }
 
@@ -233,12 +233,12 @@ module.exports = async function (context, req) {
     }
 
     const smtpReal = (senderData.email_real || '').toLowerCase();
-    const isKnownESP = smtpReal.includes('bounce') || 
-                       smtpReal.includes('amazonses.com') || 
-                       smtpReal.includes('sendgrid') || 
-                       smtpReal.includes('mailgun') ||
-                       smtpReal.includes('mandrillapp') ||
-                       smtpReal.includes('mailchimp');
+    const isKnownESP = smtpReal.includes('bounce') ||
+        smtpReal.includes('amazonses.com') ||
+        smtpReal.includes('sendgrid') ||
+        smtpReal.includes('mailgun') ||
+        smtpReal.includes('mandrillapp') ||
+        smtpReal.includes('mailchimp');
 
     const isAuthenticatedESP = authDetails.dmarc === 'pass' && isKnownESP;
 
@@ -262,12 +262,12 @@ module.exports = async function (context, req) {
     const remetenteNome = (senderData.nome_exibicao || '').toLowerCase();
     const dominioRemetente = (authDetails.dominioAutenticado || '').toLowerCase();
     const dominiosGratuitos = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com'];
-    
+
     if ((remetenteNome.includes('microsoft') || remetenteNome.includes('bradesco') || remetenteNome.includes('suporte')) && dominiosGratuitos.includes(dominioRemetente)) {
         localScore += 40;
         evidenciasFortes.push(`O remetente diz ser corporativo (${senderData.nome_exibicao}), mas está a usar um e-mail gratuito (${dominioRemetente}).`);
     }
-    
+
     const evidenciasLeves = [];
 
     if (temAnexoHTML) { localScore += 50; evidenciasFortes.push('Anexo HTML detetado - técnica comum de clone de login'); }
@@ -282,15 +282,15 @@ module.exports = async function (context, req) {
     // 🟢 INTEGRAÇÃO 1: urlscan.io (Raio-X visual)
     let urlscanUuid = null;
     let primeiraUrlValida = null;
-    
+
     if (foundUrls && foundUrls.length > 0) {
         const urlsParaEscanear = foundUrls.filter(u => {
             const l = u.toLowerCase();
             return !l.includes('w3.org') && !l.includes('schema.org') && !l.endsWith('.png') && !l.endsWith('.jpg');
         });
-        
+
         primeiraUrlValida = urlsParaEscanear.length > 0 ? urlsParaEscanear[0] : foundUrls[0];
-        
+
         if (process.env.URLSCAN_API_KEY) {
             try {
                 let urlLimpa = primeiraUrlValida;
@@ -319,7 +319,7 @@ module.exports = async function (context, req) {
         try {
             const urlObj = new URL(primeiraUrlValida);
             const dominioAlvo = urlObj.hostname;
-            
+
             const vtResponse = await fetch(`https://www.virustotal.com/api/v3/domains/${dominioAlvo}`, {
                 method: 'GET',
                 headers: { 'x-apikey': process.env.VT_API_KEY }
@@ -328,14 +328,14 @@ module.exports = async function (context, req) {
             if (vtResponse.ok) {
                 const vtData = await vtResponse.json();
                 virusTotalStats = vtData.data.attributes.last_analysis_stats;
-                
+
                 if (virusTotalStats.malicious > 0) {
                     localScore += 60;
                     evidenciasFortes.push(`VirusTotal sinalizou o domínio (${dominioAlvo}) como MALICIOSO.`);
                 }
             } else if (vtResponse.status === 404) {
                 virusTotalStats = { fantasma: true, dominio: dominioAlvo };
-                localScore += 35; 
+                localScore += 35;
                 evidenciasFortes.push(`O domínio (${dominioAlvo}) não tem histórico no VirusTotal (Possível domínio recém-criado para fraude).`);
             }
         } catch (e) { console.error('Falha no VirusTotal:', e); }
@@ -349,36 +349,36 @@ EVIDÊNCIAS: ${evidenciasFortes.join(' | ')}`;
     // MOTOR DE IA - OPENROUTER (Llama 3 Instruct Free)
     // ==========================================
     try {
-        const controller = new AbortController(); 
-        const timeout = setTimeout(() => controller.abort(), 12000); 
-        let analise = null;      
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 12000);
+        let analise = null;
 
         const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
             method: 'POST',
-            headers: { 
-                'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`, 
-                'Content-Type': 'application/json' 
+            headers: {
+                'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+                'Content-Type': 'application/json'
             },
-            body: JSON.stringify({
-                model: "meta-llama/llama-3-8b-instruct:free", // O modelo gratuito do OpenRouter
-                messages: [ 
-                    { role: "system", content: systemPrompt }, 
-                    { role: "user", content: `EMAIL:\n${cleanBodyProcessed}\n\n${intelMastigada}` } 
+            body: JSON.stringify({                
+                model: "meta-llama/llama-3.1-8b-instruct:free",, // O modelo gratuito do OpenRouter
+                messages: [
+                    { role: "system", content: systemPrompt },
+                    { role: "user", content: `EMAIL:\n${cleanBodyProcessed}\n\n${intelMastigada}` }
                 ],
-                response_format: { type: "json_object" }, 
+                response_format: { type: "json_object" },
                 temperature: 0.1
-            }), 
+            }),
             signal: controller.signal
         });
-        
+
         const data = await response.json();
-        
+
         // Proteção contra erros da API do OpenRouter
         if (data.error) {
             throw new Error("Erro da API OpenRouter: " + JSON.stringify(data.error));
         }
-        
-        analise = JSON.parse(data.choices[0].message.content);      
+
+        analise = JSON.parse(data.choices[0].message.content);
 
         clearTimeout(timeout);
 
@@ -386,17 +386,17 @@ EVIDÊNCIAS: ${evidenciasFortes.join(' | ')}`;
         if (evidenciasFortes.length > 0) riscoFinal = Math.max(riscoFinal, 80);
 
         const respostaCompleta = {
-            Nivel_Risco: riscoFinal, 
+            Nivel_Risco: riscoFinal,
             Veredito: riscoFinal >= 80 ? 'PERIGOSO' : (riscoFinal >= 40 ? 'SUSPEITO' : 'SEGURO'),
-            Motivos: analise.Motivos || evidenciasFortes, 
+            Motivos: analise.Motivos || evidenciasFortes,
             Recomendacao: analise.Recomendacao || 'Analise.',
             detalhes_autenticacao: { spf: authDetails.spf, dkim: authDetails.dkim, dmarc: authDetails.dmarc, dominio_autenticado: authDetails.dominioAutenticado },
-            remetente: senderData.nome_exibicao, 
-            return_path: senderData.email_real, 
-            ip_remetente: senderIP, 
+            remetente: senderData.nome_exibicao,
+            return_path: senderData.email_real,
+            ip_remetente: senderIP,
             anexo_html: temAnexoHTML,
-            dominio_oficial: analise.dominio_oficial || 'N/A', 
-            urls_encontradas: foundUrls, 
+            dominio_oficial: analise.dominio_oficial || 'N/A',
+            urls_encontradas: foundUrls,
             urlscan_uuid: urlscanUuid,
             vt_stats: virusTotalStats
         };
@@ -407,22 +407,22 @@ EVIDÊNCIAS: ${evidenciasFortes.join(' | ')}`;
         } catch (e) { console.error("Erro MongoDB:", e) }
 
         memoryCache.set(cacheKey, { data: respostaCompleta, timestamp: Date.now() });
-        context.res.status = 200; 
+        context.res.status = 200;
         context.res.body = respostaCompleta;
 
     } catch (error) {
-        context.res.status = 200; 
-        const falhaCompleta = { 
-            Nivel_Risco: localScore, Veredito: localScore >= 80 ? 'PERIGOSO' : (localScore >= 40 ? 'SUSPEITO' : 'SEGURO'), 
+        context.res.status = 200;
+        const falhaCompleta = {
+            Nivel_Risco: localScore, Veredito: localScore >= 80 ? 'PERIGOSO' : (localScore >= 40 ? 'SUSPEITO' : 'SEGURO'),
             Motivos: evidenciasFortes.length > 0 ? evidenciasFortes : ['Análise Heurística Rápida'], Recomendacao: 'Motor de IA inativo ou excedeu limite.',
             detalhes_autenticacao: { spf: authDetails.spf, dkim: authDetails.dkim, dmarc: authDetails.dmarc, dominio_autenticado: authDetails.dominioAutenticado },
             remetente: senderData.nome_exibicao, return_path: senderData.email_real, ip_remetente: senderIP, anexo_html: temAnexoHTML,
-            urls_encontradas: foundUrls, urlscan_uuid: urlscanUuid , vt_stats: virusTotalStats
+            urls_encontradas: foundUrls, urlscan_uuid: urlscanUuid, vt_stats: virusTotalStats
         };
         try {
             const db = await connectDb();
             await db.collection('analises_phishing').insertOne({ data_analise: new Date(), ip_cliente: clientIp, remetente_analisado: senderData.email_real, resultado: falhaCompleta, ia_utilizada: false, erro_gerado: error.message });
-        } catch (e) {}
+        } catch (e) { }
         context.res.body = falhaCompleta;
     }
 };
