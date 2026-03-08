@@ -534,37 +534,34 @@ function gerarPDF() {
         setTimeout(() => {
             const tituloOriginal = document.title;
             
-            // 1. Captura o Veredito (PERIGOSO, SUSPEITO, SEGURO)
-            const veredito = document.getElementById('statusLabel')?.innerText || 'Analise';
+            // 1. Pega o Veredito
+            const veredito = document.getElementById('statusLabel') ? document.getElementById('statusLabel').innerText : 'Analise';
             
-            // 2. Captura o Remetente da tela (Lógica aprimorada)
-            // Tenta pegar o elemento que exibimos na tela de resultados
-            const elementoRemetente = document.getElementById('nomeRemetente') || document.getElementById('remetente');
+            // 2. Tenta capturar o remetente da tela (Assumindo que você tem um elemento com ID 'remetente' ou similar)
+            // Se o ID no seu HTML for diferente, altere o 'remetenteEmail' abaixo para o ID correto
+            const elementoRemetente = document.getElementById('nomeRemetente') || document.getElementById('remetente'); 
             let remetenteTexto = elementoRemetente ? elementoRemetente.innerText : 'Desconhecido';
             
-            // Limpa o nome para o sistema de arquivos (remove espaços extras e caracteres inválidos)
-            const remetenteLimpo = remetenteTexto
-                .replace(/["']/g, '') // Remove aspas que sobraram
-                .replace(/[^a-zA-Z0-9_\-\.]/g, '_') // Troca símbolos por _
-                .substring(0, 30) // Limita tamanho
-                .trim();
+            // Limpa caracteres especiais do remetente para não dar erro ao salvar no Windows/Mac
+            const remetenteLimpo = remetenteTexto.replace(/[^a-zA-Z0-9_\-\.]/g, '_').substring(0, 30);
             
-            // 3. Formata Data e Hora para o padrão SOC
+            // 3. Formata Data e Hora
             const agora = new Date();
-            const dataFormatada = agora.toISOString().slice(0, 10); // YYYY-MM-DD
+            const dataFormatada = agora.toISOString().slice(0, 10);
             const horaFormatada = agora.toTimeString().slice(0, 8).replace(/:/g, '-');
             
-            // 4. Monta o Nome do Arquivo conforme o padrão profissional
+            // 4. Monta o nome final corporativo
             const nomeFicheiro = `SOC_Relatorio_${veredito}_${remetenteLimpo}_${dataFormatada}_${horaFormatada}`;
             
-            // 5. Aplica e dispara a impressão
+            // Aplica o título para o PDF ler
             document.title = nomeFicheiro;
             window.print();
             
-            // Restaura o título após a janela de impressão abrir (delay de segurança)
+            // 5. Restaura o título original com um atraso de segurança (1.5s)
+            // Isso garante que a janela de impressão teve tempo de ler o 'nomeFicheiro'
             setTimeout(() => {
                 document.title = tituloOriginal;
-            }, 2000);
+            }, 1500);
             
         }, 500);
     });
