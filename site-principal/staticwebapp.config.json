@@ -3,13 +3,16 @@
   "routes": [
     {
       "route": "/api/*",
-      "methods": [
-        "POST",
-        "GET"
-      ],
-      "allowedRoles": [
-        "anonymous"
-      ]
+      "methods": ["POST","GET"],
+      "allowedRoles": ["anonymous"]
+    },
+    {
+      "route": "/",
+      "rewrite": "/phish.html",
+      "allowedRoles": ["anonymous"],
+      "headers": {
+        "X-Phishing-Host": "true"
+      }
     }
   ],
   "navigationFallback": {
