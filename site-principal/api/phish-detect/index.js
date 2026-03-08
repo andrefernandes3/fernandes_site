@@ -1,5 +1,4 @@
-// 🟢 Usar no Grok
-
+// 🟢 Usar OpenRouter
 const fetch = require('node-fetch');
 const crypto = require('crypto');
 const { MongoClient } = require('mongodb');
@@ -347,21 +346,21 @@ URLs (${foundUrls.length}): ${foundUrls.slice(0, 5).join('\n')}
 EVIDÊNCIAS: ${evidenciasFortes.join(' | ')}`;
 
     // ==========================================
-    // MOTOR DE IA - GROQ (Llama 3)
+    // MOTOR DE IA - OPENROUTER (Llama 3 Instruct Free)
     // ==========================================
     try {
         const controller = new AbortController(); 
         const timeout = setTimeout(() => controller.abort(), 12000); 
-        let analise = null;
+        let analise = null;      
 
-        const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
             method: 'POST',
             headers: { 
-                'Authorization': `Bearer ${process.env.GROQ_API_KEY}`, 
+                'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`, 
                 'Content-Type': 'application/json' 
             },
             body: JSON.stringify({
-                model: "llama-3.3-70b-versatile",
+                model: "meta-llama/llama-3-8b-instruct:free", // O modelo gratuito do OpenRouter
                 messages: [ 
                     { role: "system", content: systemPrompt }, 
                     { role: "user", content: `EMAIL:\n${cleanBodyProcessed}\n\n${intelMastigada}` } 
@@ -374,13 +373,13 @@ EVIDÊNCIAS: ${evidenciasFortes.join(' | ')}`;
         
         const data = await response.json();
         
-        // Verifica se a Groq devolveu algum erro (ex: limite de tokens)
+        // Proteção contra erros da API do OpenRouter
         if (data.error) {
-            throw new Error("Erro da API Groq: " + JSON.stringify(data.error));
+            throw new Error("Erro da API OpenRouter: " + JSON.stringify(data.error));
         }
         
-        analise = JSON.parse(data.choices[0].message.content);
-       
+        analise = JSON.parse(data.choices[0].message.content);      
+
         clearTimeout(timeout);
 
         let riscoFinal = parseInt(analise.Nivel_Risco) || localScore;

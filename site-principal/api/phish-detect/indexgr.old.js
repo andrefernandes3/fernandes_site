@@ -1,3 +1,5 @@
+// 🟢 Usar no Grok
+
 const fetch = require('node-fetch');
 const crypto = require('crypto');
 const { MongoClient } = require('mongodb');
@@ -345,27 +347,40 @@ URLs (${foundUrls.length}): ${foundUrls.slice(0, 5).join('\n')}
 EVIDÊNCIAS: ${evidenciasFortes.join(' | ')}`;
 
     // ==========================================
-    // MOTOR DE IA - CANIVETE SUÍÇO SOC
+    // MOTOR DE IA - GROQ (Llama 3)
     // ==========================================
     try {
         const controller = new AbortController(); 
         const timeout = setTimeout(() => controller.abort(), 12000); 
-        let analise = null;      
+        let analise = null;
 
-        // --- OPÇÃO 3: OPENROUTER (Modelos 100% Gratuitos) - COMENTADO ---
-       
-        const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
             method: 'POST',
-            headers: { 'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`, 'Content-Type': 'application/json' },
+            headers: { 
+                'Authorization': `Bearer ${process.env.GROQ_API_KEY}`, 
+                'Content-Type': 'application/json' 
+            },
             body: JSON.stringify({
-                model: "meta-llama/llama-3-8b-instruct:free",
-                messages: [ { role: "system", content: systemPrompt }, { role: "user", content: `EMAIL:\n${cleanBodyProcessed}\n\n${intelMastigada}` } ],
-                response_format: { type: "json_object" }, temperature: 0.1
-            }), signal: controller.signal
+                model: "llama-3.3-70b-versatile",
+                messages: [ 
+                    { role: "system", content: systemPrompt }, 
+                    { role: "user", content: `EMAIL:\n${cleanBodyProcessed}\n\n${intelMastigada}` } 
+                ],
+                response_format: { type: "json_object" }, 
+                temperature: 0.1
+            }), 
+            signal: controller.signal
         });
+        
         const data = await response.json();
-        analise = JSON.parse(data.choices[0].message.content);      
-
+        
+        // Verifica se a Groq devolveu algum erro (ex: limite de tokens)
+        if (data.error) {
+            throw new Error("Erro da API Groq: " + JSON.stringify(data.error));
+        }
+        
+        analise = JSON.parse(data.choices[0].message.content);
+       
         clearTimeout(timeout);
 
         let riscoFinal = parseInt(analise.Nivel_Risco) || localScore;
