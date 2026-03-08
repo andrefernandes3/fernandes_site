@@ -353,7 +353,7 @@ EVIDÊNCIAS: ${evidenciasFortes.join(' | ')}`;
         let analise = null;
 
         // --- OPÇÃO 1: GOOGLE GEMINI (1.5 Flash) - ATIVADO ---
-       const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`, {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${process.env.GEMINI_API_KEY}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -377,37 +377,7 @@ EVIDÊNCIAS: ${evidenciasFortes.join(' | ')}`;
         }
         
         analise = JSON.parse(data.candidates[0].content.parts[0].text);
-
-        // --- OPÇÃO 2: GROQ (Llama 3.3 70B) - COMENTADO ---
-        /*
-        const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${process.env.GROQ_API_KEY}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                model: "llama-3.3-70b-versatile",
-                messages: [ { role: "system", content: systemPrompt }, { role: "user", content: `EMAIL:\n${cleanBodyProcessed}\n\n${intelMastigada}` } ],
-                response_format: { type: "json_object" }, max_tokens: 300, temperature: 0.1
-            }), signal: controller.signal
-        });
-        const data = await response.json();
-        analise = JSON.parse(data.choices[0].message.content);
-        */
-
-        // --- OPÇÃO 3: OPENROUTER (Modelos 100% Gratuitos) - COMENTADO ---
-        /*
-        const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                model: "meta-llama/llama-3-8b-instruct:free",
-                messages: [ { role: "system", content: systemPrompt }, { role: "user", content: `EMAIL:\n${cleanBodyProcessed}\n\n${intelMastigada}` } ],
-                response_format: { type: "json_object" }, temperature: 0.1
-            }), signal: controller.signal
-        });
-        const data = await response.json();
-        analise = JSON.parse(data.choices[0].message.content);
-        */
-
+       
         clearTimeout(timeout);
 
         let riscoFinal = parseInt(analise.Nivel_Risco) || localScore;

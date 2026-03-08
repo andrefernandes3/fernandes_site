@@ -350,51 +350,10 @@ EVIDÊNCIAS: ${evidenciasFortes.join(' | ')}`;
     try {
         const controller = new AbortController(); 
         const timeout = setTimeout(() => controller.abort(), 12000); 
-        let analise = null;
-
-        // --- OPÇÃO 1: GOOGLE GEMINI (1.5 Flash) - ATIVADO ---
-       const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                systemInstruction: { parts: [{ text: systemPrompt }] },
-                contents: [{ parts: [{ text: `EMAIL:\n${cleanBodyProcessed}\n\n${intelMastigada}` }] }],
-                generationConfig: { responseMimeType: "application/json", temperature: 0.1 },
-                // 🛡️ Distintivo SOC: Desliga os filtros de segurança para ele não ter medo de ler phishing!
-                safetySettings: [
-                    { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" },
-                    { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
-                    { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
-                    { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" }
-                ]
-            }), signal: controller.signal
-        });
-        const data = await response.json();
-        
-        // Se o Google não devolver os candidatos, disparamos o erro real para gravar no Mongo!
-        if (!data.candidates) {
-            throw new Error("Erro da API Gemini: " + JSON.stringify(data));
-        }
-        
-        analise = JSON.parse(data.candidates[0].content.parts[0].text);
-
-        // --- OPÇÃO 2: GROQ (Llama 3.3 70B) - COMENTADO ---
-        /*
-        const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${process.env.GROQ_API_KEY}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                model: "llama-3.3-70b-versatile",
-                messages: [ { role: "system", content: systemPrompt }, { role: "user", content: `EMAIL:\n${cleanBodyProcessed}\n\n${intelMastigada}` } ],
-                response_format: { type: "json_object" }, max_tokens: 300, temperature: 0.1
-            }), signal: controller.signal
-        });
-        const data = await response.json();
-        analise = JSON.parse(data.choices[0].message.content);
-        */
+        let analise = null;      
 
         // --- OPÇÃO 3: OPENROUTER (Modelos 100% Gratuitos) - COMENTADO ---
-        /*
+       
         const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`, 'Content-Type': 'application/json' },
@@ -405,8 +364,7 @@ EVIDÊNCIAS: ${evidenciasFortes.join(' | ')}`;
             }), signal: controller.signal
         });
         const data = await response.json();
-        analise = JSON.parse(data.choices[0].message.content);
-        */
+        analise = JSON.parse(data.choices[0].message.content);      
 
         clearTimeout(timeout);
 
