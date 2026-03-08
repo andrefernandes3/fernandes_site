@@ -539,7 +539,7 @@ function gerarPDF() {
             
             // 2. Tenta capturar o remetente da tela (Assumindo que você tem um elemento com ID 'remetente' ou similar)
             // Se o ID no seu HTML for diferente, altere o 'remetenteEmail' abaixo para o ID correto
-            const elementoRemetente = document.getElementById('remetenteEmail') || document.getElementById('remetente'); 
+            const elementoRemetente = document.getElementById('nomeRemetente') || document.getElementById('remetente'); 
             let remetenteTexto = elementoRemetente ? elementoRemetente.innerText : 'Desconhecido';
             
             // Limpa caracteres especiais do remetente para não dar erro ao salvar no Windows/Mac
