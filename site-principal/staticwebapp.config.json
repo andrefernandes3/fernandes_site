@@ -5,6 +5,14 @@
       "route": "/api/*",
       "methods": ["POST","GET"],
       "allowedRoles": ["anonymous"]
+    },
+    {
+      "route": "/phish",
+      "rewrite": "/phish/index.html"
+    },
+    {
+      "route": "/phish/*",
+      "rewrite": "/phish/index.html"
     }
   ],
   "navigationFallback": {
