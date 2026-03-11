@@ -321,7 +321,7 @@ function criarDetalhesAdicionais(res, dominioReal, dominioFalso, nomeLimpo) {
                         
                         <div id="loadingPrint_${res.urlscan_uuid}" style="position: absolute; text-align: center; color: #00bcd4; z-index: 1;">
                             <div class="spinner-border mb-3" role="status" style="width: 3rem; height: 3rem;"></div>
-                            <h5>A processar captura de ecrã...</h5>
+                            <h5>Processando a captura de tela...</h5>
                             <small class="text-muted">(A nuvem pode demorar até 60 segundos)</small>
                         </div>
 
