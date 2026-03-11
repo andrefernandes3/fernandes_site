@@ -299,7 +299,7 @@ function criarDetalhesAdicionais(res, dominioReal, dominioFalso, nomeLimpo) {
             <div class="row mt-4">
                 <div class="col-12">
                     <h4><i class="bi bi-globe text-secondary"></i> URLs e Links Detetados</h4>
-                    <p class="text-muted mt-2">Nenhum link web encontrado no corpo deste e-mail.</p>
+                    <p class="text-light mt-2">Nenhum link web encontrado no corpo deste e-mail.</p>
                 </div>
             </div>
         `;
