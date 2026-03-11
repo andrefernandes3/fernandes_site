@@ -315,7 +315,7 @@ function criarDetalhesAdicionais(res, dominioReal, dominioFalso, nomeLimpo) {
                 <div class="col-12">
                     <h4><i class="bi bi-camera text-primary"></i> Sandbox: Evidência Visual</h4>
                     <p class="text-info mb-3" style="font-size: 0.95em;">
-                        <i class="bi bi-shield-check me-1"></i> Captura de ecrã segura gerada em ambiente isolado (urlscan.io).
+                        <i class="bi bi-shield-check me-1"></i> Captura de tela gerada em ambiente isolado (urlscan.io).
                     </p>
                     <div class="sandbox-container" style="background: #111; border: 1px solid #444; border-radius: 8px; overflow: hidden; position: relative; min-height: 350px; display: flex; align-items: center; justify-content: center;">
                         
