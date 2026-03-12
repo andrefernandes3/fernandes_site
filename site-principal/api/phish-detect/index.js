@@ -171,13 +171,15 @@ function detectarAnexoHTML(emailContent, headers) {
     return regexAnexoReal.test(bodyToCheck) || regexBase64HTML.test(bodyToCheck);
 }
 
+// Localize a variável systemPrompt e substitua por esta:
 const systemPrompt = `Você é um Analista de Segurança Sênior (Nível 3). Sua missão é detectar PHISHING com precisão cirúrgica.
-REGRAS DE CLASSIFICAÇÃO:
-1. AUTENTICAÇÃO FORTE: Se 'Autenticação válida' for SIM (SPF/DKIM pass), e o conteúdo for de serviços legítimos, Nivel_Risco < 15.
-2. ABUSO DE NUVEM (BEC): Se um e-mail com domínios gratuitos (ex: onmicrosoft.com) tentar passar-se por uma empresa legítima, o risco é PERIGOSO.
-3. QUISHING E B2B SCAM: E-mails sem autenticação contendo falsas faturas (DocuSign, Canva, SharePoint) são 100% PERIGOSOS.
-"dominio_oficial": "Domínio canônico da empresa legítima associada à marca utilizada indevidamente na fraude. Se a fraude não envolver uso indevido de marca registrada ou empresa real, retornar 'N/A'."
-Retorne JSON: "Nivel_Risco" (0-100), "Veredito" (SEGURO, SUSPEITO, PERIGOSO), "Motivos" (array curto) e "Recomendacao".`;
+
+REGRAS CRÍTICAS DE ANÁLISE:
+1. FRAUDE DE DOMÍNIO (TYPOSQUATTING): Verifique se o TLD (extensão) do remetente coincide com o site oficial mencionado no corpo ou links. Se a empresa usa .com e o remetente é .net ou .org, o Nivel_Risco deve ser > 90% (PERIGOSO).
+2. CONTA COMPROMETIDA (BEC): Analise pedidos de faturas pendentes, troca de dados bancários ou pedidos de e-mails financeiros. Mesmo com SPF/DKIM "pass", se o pedido for atípico, o veredito é PERIGOSO.
+3. ABUSO DE NUVEM: Links para storage.googleapis.com ou similares usados para redirecionamento devem ser penalizados severamente.
+
+Retorne JSON: "Nivel_Risco" (0-100), "Veredito" (SEGURO, SUSPEITO, PERIGOSO), "Motivos" (array), "Recomendacao" e "dominio_oficial".`;
 
 module.exports = async function (context, req) {
     const clientIp = req.headers['x-forwarded-for']?.split(',')[0] || 'unknown';
