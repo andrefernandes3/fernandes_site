@@ -55,6 +55,11 @@ function exibirResultados(res) {
     // 🚨 1. INTERCEPTADOR SUPREMO (A Matemática atua ANTES do HTML)
     // ==========================================
     const nomeLimpo = res.remetente ? res.remetente.replace(/["']/g, '') : 'Desconhecido';
+
+    const labelNome = document.getElementById('nomeRemetente');
+    if (labelNome) {
+        labelNome.textContent = nomeLimpo;
+    }
     
     let dominioBruto = res.detalhes_autenticacao?.dominio_autenticado;
     if (!dominioBruto || dominioBruto === 'N/A' || !dominioBruto.includes('.')) {
